@@ -14,15 +14,15 @@ export const Navbar: React.FC = () => {
     { name: "Inicio", href: "/" },
     { name: "Servicios", href: "#servicios" },
     { name: "Calculadora", href: "#calculadora" },
-    { name: "Cobertura", href: "#cobertura" },
     { name: "Promociones", href: "#promociones" },
+    { name: "Nosotros", href: "#nosotros" },
   ];
 
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          {/* Logo (Increased size per PDF requirements 1.1) */}
+          {/* Logo */}
           <Link href="/" className="flex items-center gap-3 shrink-0">
             <img
               src="/beebox-logo.jpg"
@@ -34,17 +34,17 @@ export const Navbar: React.FC = () => {
           {/* Desktop Navigation Links */}
           <nav className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
-              <Link
+              <a
                 key={link.name}
                 href={link.href}
                 className="text-xs font-black uppercase tracking-wider text-slate-600 hover:text-slate-950 transition-colors"
               >
                 {link.name}
-              </Link>
+              </a>
             ))}
           </nav>
 
-          {/* Explicit Header Auth CTA Buttons (Iniciar Sesión / Registro Demo) */}
+          {/* Explicit Header Auth CTA Buttons */}
           <div className="hidden md:flex items-center gap-3">
             <Link href="/login">
               <button className="px-5 py-2.5 rounded-2xl border-2 border-slate-200 hover:border-amber-500 text-slate-800 hover:text-slate-950 text-xs font-extrabold uppercase tracking-wider transition-all flex items-center gap-1.5">
@@ -76,14 +76,14 @@ export const Navbar: React.FC = () => {
         <div className="md:hidden bg-white border-b border-slate-200 px-6 py-6 space-y-4 animate-in slide-in-from-top-2">
           <nav className="flex flex-col space-y-3">
             {navLinks.map((link) => (
-              <Link
+              <a
                 key={link.name}
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
                 className="text-sm font-bold text-slate-700 hover:text-slate-950 py-2 border-b border-slate-100"
               >
                 {link.name}
-              </Link>
+              </a>
             ))}
           </nav>
 
