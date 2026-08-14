@@ -10,6 +10,12 @@ const config: Config = {
     extend: {
       colors: {
         beebox: {
+          yellow: {
+            300: "#FDE047",
+            400: "#FACC15",
+            500: "#F59E0B",
+            600: "#D97706",
+          },
           navy: {
             950: "#080D1A",
             900: "#0F172A",
@@ -17,14 +23,9 @@ const config: Config = {
             700: "#334155",
           },
           amber: {
-            400: "#FBBF24",
+            400: "#FACC15",
             500: "#F59E0B",
             600: "#D97706",
-          },
-          cyan: {
-            400: "#22D3EE",
-            500: "#06B6D4",
-            600: "#0891B2",
           },
         },
       },
