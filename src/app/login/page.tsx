@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Box, Mail, Lock, ArrowRight, UserCheck } from "lucide-react";
+import { Mail, Lock, ArrowRight, UserCheck } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
 
@@ -27,13 +27,12 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-4">
-        <Link href="/" className="inline-flex items-center gap-2">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
-            <Box className="w-7 h-7 text-slate-950 stroke-[2.5]" />
-          </div>
-          <span className="text-2xl font-black tracking-tight text-slate-900">
-            BEE<span className="text-amber-500">BOX</span>
-          </span>
+        <Link href="/" className="inline-block">
+          <img
+            src="/beebox-logo.jpg"
+            alt="Beebox Logo"
+            className="h-14 w-auto object-contain mx-auto"
+          />
         </Link>
         <h2 className="text-2xl font-black text-slate-900 tracking-tight">Iniciar Sesión</h2>
         <p className="text-xs text-slate-500">Accede a tu casillero internacional y rastreo de envíos</p>

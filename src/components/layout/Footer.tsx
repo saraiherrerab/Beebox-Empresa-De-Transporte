@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { Box, Phone, Mail, MapPin, Shield, ArrowRight } from "lucide-react";
+import { Phone, Mail, MapPin, Shield, ArrowRight } from "lucide-react";
 import { COMPANY_INFO, NAV_LINKS, SERVICES_LIST } from "@/constants";
 
 export const Footer: React.FC = () => {
@@ -10,16 +10,15 @@ export const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-slate-800/80">
           {/* Col 1 & 2: Brand Info */}
           <div className="lg:col-span-2 space-y-5">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-beebox-amber-500 flex items-center justify-center shadow-lg shadow-beebox-amber-500/20">
-                <Box className="w-5 h-5 text-beebox-navy-950 stroke-[2.5]" />
-              </div>
-              <span className="text-2xl font-extrabold tracking-tight text-white">
-                BEE<span className="text-beebox-amber-500">BOX</span>
-              </span>
-            </div>
+            <Link href="/" className="block">
+              <img
+                src="/beebox-logo.jpg"
+                alt="Beebox Logo"
+                className="h-12 w-auto object-contain bg-white p-1.5 rounded-xl shadow-md"
+              />
+            </Link>
             <p className="text-sm text-slate-400 leading-relaxed max-w-sm">
-              Empresa líder en soluciones de transporte terrestre, logística de distribución, carga consolidada y gestión de última milla a lo largo de todo Chile.
+              Empresa líder en soluciones de casillero internacional, transporte terrestre, logística de distribución y gestión de última milla.
             </p>
             <div className="space-y-2.5 text-xs text-slate-300">
               <div className="flex items-center gap-3">
@@ -70,7 +69,7 @@ export const Footer: React.FC = () => {
           <div>
             <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4">Cobertura</h3>
             <p className="text-xs text-slate-400 leading-relaxed mb-4">
-              Centros de distribución propios y red logística interconectada de Arica a Punta Arenas.
+              Almacenes en Miami, Madrid, Shenzhen y red logística integrada de Arica a Punta Arenas.
             </p>
             <div className="rounded-xl border border-slate-800 bg-beebox-navy-900/60 p-3.5 space-y-2">
               <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400">
@@ -78,7 +77,7 @@ export const Footer: React.FC = () => {
                 Monitoreo GPS 24/7
               </div>
               <p className="text-[11px] text-slate-400">
-                Unidades equipadas con corta-combustible a distancia y cámaras en cabina.
+                Seguimiento en tiempo real y trámites aduanales garantizados.
               </p>
             </div>
           </div>

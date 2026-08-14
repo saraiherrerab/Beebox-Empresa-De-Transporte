@@ -4,7 +4,6 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Box,
   LayoutDashboard,
   Package,
   Truck,
@@ -31,19 +30,13 @@ export const Sidebar: React.FC = () => {
   return (
     <aside className="w-64 bg-white border-r border-slate-200 min-h-screen flex flex-col justify-between p-6 shrink-0">
       <div className="space-y-8">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center shadow-md shadow-amber-500/20">
-            <Box className="w-6 h-6 text-slate-950 stroke-[2.5]" />
-          </div>
-          <div>
-            <span className="text-xl font-extrabold tracking-tight text-slate-900 flex items-center gap-1">
-              BEE<span className="text-amber-500">BOX</span>
-            </span>
-            <span className="text-[9px] tracking-widest uppercase font-bold text-slate-400 block -mt-1">
-              A Swarm of Quality
-            </span>
-          </div>
+        {/* Official Logo Image */}
+        <Link href="/" className="block">
+          <img
+            src="/beebox-logo.jpg"
+            alt="Beebox Logo"
+            className="h-12 w-auto object-contain"
+          />
         </Link>
 
         {/* Navigation Items */}
