@@ -9,8 +9,30 @@
   }
 
   body {
-    @apply bg-slate-50 text-slate-900 antialiased min-h-screen selection:bg-amber-500 selection:text-slate-950 font-sans;
+    @apply bg-slate-50 text-slate-900 antialiased min-h-screen selection:bg-amber-400 selection:text-slate-950 font-sans;
   }
+}
+
+/* Force Pure Bright Beebox Yellow Overrides (#FFC107 / #FFD600) - 0% Orange */
+.bg-amber-500,
+.bg-beebox-amber-500 {
+  background-color: #FFC107 !important;
+}
+
+.bg-amber-600,
+.bg-beebox-amber-600 {
+  background-color: #EAB308 !important;
+}
+
+.text-amber-500,
+.text-amber-600,
+.text-beebox-amber-500 {
+  color: #D97706 !important;
+}
+
+.border-amber-500,
+.border-amber-400 {
+  border-color: #FFC107 !important;
 }
 
 /* Custom background patterns and glassmorphism helpers */
@@ -47,5 +69,5 @@ nextjs-portal,
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #F59E0B;
+  background: #FFC107;
 }

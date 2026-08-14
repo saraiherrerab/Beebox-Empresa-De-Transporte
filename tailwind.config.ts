@@ -9,12 +9,24 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Override amber palette with pure crisp Beebox Yellow (#FFC107 / #FFD600)
+        amber: {
+          50: "#FEFCE8",
+          100: "#FEF9C3",
+          200: "#FEF08A",
+          300: "#FDE047",
+          400: "#FACC15",
+          500: "#FFC107", // PURE BRIGHT YELLOW (No orange!)
+          600: "#EAB308", // BRIGHT GOLDEN YELLOW
+          700: "#CA8A04",
+          800: "#A16207",
+          900: "#854D0E",
+        },
         beebox: {
           yellow: {
-            300: "#FDE047",
             400: "#FACC15",
-            500: "#F59E0B",
-            600: "#D97706",
+            500: "#FFC107",
+            600: "#EAB308",
           },
           navy: {
             950: "#080D1A",
@@ -24,8 +36,8 @@ const config: Config = {
           },
           amber: {
             400: "#FACC15",
-            500: "#F59E0B",
-            600: "#D97706",
+            500: "#FFC107",
+            600: "#EAB308",
           },
         },
       },
