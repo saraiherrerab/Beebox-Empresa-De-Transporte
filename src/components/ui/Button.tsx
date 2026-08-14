@@ -39,7 +39,7 @@ export const Button: React.FC<ButtonProps> = ({
   return (
     <button
       className={twMerge(clsx(baseStyles, variants[variant], sizes[size], className))}
-      ...props
+      {...props}
     >
       {children}
     </button>
