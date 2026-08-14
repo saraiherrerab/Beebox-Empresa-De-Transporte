@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, Filter, Users, UserPlus, Eye, MoreVertical } from "lucide-react";
+import { Search, Users, UserPlus, Eye, MoreVertical, Filter } from "lucide-react";
 
 export default function AdminClientesPage() {
   const [search, setSearch] = useState("");
@@ -32,18 +32,16 @@ export default function AdminClientesPage() {
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-200 text-slate-900 bg-slate-50 p-6 min-h-screen rounded-3xl">
-      {/* Title */}
+    <div className="space-y-8 animate-in fade-in duration-200">
       <div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Gestión de Clientes</h1>
+        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Gestión de Clientes</h1>
         <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
           BASE DE DATOS CENTRALIZADA
         </span>
       </div>
 
-      {/* Top Metrics Cards (Matching Mockup 5) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-md flex items-center justify-between">
+        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex items-center justify-between">
           <div className="space-y-1">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">TOTAL DE CLIENTES</span>
             <div className="text-3xl font-black text-slate-900 font-mono">12,481</div>
@@ -54,20 +52,19 @@ export default function AdminClientesPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-md flex items-center justify-between">
+        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex items-center justify-between">
           <div className="space-y-1">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">NUEVOS REGISTROS</span>
             <div className="text-3xl font-black text-amber-600 font-mono">+456</div>
             <span className="text-[10px] font-bold text-slate-400">ÚLTIMOS 30 DÍAS</span>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center border border-amber-200">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200">
             <UserPlus className="w-6 h-6" />
           </div>
         </div>
       </div>
 
-      {/* Lista Maestra Table Container (Matching Mockup 5) */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-lg space-y-6">
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="text-base font-black text-slate-900">Lista Maestra</h3>
@@ -93,7 +90,6 @@ export default function AdminClientesPage() {
           </div>
         </div>
 
-        {/* Master Table (Matching Mockup 5) */}
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -118,7 +114,7 @@ export default function AdminClientesPage() {
                       <span className="text-[10px] text-slate-400">Registrado: {c.registeredDate}</span>
                     </div>
                   </td>
-                  <td className="py-4 px-4 font-mono font-bold text-amber-600">{c.suiteCode}</td>
+                  <td className="py-4 px-4 font-mono font-bold text-amber-700">{c.suiteCode}</td>
                   <td className="py-4 px-4">
                     <span className="font-bold text-slate-800 block">{c.email}</span>
                     <span className="text-[10px] text-slate-400">{c.phone}</span>
@@ -156,14 +152,6 @@ export default function AdminClientesPage() {
               ))}
             </tbody>
           </table>
-        </div>
-
-        {/* Table Footer Pagination */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-100 text-xs text-slate-500 font-medium">
-          <span>MOSTRANDO 1–10 DE 12,481 CLIENTES REGISTRADOS</span>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px]">Página <strong>1</strong> de 1,248</span>
-          </div>
         </div>
       </div>
     </div>

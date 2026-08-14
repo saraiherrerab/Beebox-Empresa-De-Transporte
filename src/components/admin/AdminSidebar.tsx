@@ -68,25 +68,32 @@ export const AdminSidebar: React.FC = () => {
   ];
 
   return (
-    <aside className="w-64 bg-[#0F172A] text-slate-300 min-h-screen flex flex-col justify-between p-6 shrink-0 border-r border-slate-800">
+    <aside className="w-64 bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-between p-6 shrink-0 border-r border-slate-200/80 shadow-sm">
       <div className="space-y-6">
-        {/* Logo */}
-        <Link href="/" className="block">
-          <img
-            src="/beebox-logo.jpg"
-            alt="Beebox Logo"
-            className="h-10 w-auto object-contain bg-white p-1 rounded-xl shadow-md"
-          />
-        </Link>
+        {/* Logo & Executive Badge */}
+        <div className="space-y-3">
+          <Link href="/" className="block">
+            <img
+              src="/beebox-logo.jpg"
+              alt="Beebox Logo"
+              className="h-12 w-auto object-contain"
+            />
+          </Link>
+
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 text-white text-[10px] font-black tracking-wider uppercase shadow-sm">
+            <ShieldCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span>PANEL ADMINISTRATIVO (CMS)</span>
+          </div>
+        </div>
 
         {/* Highly Intuitive Demo Role Switcher Button to Client */}
         <button
           onClick={handleSwitchToClient}
-          className="w-full p-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 transition-all font-bold text-xs shadow-lg shadow-amber-500/20 group text-left space-y-1"
+          className="w-full p-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 transition-all font-bold text-xs shadow-md shadow-amber-500/20 group text-left space-y-1 border border-amber-400"
         >
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-wider text-slate-950 flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5" /> PROBAR MODO DEMO
+              <Sparkles className="w-3.5 h-3.5" /> MODO ADMINISTRACIÓN
             </span>
             <ArrowRight className="w-4 h-4 text-slate-950 group-hover:translate-x-1 transition-transform" />
           </div>
@@ -102,7 +109,7 @@ export const AdminSidebar: React.FC = () => {
         <nav className="space-y-5 pt-1">
           {navGroups.map((grp) => (
             <div key={grp.group} className="space-y-1.5">
-              <span className="text-[10px] font-black tracking-widest uppercase text-slate-500 px-3 block">
+              <span className="text-[10px] font-black tracking-widest uppercase text-slate-400 px-3 block">
                 {grp.group}
               </span>
               {grp.items.map((item) => {
@@ -115,17 +122,19 @@ export const AdminSidebar: React.FC = () => {
                     href={item.href}
                     className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
                       isActive
-                        ? "bg-slate-800 text-amber-400 border border-slate-700 shadow-md"
-                        : "text-slate-400 hover:text-white hover:bg-slate-900"
+                        ? "bg-amber-500 text-slate-950 shadow-md font-black"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <Icon className={`w-4 h-4 ${isActive ? "text-amber-400" : "text-slate-500"}`} />
+                      <Icon className={`w-4 h-4 ${isActive ? "text-slate-950" : "text-slate-400"}`} />
                       <span>{item.name}</span>
                     </div>
 
                     {item.badge && (
-                      <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black flex items-center justify-center">
+                      <span className={`w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center ${
+                        isActive ? "bg-slate-950 text-amber-400" : "bg-amber-500 text-slate-950"
+                      }`}>
                         {item.badge}
                       </span>
                     )}
@@ -138,22 +147,22 @@ export const AdminSidebar: React.FC = () => {
       </div>
 
       {/* Admin User Footer */}
-      <div className="pt-6 border-t border-slate-800 space-y-4">
-        <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-slate-900 border border-slate-800">
-          <div className="w-9 h-9 rounded-full bg-amber-500 text-slate-950 font-black text-xs flex items-center justify-center shrink-0 shadow-md">
+      <div className="pt-6 border-t border-slate-200 space-y-4">
+        <div className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-slate-200 shadow-sm">
+          <div className="w-10 h-10 rounded-full bg-slate-900 text-amber-400 font-black text-xs flex items-center justify-center shrink-0 shadow-sm">
             AD
           </div>
           <div className="overflow-hidden">
-            <h4 className="text-xs font-bold text-white truncate">Admin Principal</h4>
-            <span className="text-[9px] font-extrabold uppercase tracking-wider text-amber-400 block truncate">
-              SUPERUSER
+            <h4 className="text-xs font-bold text-slate-900 truncate">Admin Principal</h4>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 block truncate">
+              SUPERUSER CMS
             </span>
           </div>
         </div>
 
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-400 hover:text-red-400 transition-colors"
+          className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-500 hover:text-red-600 transition-colors"
         >
           <LogOut className="w-4 h-4" />
           <span>Cerrar Sesión</span>
