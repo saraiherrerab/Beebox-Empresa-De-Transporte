@@ -2,34 +2,47 @@
 
 import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
+  BellRing,
   Package,
   Truck,
-  CalendarCheck,
   Calculator,
   User,
   LogOut,
+  ShieldCheck,
+  ArrowRightLeft,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 export const Sidebar: React.FC = () => {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const router = useRouter();
+  const { user, role, setRole, logout } = useAuth();
 
   const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Prealertas", href: "/dashboard/prealertas", icon: BellRing },
     { name: "Mis Paquetes", href: "/dashboard/paquetes", icon: Package },
     { name: "Solicitar Pickup", href: "/dashboard/pickup", icon: Truck },
-    { name: "Agendar Retiro", href: "/dashboard/retiros", icon: CalendarCheck },
     { name: "Calculadora", href: "/dashboard/calculadora", icon: Calculator },
     { name: "Mi Perfil", href: "/dashboard/perfil", icon: User },
   ];
 
+  const handleRoleToggle = () => {
+    if (role === "client") {
+      setRole("admin");
+      router.push("/admin");
+    } else {
+      setRole("client");
+      router.push("/dashboard");
+    }
+  };
+
   return (
     <aside className="w-64 bg-white border-r border-slate-200 min-h-screen flex flex-col justify-between p-6 shrink-0">
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* Official Logo Image */}
         <Link href="/" className="block">
           <img
@@ -39,8 +52,25 @@ export const Sidebar: React.FC = () => {
           />
         </Link>
 
+        {/* Role Switcher Toggle Button */}
+        <button
+          onClick={handleRoleToggle}
+          className="w-full flex items-center justify-between p-3 rounded-2xl bg-slate-900 text-white hover:bg-slate-800 transition-all shadow-md group"
+        >
+          <div className="flex items-center gap-2 text-left">
+            <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+            <div>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">MODO ACTUAL</span>
+              <span className="text-xs font-bold text-white font-mono">
+                {role === "client" ? "ÁREA DE CLIENTE" : "PANEL ADMIN (CMS)"}
+              </span>
+            </div>
+          </div>
+          <ArrowRightLeft className="w-4 h-4 text-amber-400 group-hover:rotate-180 transition-transform" />
+        </button>
+
         {/* Navigation Items */}
-        <nav className="space-y-1.5">
+        <nav className="space-y-1.5 pt-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -63,7 +93,7 @@ export const Sidebar: React.FC = () => {
         </nav>
       </div>
 
-      {/* User Profile Footer (Matching Image 4) */}
+      {/* User Profile Footer */}
       <div className="pt-6 border-t border-slate-200 space-y-4">
         <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200">
           <div className="w-10 h-10 rounded-full bg-amber-500 text-slate-950 font-bold flex items-center justify-center text-sm border-2 border-white shadow-sm shrink-0">
@@ -72,7 +102,7 @@ export const Sidebar: React.FC = () => {
           <div className="overflow-hidden">
             <h4 className="text-xs font-bold text-slate-900 truncate">{user?.name || "Juan Pérez"}</h4>
             <span className="text-[10px] font-mono font-semibold text-amber-600 truncate block">
-              {user?.suiteCode || "CAS-88293-MX"}
+              {user?.suiteCode || "CAS-88293-MIAMI"}
             </span>
           </div>
         </div>
