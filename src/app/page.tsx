@@ -2,68 +2,68 @@ import React from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { HeroSection } from "@/components/home/HeroSection";
-import { ServiceCards } from "@/components/home/ServiceCards";
+import { PromosSection } from "@/components/home/PromosSection";
 import { RateCalculator } from "@/components/home/RateCalculator";
-import { FleetShowcase } from "@/components/home/FleetShowcase";
-import { ShieldCheck, Truck, Clock, Headphones } from "lucide-react";
-import { Card } from "@/components/ui/Card";
+import { HowItWorks } from "@/components/home/HowItWorks";
+import { AboutUs } from "@/components/home/AboutUs";
+import { GlobalCoverage } from "@/components/home/GlobalCoverage";
+import { Mail, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen flex flex-col bg-beebox-navy-950">
+    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
       <Navbar />
 
       <main className="flex-1">
-        {/* Hero & Tracking Input */}
+        {/* Hero Section */}
         <HeroSection />
 
-        {/* Value Proposition Highlights */}
-        <section className="py-12 border-y border-slate-800/80 bg-beebox-navy-900/40">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
-              <div className="p-6 rounded-2xl bg-beebox-navy-900/60 border border-slate-800 space-y-3">
-                <div className="w-12 h-12 rounded-xl bg-beebox-amber-500/10 text-beebox-amber-400 mx-auto flex items-center justify-center">
-                  <Clock className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-bold text-white">Garantía de Tiempo</h3>
-                <p className="text-xs text-slate-400">Compromiso contractual de entrega a tiempo o reembolso de flete.</p>
-              </div>
+        {/* Exclusive Offer Newsletter Banner (Matching Image 1) */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-8">
+          <div className="rounded-3xl bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 p-8 sm:p-12 text-slate-950 shadow-xl relative overflow-hidden">
+            <div className="max-w-2xl space-y-3 relative z-10">
+              <span className="text-xs font-black uppercase tracking-widest bg-slate-950/10 px-3 py-1 rounded-full text-slate-950 inline-block">
+                OFERTAS EXCLUSIVAS
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-black tracking-tight uppercase leading-tight">
+                ¡RECIBE OFERTAS EXCLUSIVAS!
+              </h2>
+              <p className="text-sm font-medium text-slate-900 leading-relaxed">
+                Suscríbete a nuestro boletín para obtener un 15% de descuento en tu primer envío y enterarte de nuestras ofertas antes que nadie.
+              </p>
 
-              <div className="p-6 rounded-2xl bg-beebox-navy-900/60 border border-slate-800 space-y-3">
-                <div className="w-12 h-12 rounded-xl bg-beebox-cyan-500/10 text-beebox-cyan-400 mx-auto flex items-center justify-center">
-                  <ShieldCheck className="w-6 h-6" />
+              <form className="pt-4 flex flex-col sm:flex-row gap-3 max-w-md">
+                <div className="relative flex-1">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="email"
+                    placeholder="Tu correo electrónico"
+                    className="w-full rounded-xl bg-white/90 px-4 py-3 pl-10 text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-950"
+                  />
                 </div>
-                <h3 className="text-lg font-bold text-white">Carga 100% Asegurada</h3>
-                <p className="text-xs text-slate-400">Protección contra todo riesgo durante todo el trayecto terrestre.</p>
-              </div>
-
-              <div className="p-6 rounded-2xl bg-beebox-navy-900/60 border border-slate-800 space-y-3">
-                <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 mx-auto flex items-center justify-center">
-                  <Truck className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-bold text-white">Flota Moderna</h3>
-                <p className="text-xs text-slate-400">Vehículos Euro 6 de bajas emisiones y telemetría de ruta en vivo.</p>
-              </div>
-
-              <div className="p-6 rounded-2xl bg-beebox-navy-900/60 border border-slate-800 space-y-3">
-                <div className="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-400 mx-auto flex items-center justify-center">
-                  <Headphones className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-bold text-white">Soporte 24/7</h3>
-                <p className="text-xs text-slate-400">Ejecutivo asignado para seguimiento corporativo continuo.</p>
-              </div>
+                <Button variant="amber" className="bg-slate-950 hover:bg-slate-800 text-white font-bold px-6">
+                  SUSCRIBIRSE
+                </Button>
+              </form>
             </div>
           </div>
         </section>
 
-        {/* Services Showcase */}
-        <ServiceCards />
+        {/* Promociones Activas */}
+        <PromosSection />
 
-        {/* Instant Rate Calculator */}
+        {/* Calcula tu envío */}
         <RateCalculator />
 
-        {/* Fleet Showcase */}
-        <FleetShowcase />
+        {/* ¿Cómo funciona? */}
+        <HowItWorks />
+
+        {/* Quiénes somos */}
+        <AboutUs />
+
+        {/* Cobertura Mundial */}
+        <GlobalCoverage />
       </main>
 
       <Footer />
