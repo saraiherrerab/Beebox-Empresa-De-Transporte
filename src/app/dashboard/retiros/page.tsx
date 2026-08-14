@@ -37,22 +37,22 @@ export default function AgendarRetiroPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-200">
-      {/* Orange Top Requirements Banner (Image 4) */}
-      <div className="rounded-3xl bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      {/* High-Contrast Yellow Top Requirements Banner */}
+      <div className="rounded-3xl bg-amber-500 p-6 sm:p-8 text-slate-950 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border border-amber-400">
         <div className="space-y-1">
-          <div className="flex items-center gap-2 font-black uppercase text-base sm:text-lg tracking-tight">
-            <ShieldAlert className="w-6 h-6 shrink-0" /> REQUISITOS OBLIGATORIOS PARA EL RETIRO
+          <div className="flex items-center gap-2 font-black uppercase text-base sm:text-lg tracking-tight text-slate-950">
+            <ShieldAlert className="w-6 h-6 shrink-0 text-slate-950" /> REQUISITOS OBLIGATORIOS PARA EL RETIRO
           </div>
-          <p className="text-xs text-white/90 font-medium">
+          <p className="text-xs text-slate-900 font-bold">
             Asegúrate de contar con estos documentos antes de agendar tu cita.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 shrink-0">
-          <span className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/20 text-xs font-bold uppercase tracking-wider backdrop-blur-md">
+          <span className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-950 text-amber-400 text-xs font-black uppercase tracking-wider shadow-md">
             <UserCheck className="w-4 h-4" /> ID OFICIAL ORIGINAL
           </span>
-          <span className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/20 text-xs font-bold font-mono tracking-wider backdrop-blur-md">
+          <span className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-950 text-amber-400 text-xs font-black font-mono tracking-wider shadow-md">
             <QrCode className="w-4 h-4" /> CÓDIGO CAS-88293-MX
           </span>
         </div>
@@ -75,7 +75,7 @@ export default function AgendarRetiroPage() {
         </div>
       </div>
 
-      {/* Calendar Month Grid (Image 4) */}
+      {/* Calendar Month Grid */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="grid grid-cols-7 border-b border-slate-100 text-center py-3 text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
           <div>LUNES</div>
@@ -88,7 +88,6 @@ export default function AgendarRetiroPage() {
         </div>
 
         <div className="grid grid-cols-7 divide-x divide-y divide-slate-100 min-h-[220px]">
-          {/* Empty prefix cells for Monday - Wednesday */}
           <div className="p-4 bg-slate-50/50" />
           <div className="p-4 bg-slate-50/50" />
           <div className="p-4 bg-slate-50/50" />
@@ -131,7 +130,7 @@ export default function AgendarRetiroPage() {
         </div>
       </div>
 
-      {/* Available Time Slots Section (Image 4) */}
+      {/* Available Time Slots Section */}
       <div className="space-y-4 pt-2">
         <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
           <Clock className="w-4 h-4 text-amber-500" />
@@ -171,10 +170,9 @@ export default function AgendarRetiroPage() {
         </div>
       </div>
 
-      {/* Bottom Summary Bar Card (Image 4) */}
+      {/* Bottom Summary Bar Card */}
       <div className="rounded-3xl bg-white border border-slate-200 p-6 shadow-xl space-y-4">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-          {/* Cita Detail */}
           <div className="space-y-1 text-center md:text-left border-b md:border-b-0 md:border-r border-slate-100 md:pr-8 pb-4 md:pb-0 w-full md:w-auto">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
               DETALLE DE TU CITA
@@ -185,7 +183,6 @@ export default function AgendarRetiroPage() {
             <p className="text-xs font-bold text-amber-600">CDMX – Vallejo Hub (Almacén Central)</p>
           </div>
 
-          {/* Items Ready */}
           <div className="space-y-1 text-center md:text-left border-b md:border-b-0 md:border-r border-slate-100 md:pr-8 pb-4 md:pb-0 w-full md:w-auto">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
               PAQUETES PARA RETIRO
@@ -203,7 +200,6 @@ export default function AgendarRetiroPage() {
             </div>
           </div>
 
-          {/* Action Button */}
           <div className="w-full md:w-auto">
             <Button
               onClick={() => setIsBooked(true)}
