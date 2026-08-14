@@ -15,6 +15,8 @@ import {
   Settings,
   ShieldCheck,
   ArrowRightLeft,
+  Sparkles,
+  ArrowRight,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -27,6 +29,11 @@ export const AdminSidebar: React.FC = () => {
   const handleSwitchToClient = () => {
     setRole("client");
     router.push("/dashboard");
+  };
+
+  const handleLogout = () => {
+    logout();
+    router.push("/");
   };
 
   const navGroups = [
@@ -72,25 +79,27 @@ export const AdminSidebar: React.FC = () => {
           />
         </Link>
 
-        {/* Role Toggle back to Client Portal */}
+        {/* Highly Intuitive Demo Role Switcher Button to Client */}
         <button
           onClick={handleSwitchToClient}
-          className="w-full flex items-center justify-between p-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 transition-all font-black text-xs shadow-lg shadow-amber-500/20 group"
+          className="w-full p-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 transition-all font-bold text-xs shadow-lg shadow-amber-500/20 group text-left space-y-1"
         >
-          <div className="flex items-center gap-2 text-left">
-            <ShieldCheck className="w-4 h-4 text-slate-950 shrink-0" />
-            <div>
-              <span className="text-[9px] font-black uppercase tracking-wider text-slate-900 block">
-                CAMBIAR A
-              </span>
-              <span className="text-xs font-black text-slate-950 font-mono">PORTAL CLIENTE</span>
-            </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-950 flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5" /> PROBAR MODO DEMO
+            </span>
+            <ArrowRight className="w-4 h-4 text-slate-950 group-hover:translate-x-1 transition-transform" />
           </div>
-          <ArrowRightLeft className="w-4 h-4 text-slate-950 group-hover:rotate-180 transition-transform" />
+          <span className="text-xs font-black text-slate-950 block uppercase tracking-wider">
+            CAMBIAR A MODO CLIENTE
+          </span>
+          <span className="text-[10px] text-slate-900 block leading-tight font-bold">
+            Regresa al portal privado del cliente
+          </span>
         </button>
 
         {/* Grouped Navigation */}
-        <nav className="space-y-5 pt-2">
+        <nav className="space-y-5 pt-1">
           {navGroups.map((grp) => (
             <div key={grp.group} className="space-y-1.5">
               <span className="text-[10px] font-black tracking-widest uppercase text-slate-500 px-3 block">
@@ -128,7 +137,7 @@ export const AdminSidebar: React.FC = () => {
         </nav>
       </div>
 
-      {/* Admin User Footer (Matching Mockups) */}
+      {/* Admin User Footer */}
       <div className="pt-6 border-t border-slate-800 space-y-4">
         <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-slate-900 border border-slate-800">
           <div className="w-9 h-9 rounded-full bg-amber-500 text-slate-950 font-black text-xs flex items-center justify-center shrink-0 shadow-md">
@@ -143,8 +152,8 @@ export const AdminSidebar: React.FC = () => {
         </div>
 
         <button
-          onClick={logout}
-          className="w-full flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-slate-400 hover:text-red-400 transition-colors"
+          onClick={handleLogout}
+          className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-400 hover:text-red-400 transition-colors"
         >
           <LogOut className="w-4 h-4" />
           <span>Cerrar Sesión</span>

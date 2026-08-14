@@ -11,8 +11,9 @@ import {
   Calculator,
   User,
   LogOut,
-  ShieldCheck,
-  ArrowRightLeft,
+  ShieldAlert,
+  Sparkles,
+  ArrowRight,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -31,17 +32,17 @@ export const Sidebar: React.FC = () => {
   ];
 
   const handleRoleToggle = () => {
-    if (role === "client") {
-      setRole("admin");
-      router.push("/admin");
-    } else {
-      setRole("client");
-      router.push("/dashboard");
-    }
+    setRole("admin");
+    router.push("/admin");
+  };
+
+  const handleLogout = () => {
+    logout();
+    router.push("/");
   };
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-200 min-h-screen flex flex-col justify-between p-6 shrink-0">
+    <aside className="w-64 bg-white border-r border-slate-200 min-h-screen flex flex-col justify-between p-6 shrink-0 shadow-sm">
       <div className="space-y-6">
         {/* Official Logo Image */}
         <Link href="/" className="block">
@@ -52,25 +53,27 @@ export const Sidebar: React.FC = () => {
           />
         </Link>
 
-        {/* Role Switcher Toggle Button */}
+        {/* Highly Intuitive Demo Role Switcher Button */}
         <button
           onClick={handleRoleToggle}
-          className="w-full flex items-center justify-between p-3 rounded-2xl bg-slate-900 text-white hover:bg-slate-800 transition-all shadow-md group"
+          className="w-full p-3.5 rounded-2xl bg-slate-900 text-white hover:bg-slate-800 transition-all shadow-md group border border-slate-800 text-left space-y-1.5"
         >
-          <div className="flex items-center gap-2 text-left">
-            <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
-            <div>
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">MODO ACTUAL</span>
-              <span className="text-xs font-bold text-white font-mono">
-                {role === "client" ? "ÁREA DE CLIENTE" : "PANEL ADMIN (CMS)"}
-              </span>
-            </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5" /> PROBAR MODO DEMO
+            </span>
+            <ArrowRight className="w-4 h-4 text-amber-400 group-hover:translate-x-1 transition-transform" />
           </div>
-          <ArrowRightLeft className="w-4 h-4 text-amber-400 group-hover:rotate-180 transition-transform" />
+          <span className="text-xs font-black text-white block uppercase tracking-wider">
+            CAMBIAR A MODO ADMIN (CMS)
+          </span>
+          <span className="text-[10px] text-slate-400 block leading-tight font-medium">
+            Accede al panel de control, clientes y rutas
+          </span>
         </button>
 
         {/* Navigation Items */}
-        <nav className="space-y-1.5 pt-2">
+        <nav className="space-y-1.5 pt-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -101,14 +104,14 @@ export const Sidebar: React.FC = () => {
           </div>
           <div className="overflow-hidden">
             <h4 className="text-xs font-bold text-slate-900 truncate">{user?.name || "Juan Pérez"}</h4>
-            <span className="text-[10px] font-mono font-semibold text-amber-600 truncate block">
+            <span className="text-[10px] font-mono font-bold text-amber-700 truncate block">
               {user?.suiteCode || "CAS-88293-MIAMI"}
             </span>
           </div>
         </div>
 
         <button
-          onClick={logout}
+          onClick={handleLogout}
           className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-500 hover:text-red-600 transition-colors"
         >
           <LogOut className="w-4 h-4" />
