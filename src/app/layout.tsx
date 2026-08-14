@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-plus-jakarta",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Beebox - Empresa de Transporte y Casillero Internacional",
@@ -14,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className="scroll-smooth">
+    <html lang="es" className={`${plusJakartaSans.variable} scroll-smooth`}>
       <body className="bg-slate-50 text-slate-900 font-sans antialiased">
         <AuthProvider>{children}</AuthProvider>
       </body>
