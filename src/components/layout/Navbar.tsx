@@ -2,87 +2,68 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
+import { usePathname } from "next/navigation";
+import { Menu, X, User, ArrowRight, Package } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 export const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { user, isAuthenticated, logout } = useAuth();
+  const pathname = usePathname();
 
   const navLinks = [
-    { name: "INICIO", href: "/" },
-    { name: "PROMOCIONES", href: "/#promociones" },
-    { name: "CALCULAR ENVÍO", href: "/#cotizador" },
-    { name: "¿CÓMO FUNCIONA?", href: "/#como-funciona" },
-    { name: "NOSOTROS", href: "/#nosotros" },
+    { name: "Inicio", href: "/" },
+    { name: "Servicios", href: "#servicios" },
+    { name: "Calculadora", href: "#calculadora" },
+    { name: "Cobertura", href: "#cobertura" },
+    { name: "Promociones", href: "#promociones" },
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white border-b border-slate-200 shadow-sm">
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          {/* Official Logo Image */}
-          <Link href="/" className="block">
+          {/* Logo (Increased size per PDF requirements 1.1) */}
+          <Link href="/" className="flex items-center gap-3 shrink-0">
             <img
               src="/beebox-logo.jpg"
-              alt="Beebox Logo"
-              className="h-10 sm:h-12 w-auto object-contain"
+              alt="Beebox Enterprise Logo"
+              className="h-12 sm:h-14 w-auto object-contain transition-transform hover:scale-105"
             />
           </Link>
 
-          {/* Nav Links */}
-          <nav className="hidden lg:flex items-center gap-7">
+          {/* Desktop Navigation Links */}
+          <nav className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
               <Link
                 key={link.name}
                 href={link.href}
-                className="text-xs font-extrabold tracking-wider text-slate-700 hover:text-amber-600 transition-colors uppercase"
+                className="text-xs font-black uppercase tracking-wider text-slate-600 hover:text-slate-950 transition-colors"
               >
                 {link.name}
               </Link>
             ))}
           </nav>
 
-          {/* Right Action Buttons */}
-          <div className="hidden lg:flex items-center gap-4">
-            {isAuthenticated ? (
-              <div className="flex items-center gap-3">
-                <Link
-                  href="/dashboard"
-                  className="text-xs font-bold text-slate-700 hover:text-amber-600 px-3 py-2 rounded-lg bg-slate-100"
-                >
-                  Mi Portal ({user?.name.split(" ")[0]})
-                </Link>
-                <button
-                  onClick={logout}
-                  className="text-xs font-bold text-red-600 hover:text-red-700"
-                >
-                  Salir
-                </button>
-              </div>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="text-xs font-bold uppercase tracking-wider text-slate-700 hover:text-amber-600 px-3 py-2 transition-colors"
-                >
-                  INICIAR
-                </Link>
-                <Link href="/registro">
-                  <Button variant="amber" size="sm" className="rounded-full px-5 py-2">
-                    REGISTRARSE
-                  </Button>
-                </Link>
-              </>
-            )}
+          {/* Explicit Header Auth CTA Buttons (Iniciar Sesión / Registro Demo) */}
+          <div className="hidden md:flex items-center gap-3">
+            <Link href="/login">
+              <button className="px-5 py-2.5 rounded-2xl border-2 border-slate-200 hover:border-amber-500 text-slate-800 hover:text-slate-950 text-xs font-extrabold uppercase tracking-wider transition-all flex items-center gap-1.5">
+                <User className="w-4 h-4 text-amber-600" /> INICIAR SESIÓN
+              </button>
+            </Link>
+
+            <Link href="/registro">
+              <Button variant="amber" className="rounded-2xl px-6 py-2.5 text-xs font-black tracking-wider uppercase shadow-md shadow-amber-500/20">
+                ABRIR CASILLERO <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </Link>
           </div>
 
-          {/* Mobile menu icon */}
-          <div className="lg:hidden flex items-center gap-2">
+          {/* Mobile Menu Toggle Button */}
+          <div className="flex md:hidden items-center gap-2">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-xl bg-slate-100 text-slate-700"
+              className="p-2.5 rounded-2xl bg-slate-100 text-slate-800 focus:outline-none"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -90,30 +71,32 @@ export const Navbar: React.FC = () => {
         </div>
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-slate-200 bg-white px-4 py-6 space-y-4">
+        <div className="md:hidden bg-white border-b border-slate-200 px-6 py-6 space-y-4 animate-in slide-in-from-top-2">
           <nav className="flex flex-col space-y-3">
             {navLinks.map((link) => (
               <Link
                 key={link.name}
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className="text-sm font-bold text-slate-700 py-1.5 uppercase"
+                className="text-sm font-bold text-slate-700 hover:text-slate-950 py-2 border-b border-slate-100"
               >
                 {link.name}
               </Link>
             ))}
           </nav>
-          <div className="pt-4 border-t border-slate-200 flex flex-col gap-2">
+
+          <div className="pt-2 flex flex-col gap-3">
             <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-              <Button variant="outline" className="w-full justify-center">
-                INICIAR SESIÓN
-              </Button>
+              <button className="w-full py-3 rounded-2xl border border-slate-300 text-slate-900 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2">
+                <User className="w-4 h-4 text-amber-600" /> INICIAR SESIÓN
+              </button>
             </Link>
+
             <Link href="/registro" onClick={() => setMobileMenuOpen(false)}>
-              <Button variant="amber" className="w-full justify-center">
-                REGISTRARSE
+              <Button variant="amber" className="w-full py-3 rounded-2xl font-black text-xs uppercase tracking-wider justify-center">
+                ABRIR CASILLERO GRATIS
               </Button>
             </Link>
           </div>

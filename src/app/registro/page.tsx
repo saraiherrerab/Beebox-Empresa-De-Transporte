@@ -3,122 +3,86 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User, Mail, Phone, Lock, ArrowRight } from "lucide-react";
+import { CheckCircle2, ArrowRight, Sparkles, Package } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
 
-export default function RegisterPage() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const { register } = useAuth();
+export default function RegistroPage() {
   const router = useRouter();
+  const { setRole } = useAuth();
+  const [createdSuite, setCreatedSuite] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    register(name || "Juan Pérez", email || "juan.perez@beebox.com", phone || "+52 55 9876 5432");
-    router.push("/dashboard");
+  const handleRegisterDemo = () => {
+    const randomSuite = `CAS-${Math.floor(10000 + Math.random() * 90000)}-MIAMI`;
+    setCreatedSuite(randomSuite);
+    setRole("client");
+    setTimeout(() => {
+      router.push("/dashboard");
+    }, 1500);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-4">
-        <Link href="/" className="inline-block">
-          <img
-            src="/beebox-logo.jpg"
-            alt="Beebox Logo"
-            className="h-14 w-auto object-contain mx-auto"
-          />
-        </Link>
-        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Crear una Cuenta</h2>
-        <p className="text-xs text-slate-500">Obtén tu casillero internacional gratis en Miami, Madrid y Shenzhen</p>
-      </div>
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-6 selection:bg-amber-400 selection:text-slate-950">
+      <div className="max-w-xl w-full space-y-8 animate-in fade-in duration-300">
+        {/* Header & Logo */}
+        <div className="text-center space-y-4">
+          <Link href="/" className="inline-block">
+            <img
+              src="/beebox-logo.jpg"
+              alt="Beebox Logo"
+              className="h-14 w-auto object-contain mx-auto transition-transform hover:scale-105"
+            />
+          </Link>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-6 shadow-xl rounded-3xl border border-slate-200 sm:px-10 space-y-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Nombre Completo
-              </label>
-              <div className="relative">
-                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Ej. Juan Pérez"
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 pl-10 text-sm text-slate-900 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Correo Electrónico
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ejemplo@correo.com"
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 pl-10 text-sm text-slate-900 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Teléfono de Contacto
-              </label>
-              <div className="relative">
-                <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type="tel"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+56 9 1234 5678"
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 pl-10 text-sm text-slate-900 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Contraseña
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 pl-10 text-sm text-slate-900 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 text-xs text-slate-600">
-              <input type="checkbox" required className="rounded text-amber-500 focus:ring-amber-500" />
-              <span>Acepto los <a href="#" className="font-bold text-amber-600 underline">Términos y Condiciones</a></span>
-            </div>
-
-            <Button type="submit" variant="amber" className="w-full justify-center py-3.5 text-base font-bold">
-              CREAR CUENTA <ArrowRight className="w-4 h-4 ml-1" />
-            </Button>
-          </form>
-
-          <div className="text-center text-xs text-slate-500 border-t border-slate-200 pt-4">
-            ¿Ya tienes una cuenta?{" "}
-            <Link href="/login" className="font-bold text-amber-600 hover:underline">
-              Inicia sesión aquí
-            </Link>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              Apertura de Casillero Gratuito (Demo)
+            </h1>
+            <p className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-wider">
+              OBTÉN TU DIRECCIÓN FÍSICA EN MIAMI, MADRID Y SHENZHEN AL INSTANTE
+            </p>
           </div>
+        </div>
+
+        {/* Demo Register Card */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-slate-200 shadow-md space-y-6">
+          {createdSuite ? (
+            <div className="p-6 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-3 animate-in zoom-in-95">
+              <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto shadow-md">
+                <CheckCircle2 className="w-6 h-6 stroke-[3]" />
+              </div>
+              <h3 className="text-lg font-black text-slate-900">¡CASILLERO ASIGNADO CON ÉXITO!</h3>
+              <div className="text-2xl font-black font-mono text-amber-700">{createdSuite}</div>
+              <p className="text-xs font-bold text-slate-600">Redirigiendo a tu Área Privada...</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
+                  <Sparkles className="w-4 h-4 text-amber-500" /> Beneficios del Casillero Beebox:
+                </div>
+                <ul className="text-xs text-slate-600 space-y-1 font-medium pl-6 list-disc">
+                  <li>Dirección propia en Miami (8400 NW 25th St).</li>
+                  <li>Prealerta de compras en Amazon, eBay, Walmart, etc.</li>
+                  <li>Sin costos de mantención anual.</li>
+                </ul>
+              </div>
+
+              <button
+                onClick={handleRegisterDemo}
+                className="w-full py-4 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center gap-2"
+              >
+                <Package className="w-4 h-4" /> GENERAR MI CASILLERO DE PRUEBA <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Footer Link */}
+        <div className="text-center pt-2">
+          <Link href="/login" className="text-xs font-bold text-slate-500 hover:text-slate-900 uppercase tracking-wider">
+            ¿Ya tienes casillero? Inicia sesión aquí
+          </Link>
         </div>
       </div>
     </div>
