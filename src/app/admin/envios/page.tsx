@@ -21,10 +21,22 @@ interface ShipmentItem {
 export default function AdminEnviosPage() {
   const [activeTab, setActiveTab] = useState<string>("todos");
   const [search, setSearch] = useState("");
-
-  const shipments: ShipmentItem[] = [
+  const [shipments, setShipments] = useState<ShipmentItem[]>([
     {
       id: "sh_1",
+      tracking: "BBX-89421",
+      type: "Vía Aéreo Express",
+      weight: "45.5 kg",
+      clientName: "Importadora Del Pacífico",
+      suiteCode: "CAS-88293-MIAMI",
+      route: "Valparaíso → Santiago",
+      status: "vuelo",
+      statusLabel: "EN TRÁNSITO",
+      lastActivity: "Hoy, 18:30 hrs",
+      activityDesc: "Vehículo en tránsito hacia el hub Santiago",
+    },
+    {
+      id: "sh_2",
       tracking: "LT-449201-US",
       type: "Vía Aéreo",
       weight: "0.8 kg",
@@ -37,7 +49,7 @@ export default function AdminEnviosPage() {
       activityDesc: "Procesado en Almacén",
     },
     {
-      id: "sh_2",
+      id: "sh_3",
       tracking: "LT-110293-ES",
       type: "Vía Marítimo",
       weight: "12.4 kg",
@@ -50,7 +62,7 @@ export default function AdminEnviosPage() {
       activityDesc: "Salida de Origen",
     },
     {
-      id: "sh_3",
+      id: "sh_4",
       tracking: "LT-992281-US",
       type: "Vía Aéreo",
       weight: "1.3 kg",
@@ -62,7 +74,31 @@ export default function AdminEnviosPage() {
       lastActivity: "14 Oct, 11:20 AM",
       activityDesc: "Listo para Retiro",
     },
-  ];
+  ]);
+
+  React.useEffect(() => {
+    fetch("http://localhost:4000/api/shipments")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped: ShipmentItem[] = data.map((item: any) => ({
+            id: item.trackingCode || item.id,
+            tracking: item.trackingCode,
+            type: item.serviceType || "Express",
+            weight: `${item.weightKg} kg`,
+            clientName: item.recipientName || item.senderName,
+            suiteCode: "CAS-88293-MIAMI",
+            route: `${item.senderCity} → ${item.recipientCity}`,
+            status: item.currentStatus === "en_transito" ? "vuelo" : "disponible",
+            statusLabel: (item.currentStatus || "EN RUTA").toUpperCase(),
+            lastActivity: item.estimatedDelivery || "Hoy",
+            activityDesc: `Estado actual: ${item.currentStatus}`,
+          }));
+          setShipments(mapped);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200 text-slate-900 bg-slate-50 p-6 min-h-screen rounded-3xl">

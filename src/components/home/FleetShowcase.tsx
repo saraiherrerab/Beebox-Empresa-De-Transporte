@@ -7,8 +7,22 @@ import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 
 export const FleetShowcase: React.FC = () => {
+  const [fleetItems, setFleetItems] = useState(FLEET_LIST);
   const [selectedFleetId, setSelectedFleetId] = useState(FLEET_LIST[0].id);
-  const activeVehicle = FLEET_LIST.find((v) => v.id === selectedFleetId) || FLEET_LIST[0];
+
+  React.useEffect(() => {
+    fetch("http://localhost:4000/api/fleet")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setFleetItems(data);
+          setSelectedFleetId(data[0].id);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const activeVehicle = fleetItems.find((v) => v.id === selectedFleetId) || fleetItems[0];
 
   return (
     <section id="flota" className="py-20 bg-beebox-navy-950 relative">

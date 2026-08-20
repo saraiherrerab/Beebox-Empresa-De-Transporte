@@ -13,8 +13,33 @@ export const RateCalculator: React.FC = () => {
   const [service, setService] = useState("express");
   const [calculated, setCalculated] = useState(false);
 
-  // Simple pricing algorithm demo
-  const calculatePrice = () => {
+  const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
+  const [deliveryMin, setDeliveryMin] = useState<number>(12);
+  const [deliveryMax, setDeliveryMax] = useState<number>(24);
+
+  const calculatePrice = async () => {
+    try {
+      const res = await fetch("http://localhost:4000/api/quotes/calculate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          originCity: origin,
+          destinationCity: destination,
+          weightKg: weight,
+          serviceType: service,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.estimatedCostCLP) {
+        setEstimatedCost(data.estimatedCostCLP);
+        setDeliveryMin(data.deliveryHoursMin);
+        setDeliveryMax(data.deliveryHoursMax);
+        return;
+      }
+    } catch {
+      // Fallback
+    }
+
     const base = 12000;
     const weightCost = weight * 450;
     const isInterregional = origin !== destination;
@@ -22,10 +47,14 @@ export const RateCalculator: React.FC = () => {
     const serviceMult = service === "express" ? 1.3 : service === "refrigerado" ? 1.5 : 1.1;
 
     const total = Math.round((base + weightCost) * distanceMult * serviceMult);
-    return total;
+    setEstimatedCost(total);
   };
 
-  const estimatedTotal = calculatePrice();
+  React.useEffect(() => {
+    calculatePrice();
+  }, [origin, destination, weight, service]);
+
+  const estimatedTotal = estimatedCost ?? Math.round((12000 + weight * 450) * (service === "express" ? 1.3 : 1.1));
 
   return (
     <section id="cotizador" className="py-20 relative bg-beebox-navy-950/80">

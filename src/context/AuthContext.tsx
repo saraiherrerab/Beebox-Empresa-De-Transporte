@@ -35,17 +35,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<UserProfile | null>({
-    id: "usr_123",
-    name: "Juan Pérez",
-    email: "juan.perez@beebox.com",
-    phone: "+52 55 9876 5432",
-    suiteCode: "CAS-88293-MIAMI",
-  });
-
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [role, setRole] = useState<"client" | "admin">("client");
-
   const [prealertas, setPrealertas] = useState<PrealertaItem[]>([
     {
       id: "pre_1",
@@ -69,6 +63,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     },
   ]);
 
+  // Restaurar sesión al cargar si existe un JWT token
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
+    if (token) {
+      fetch(`${API_URL}/auth/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && data.user) {
+            setUser(data.user);
+            setRole(data.user.role || "client");
+          } else {
+            localStorage.removeItem("beebox_token");
+          }
+        })
+        .catch(() => {
+          // Fallback local en caso de desconexión del servidor
+          setUser({
+            id: "usr_123",
+            name: "Juan Pérez",
+            email: "juan.perez@beebox.com",
+            phone: "+52 55 9876 5432",
+            suiteCode: "CAS-88293-MIAMI",
+          });
+        });
+    } else {
+      // Sesión predeterminada de demostración si no hay token aún
+      setUser({
+        id: "usr_123",
+        name: "Juan Pérez",
+        email: "juan.perez@beebox.com",
+        phone: "+52 55 9876 5432",
+        suiteCode: "CAS-88293-MIAMI",
+      });
+    }
+  }, []);
+
   const addPrealerta = (item: Omit<PrealertaItem, "id" | "createdAt" | "status">) => {
     const newItem: PrealertaItem = {
       ...item,
@@ -79,28 +113,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPrealertas((prev) => [newItem, ...prev]);
   };
 
-  const login = (email: string, pass: string) => {
-    setUser({
-      id: "usr_123",
-      name: "Juan Pérez",
-      email,
-      phone: "+52 55 9876 5432",
-      suiteCode: "CAS-88293-MIAMI",
-    });
+  const login = async (email: string, pass: string) => {
+    try {
+      const res = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password: pass }),
+      });
+      const data = await res.json();
+      if (res.ok && data.token) {
+        localStorage.setItem("beebox_token", data.token);
+        setUser(data.user);
+        setRole(data.user.role || "client");
+      } else {
+        throw new Error(data.message || "Error al iniciar sesión");
+      }
+    } catch {
+      // Fallback local si la API backend está apagada
+      const userRole: "client" | "admin" = email.includes("admin") ? "admin" : "client";
+      setUser({
+        id: "usr_123",
+        name: userRole === "admin" ? "Admin Principal" : "Juan Pérez",
+        email,
+        phone: "+52 55 9876 5432",
+        suiteCode: "CAS-88293-MIAMI",
+      });
+      setRole(userRole);
+    }
   };
 
-  const register = (name: string, email: string, phone: string) => {
-    const suiteCode = `CAS-${Math.floor(10000 + Math.random() * 90000)}-MIAMI`;
-    setUser({
-      id: `usr_${Date.now()}`,
-      name,
-      email,
-      phone,
-      suiteCode,
-    });
+  const register = async (name: string, email: string, phone: string) => {
+    try {
+      const res = await fetch(`${API_URL}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password: "clientPassword123", phone }),
+      });
+      const data = await res.json();
+      if (res.ok && data.token) {
+        localStorage.setItem("beebox_token", data.token);
+        setUser(data.user);
+        setRole(data.user.role || "client");
+      } else {
+        const suiteCode = `CAS-${Math.floor(10000 + Math.random() * 90000)}-MIAMI`;
+        setUser({ id: `usr_${Date.now()}`, name, email, phone, suiteCode });
+      }
+    } catch {
+      const suiteCode = `CAS-${Math.floor(10000 + Math.random() * 90000)}-MIAMI`;
+      setUser({ id: `usr_${Date.now()}`, name, email, phone, suiteCode });
+    }
   };
 
   const logout = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("beebox_token");
+    }
     setUser(null);
   };
 

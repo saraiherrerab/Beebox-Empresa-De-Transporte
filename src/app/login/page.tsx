@@ -1,29 +1,47 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { UserCheck, ShieldCheck, ArrowRight, Sparkles, CheckCircle2 } from "lucide-react";
+import { Lock, Mail, AlertCircle, Loader2, LogIn, ArrowRight } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { Button } from "@/components/ui/Button";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setRole } = useAuth();
+  const { login } = useAuth();
 
-  const handleLoginClient = () => {
-    setRole("client");
-    router.push("/dashboard");
-  };
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const handleLoginAdmin = () => {
-    setRole("admin");
-    router.push("/admin");
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setErrorMsg("Ingresa tu correo electrónico y contraseña.");
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg(null);
+
+    try {
+      await login(email, password);
+      setLoading(false);
+      if (email.includes("admin")) {
+        router.push("/admin");
+      } else {
+        router.push("/dashboard");
+      }
+    } catch (err: any) {
+      setLoading(false);
+      setErrorMsg(err?.message || "Credenciales inválidas. Verifica tu correo y contraseña.");
+    }
   };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-6 selection:bg-amber-400 selection:text-slate-950">
-      <div className="max-w-xl w-full space-y-8 animate-in fade-in duration-300">
+      <div className="max-w-md w-full space-y-8 animate-in fade-in duration-300">
         {/* Header & Logo */}
         <div className="text-center space-y-4">
           <Link href="/" className="inline-block">
@@ -36,74 +54,76 @@ export default function LoginPage() {
 
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Portal de Autenticación Demo
+              Iniciar Sesión
             </h1>
             <p className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-wider">
-              SELECCIONA EL PERFIL DE PRUEBA PARA INGRESAR AL SISTEMA
+              INGRESA TUS CREDENCIALES PARA ACCEDER AL SISTEMA
             </p>
           </div>
         </div>
 
-        {/* Instant 2-Button Demo Selector Grid */}
-        <div className="space-y-6">
-          {/* Card 1: Cliente Demo Access */}
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-slate-200 hover:border-amber-400 shadow-md transition-all space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-amber-100 text-slate-950 font-black text-base flex items-center justify-center border border-amber-300 shadow-sm">
-                  JP
-                </div>
-                <div>
-                  <h3 className="text-base font-black text-slate-900">Cliente de Prueba</h3>
-                  <span className="text-xs font-mono font-bold text-amber-700 block">CAS-88293-MIAMI</span>
-                </div>
-              </div>
-
-              <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider">
-                ● ACTIVO
-              </span>
-            </div>
-
-            <p className="text-xs text-slate-600 font-medium leading-relaxed">
-              Accede al Área Privada de Cliente: Prealertas de compras en línea, solicitudes de pickup, rastreo en tiempo real y perfil de casillero.
-            </p>
-
-            <button
-              onClick={handleLoginClient}
-              className="w-full py-4 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center gap-2"
-            >
-              <UserCheck className="w-4 h-4" /> INGRESA COMO CLIENTE DE PRUEBA <ArrowRight className="w-4 h-4" />
-            </button>
+        {/* Error message alert */}
+        {errorMsg && (
+          <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs font-bold flex items-center gap-3 animate-in shake">
+            <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+            <span>{errorMsg}</span>
           </div>
+        )}
 
-          {/* Card 2: Admin CMS Demo Access */}
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-slate-200 hover:border-slate-800 shadow-md transition-all space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-slate-900 text-amber-400 font-black text-xs flex items-center justify-center shadow-md">
-                  AD
-                </div>
-                <div>
-                  <h3 className="text-base font-black text-slate-900">Administrador de Prueba (CMS)</h3>
-                  <span className="text-xs font-extrabold font-mono text-amber-700 block uppercase">SUPERUSER CMS</span>
-                </div>
+        {/* Clean Login Form Card */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-slate-200 shadow-xl space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-xs font-extrabold text-slate-700 mb-2 uppercase tracking-wider">
+                Correo Electrónico
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-400 absolute left-4 top-3.5" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="ejemplo@beebox.com"
+                  className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-slate-200 text-slate-900 text-xs font-bold focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
+                />
               </div>
-
-              <span className="px-3 py-1 rounded-full bg-slate-900 text-amber-400 text-[10px] font-black uppercase tracking-wider">
-                ★ ADMIN
-              </span>
             </div>
 
-            <p className="text-xs text-slate-600 font-medium leading-relaxed">
-              Accede al Panel de Administración: Gestión de pickups, control global de envíos, vinculación de prealertas, catálogo de rutas y CMS.
-            </p>
+            <div>
+              <label className="block text-xs font-extrabold text-slate-700 mb-2 uppercase tracking-wider">
+                Contraseña
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-slate-400 absolute left-4 top-3.5" />
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-slate-200 text-slate-900 text-xs font-bold focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
+                />
+              </div>
+            </div>
 
             <button
-              onClick={handleLoginAdmin}
-              className="w-full py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs uppercase tracking-wider shadow-xl transition-all flex items-center justify-center gap-2"
+              type="submit"
+              disabled={loading}
+              className="w-full py-4 rounded-2xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center gap-2"
             >
-              <ShieldCheck className="w-4 h-4 text-amber-400" /> INGRESA COMO ADMIN DE PRUEBA (CMS) <ArrowRight className="w-4 h-4" />
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
+              INICIAR SESIÓN <ArrowRight className="w-4 h-4" />
             </button>
+          </form>
+
+          <div className="pt-4 border-t border-slate-100 text-center">
+            <p className="text-xs font-medium text-slate-500">
+              ¿No tienes casillero?{" "}
+              <Link href="/registro" className="font-bold text-amber-700 hover:underline">
+                Regístrate aquí
+              </Link>
+            </p>
           </div>
         </div>
 
