@@ -29,13 +29,26 @@ interface AuthContextType {
   prealertas: PrealertaItem[];
   addPrealerta: (item: Omit<PrealertaItem, "id" | "createdAt" | "status">) => void;
   login: (email: string, pass: string) => void;
-  register: (name: string, email: string, phone: string) => void;
+  register: (name: string, email: string, password: string, phone?: string) => Promise<void>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+
+const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 1200) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timer);
+    return res;
+  } catch (err) {
+    clearTimeout(timer);
+    throw err;
+  }
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -67,7 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
     if (token) {
-      fetch(`${API_URL}/auth/me`, {
+      fetchWithTimeout(`${API_URL}/auth/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -115,7 +128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, pass: string) => {
     try {
-      const res = await fetch(`${API_URL}/auth/login`, {
+      const res = await fetchWithTimeout(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password: pass }),
@@ -129,7 +142,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error(data.message || "Error al iniciar sesión");
       }
     } catch {
-      // Fallback local si la API backend está apagada
+      // Fallback local instantáneo si la API backend o DB no responde a tiempo
       const userRole: "client" | "admin" = email.includes("admin") ? "admin" : "client";
       setUser({
         id: "usr_123",
@@ -142,12 +155,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (name: string, email: string, phone: string) => {
+  const register = async (name: string, email: string, password: string, phone?: string) => {
     try {
-      const res = await fetch(`${API_URL}/auth/register`, {
+      const res = await fetchWithTimeout(`${API_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password: "clientPassword123", phone }),
+        body: JSON.stringify({ name, email, password, phone }),
       });
       const data = await res.json();
       if (res.ok && data.token) {
@@ -155,12 +168,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(data.user);
         setRole(data.user.role || "client");
       } else {
-        const suiteCode = `CAS-${Math.floor(10000 + Math.random() * 90000)}-MIAMI`;
-        setUser({ id: `usr_${Date.now()}`, name, email, phone, suiteCode });
+        throw new Error(data.message || "Error al registrar usuario.");
       }
-    } catch {
+    } catch (error: any) {
+      if (error?.message && error.message !== "Failed to fetch") {
+        throw error;
+      }
+      // Fallback local en caso de estar offline
       const suiteCode = `CAS-${Math.floor(10000 + Math.random() * 90000)}-MIAMI`;
-      setUser({ id: `usr_${Date.now()}`, name, email, phone, suiteCode });
+      setUser({ id: `usr_${Date.now()}`, name, email, phone: phone || "", suiteCode });
     }
   };
 

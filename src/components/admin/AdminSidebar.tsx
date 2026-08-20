@@ -86,24 +86,7 @@ export const AdminSidebar: React.FC = () => {
           </div>
         </div>
 
-        {/* Highly Intuitive Demo Role Switcher Button to Client */}
-        <button
-          onClick={handleSwitchToClient}
-          className="w-full p-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 transition-all font-bold text-xs shadow-md shadow-amber-500/20 group text-left space-y-1 border border-amber-400"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-slate-950 flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5" /> MODO ADMINISTRACIÓN
-            </span>
-            <ArrowRight className="w-4 h-4 text-slate-950 group-hover:translate-x-1 transition-transform" />
-          </div>
-          <span className="text-xs font-black text-slate-950 block uppercase tracking-wider">
-            CAMBIAR A MODO CLIENTE
-          </span>
-          <span className="text-[10px] text-slate-900 block leading-tight font-bold">
-            Regresa al portal privado del cliente
-          </span>
-        </button>
+
 
         {/* Grouped Navigation */}
         <nav className="space-y-5 pt-1">

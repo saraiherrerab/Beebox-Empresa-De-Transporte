@@ -13,32 +13,50 @@
   }
 }
 
-/* Force Pure Bright Beebox Yellow Overrides (#FFC107 / #FFD600) - 0% Orange */
+/* Force Exact BEEBOX Logo Yellow Overrides (#F5C242) */
+.bg-amber-400,
 .bg-amber-500,
-.bg-beebox-amber-500 {
-  background-color: #FFC107 !important;
+.bg-beebox-amber-500,
+.hover\:bg-amber-400:hover,
+.hover\:bg-amber-500:hover {
+  background-color: #edc23b !important;
 }
 
 .bg-amber-600,
-.bg-beebox-amber-600 {
-  background-color: #EAB308 !important;
+.bg-beebox-amber-600,
+.hover\:bg-amber-600:hover {
+  background-color: #E0B034 !important;
 }
 
+.text-amber-400,
 .text-amber-500,
 .text-amber-600,
-.text-beebox-amber-500 {
-  color: #D97706 !important;
+.text-beebox-amber-400,
+.text-beebox-amber-500,
+.hover\:text-amber-400:hover,
+.hover\:text-amber-500:hover {
+  color: #F5C242 !important;
 }
 
+.text-amber-700,
+.text-amber-800,
+.hover\:text-amber-600:hover,
+.hover\:text-amber-700:hover {
+  color: #DDAA2D !important;
+}
+
+.border-amber-300,
+.border-amber-400,
 .border-amber-500,
-.border-amber-400 {
-  border-color: #FFC107 !important;
+.hover\:border-amber-500:hover,
+.focus\:border-amber-500:focus {
+  border-color: #F5C242 !important;
 }
 
 /* Custom background patterns and glassmorphism helpers */
 .bg-grid-pattern {
   background-size: 32px 32px;
-  background-image: 
+  background-image:
     linear-gradient(to right, rgba(0, 0, 0, 0.03) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
 }
@@ -61,13 +79,16 @@ nextjs-portal,
 ::-webkit-scrollbar {
   width: 8px;
 }
+
 ::-webkit-scrollbar-track {
   background: #F8FAFC;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #CBD5E1;
   border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: #FFC107;
+  background: #F5C242;
 }

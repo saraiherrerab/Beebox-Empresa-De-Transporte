@@ -113,7 +113,7 @@ export default function LoginPage() {
               className="w-full py-4 rounded-2xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center gap-2"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
-              INICIAR SESIÓN <ArrowRight className="w-4 h-4" />
+              INICIAR SESIÓN
             </button>
           </form>
 

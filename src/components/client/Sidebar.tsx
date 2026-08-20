@@ -53,24 +53,7 @@ export const Sidebar: React.FC = () => {
           />
         </Link>
 
-        {/* Highly Intuitive Demo Role Switcher Button */}
-        <button
-          onClick={handleRoleToggle}
-          className="w-full p-3.5 rounded-2xl bg-slate-900 text-white hover:bg-slate-800 transition-all shadow-md group border border-slate-800 text-left space-y-1.5"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5" /> PROBAR MODO DEMO
-            </span>
-            <ArrowRight className="w-4 h-4 text-amber-400 group-hover:translate-x-1 transition-transform" />
-          </div>
-          <span className="text-xs font-black text-white block uppercase tracking-wider">
-            CAMBIAR A MODO ADMIN (CMS)
-          </span>
-          <span className="text-[10px] text-slate-400 block leading-tight font-medium">
-            Accede al panel de control, clientes y rutas
-          </span>
-        </button>
+
 
         {/* Navigation Items */}
         <nav className="space-y-1.5 pt-1">
