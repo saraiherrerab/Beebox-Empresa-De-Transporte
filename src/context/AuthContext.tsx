@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 
 export interface UserProfile {
   id: string;
@@ -19,6 +19,7 @@ export interface PrealertaItem {
   receiptFileName?: string;
   createdAt: string;
   status: "Prealertado" | "Recibido en Almacén" | "Vinculado";
+  warehouseGuide?: string;
 }
 
 interface AuthContextType {
@@ -27,8 +28,10 @@ interface AuthContextType {
   setRole: (role: "client" | "admin") => void;
   isAuthenticated: boolean;
   prealertas: PrealertaItem[];
-  addPrealerta: (item: Omit<PrealertaItem, "id" | "createdAt" | "status">) => void;
-  login: (email: string, pass: string) => void;
+  refreshPrealertas: () => Promise<void>;
+  addPrealerta: (item: Omit<PrealertaItem, "id" | "createdAt" | "status">) => Promise<void>;
+  linkPrealerta: (id: string, warehouseGuide: string) => Promise<void>;
+  login: (email: string, pass: string) => Promise<void>;
   register: (name: string, email: string, password: string, phone?: string) => Promise<void>;
   logout: () => void;
 }
@@ -37,7 +40,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
-const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 1200) => {
+const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 1500) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -76,6 +79,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     },
   ]);
 
+  const refreshPrealertas = useCallback(async () => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
+    if (!token) return;
+
+    try {
+      const res = await fetchWithTimeout(`${API_URL}/prealertas`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await res.json();
+      if (res.ok && data.prealertas) {
+        const formatted: PrealertaItem[] = data.prealertas.map((p: any) => ({
+          id: p.id,
+          store: p.store,
+          trackingNumber: p.trackingNumber,
+          description: p.description,
+          amountPaid: String(p.amountPaid),
+          receiptFileName: p.receiptFileName || undefined,
+          createdAt: p.createdAt ? p.createdAt.split("T")[0] : new Date().toISOString().split("T")[0],
+          status: p.status as any,
+          warehouseGuide: p.warehouseGuide || undefined,
+        }));
+        setPrealertas(formatted);
+      }
+    } catch {
+      // Usar estado actual si hay timeout de red
+    }
+  }, []);
+
   // Restaurar sesión al cargar si existe un JWT token
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
@@ -90,6 +123,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (data && data.user) {
             setUser(data.user);
             setRole(data.user.role || "client");
+            refreshPrealertas();
           } else {
             localStorage.removeItem("beebox_token");
           }
@@ -114,9 +148,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         suiteCode: "CAS-88293-MIAMI",
       });
     }
-  }, []);
+  }, [refreshPrealertas]);
 
-  const addPrealerta = (item: Omit<PrealertaItem, "id" | "createdAt" | "status">) => {
+  const addPrealerta = async (item: Omit<PrealertaItem, "id" | "createdAt" | "status">) => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
+    if (token) {
+      try {
+        const res = await fetchWithTimeout(`${API_URL}/prealertas`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            store: item.store,
+            trackingNumber: item.trackingNumber,
+            description: item.description,
+            amountPaid: Number(item.amountPaid),
+            receiptFileName: item.receiptFileName,
+          }),
+        });
+        if (res.ok) {
+          await refreshPrealertas();
+          return;
+        }
+      } catch {
+        // Fallback local
+      }
+    }
+
     const newItem: PrealertaItem = {
       ...item,
       id: `pre_${Date.now()}`,
@@ -124,6 +184,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       status: "Prealertado",
     };
     setPrealertas((prev) => [newItem, ...prev]);
+  };
+
+  const linkPrealerta = async (id: string, warehouseGuide: string) => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
+    if (token) {
+      try {
+        const res = await fetchWithTimeout(`${API_URL}/prealertas/${id}/link`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ warehouseGuide }),
+        });
+        if (res.ok) {
+          await refreshPrealertas();
+          return;
+        }
+      } catch {
+        // Fallback local
+      }
+    }
+
+    setPrealertas((prev) =>
+      prev.map((p) =>
+        p.id === id ? { ...p, status: "Vinculado", warehouseGuide } : p
+      )
+    );
   };
 
   const login = async (email: string, pass: string) => {
@@ -138,6 +226,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem("beebox_token", data.token);
         setUser(data.user);
         setRole(data.user.role || "client");
+        refreshPrealertas();
       } else {
         throw new Error(data.message || "Error al iniciar sesión");
       }
@@ -167,6 +256,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem("beebox_token", data.token);
         setUser(data.user);
         setRole(data.user.role || "client");
+        refreshPrealertas();
       } else {
         throw new Error(data.message || "Error al registrar usuario.");
       }
@@ -195,7 +285,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setRole,
         isAuthenticated: !!user,
         prealertas,
+        refreshPrealertas,
         addPrealerta,
+        linkPrealerta,
         login,
         register,
         logout,
