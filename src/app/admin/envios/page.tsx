@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, MapPin, Edit3, Trash2, ChevronLeft, ChevronRight, Eye } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Search, MapPin, Edit3, Trash2 } from "lucide-react";
 
 interface ShipmentItem {
   id: string;
@@ -18,6 +17,8 @@ interface ShipmentItem {
   activityDesc: string;
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+
 export default function AdminEnviosPage() {
   const [activeTab, setActiveTab] = useState<string>("todos");
   const [search, setSearch] = useState("");
@@ -29,19 +30,19 @@ export default function AdminEnviosPage() {
       weight: "45.5 kg",
       clientName: "Importadora Del Pacífico",
       suiteCode: "CAS-88293-MIAMI",
-      route: "Valparaíso → Santiago",
+      route: "Miami → Ciudad de México",
       status: "vuelo",
       statusLabel: "EN TRÁNSITO",
       lastActivity: "Hoy, 18:30 hrs",
-      activityDesc: "Vehículo en tránsito hacia el hub Santiago",
+      activityDesc: "Vehículo en tránsito hacia el hub principal",
     },
     {
       id: "sh_2",
-      tracking: "LT-449201-US",
+      tracking: "MIA-449201",
       type: "Vía Aéreo",
       weight: "0.8 kg",
       clientName: "Juan Pérez Rodríguez",
-      suiteCode: "CAS-88293-MX",
+      suiteCode: "CAS-88293-MIAMI",
       route: "MIA → MEX",
       status: "aduana",
       statusLabel: "EN ADUANA",
@@ -50,34 +51,24 @@ export default function AdminEnviosPage() {
     },
     {
       id: "sh_3",
-      tracking: "LT-110293-ES",
+      tracking: "MIA-110293",
       type: "Vía Marítimo",
       weight: "12.4 kg",
       clientName: "Sofía Méndez",
-      suiteCode: "CAS-22481-MX",
+      suiteCode: "CAS-22481-MIAMI",
       route: "MAD → MEX",
       status: "vuelo",
       statusLabel: "EN VUELO",
       lastActivity: "Ayer, 16:30 PM",
       activityDesc: "Salida de Origen",
     },
-    {
-      id: "sh_4",
-      tracking: "LT-992281-US",
-      type: "Vía Aéreo",
-      weight: "1.3 kg",
-      clientName: "Carlos Ruiz",
-      suiteCode: "CAS-10394-MX",
-      route: "MIA → MEX",
-      status: "disponible",
-      statusLabel: "DISPONIBLE",
-      lastActivity: "14 Oct, 11:20 AM",
-      activityDesc: "Listo para Retiro",
-    },
   ]);
 
   React.useEffect(() => {
-    fetch("http://localhost:4000/api/shipments")
+    const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
+    fetch(`${API_URL}/shipments`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
@@ -86,11 +77,11 @@ export default function AdminEnviosPage() {
             tracking: item.trackingCode,
             type: item.serviceType || "Express",
             weight: `${item.weightKg} kg`,
-            clientName: item.recipientName || item.senderName,
-            suiteCode: "CAS-88293-MIAMI",
+            clientName: item.user?.name || item.recipientName || item.senderName,
+            suiteCode: item.user?.suiteCode || "CAS-MIAMI",
             route: `${item.senderCity} → ${item.recipientCity}`,
             status: item.currentStatus === "en_transito" ? "vuelo" : "disponible",
-            statusLabel: (item.currentStatus || "EN RUTA").toUpperCase(),
+            statusLabel: (item.currentStatus || "EN RUTA").toUpperCase().replace("_", " "),
             lastActivity: item.estimatedDelivery || "Hoy",
             activityDesc: `Estado actual: ${item.currentStatus}`,
           }));
@@ -99,6 +90,13 @@ export default function AdminEnviosPage() {
       })
       .catch(() => {});
   }, []);
+
+  const filteredShipments = shipments.filter(
+    (sh) =>
+      sh.tracking.toLowerCase().includes(search.toLowerCase()) ||
+      sh.clientName.toLowerCase().includes(search.toLowerCase()) ||
+      sh.suiteCode.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200 text-slate-900 bg-slate-50 p-6 min-h-screen rounded-3xl">
@@ -110,7 +108,7 @@ export default function AdminEnviosPage() {
         </span>
       </div>
 
-      {/* Main Container Card (Matching Mockup 2) */}
+      {/* Main Container Card */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-lg space-y-6">
         {/* Tabs & Search Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
@@ -140,7 +138,7 @@ export default function AdminEnviosPage() {
           </div>
         </div>
 
-        {/* Global Tracking Table (Matching Mockup 2) */}
+        {/* Global Tracking Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -154,7 +152,7 @@ export default function AdminEnviosPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs font-medium">
-              {shipments.map((sh) => (
+              {filteredShipments.map((sh) => (
                 <tr key={sh.id} className="hover:bg-slate-50 transition-colors">
                   <td className="py-4 px-4">
                     <span className="font-mono font-bold text-slate-900 block">{sh.tracking}</span>
@@ -201,9 +199,9 @@ export default function AdminEnviosPage() {
           </table>
         </div>
 
-        {/* Footer Pagination (Matching Mockup 2) */}
+        {/* Footer Pagination */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-100 text-xs text-slate-500 font-medium">
-          <span>Mostrando 1–10 de 2,481 envíos</span>
+          <span>Mostrando 1–{filteredShipments.length} de {filteredShipments.length} envíos</span>
           <div className="flex items-center gap-2">
             <button className="px-4 py-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-700 hover:bg-slate-50 uppercase text-[11px]">
               ANTERIOR
