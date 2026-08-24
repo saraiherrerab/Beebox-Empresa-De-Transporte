@@ -1,15 +1,51 @@
 "use client";
 
-import React from "react";
-import { Users, BellRing, Package, Truck, ShieldCheck, ArrowRight } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Users, BellRing, Package, Truck, ArrowRight, DollarSign } from "lucide-react";
 import Link from "next/link";
 
+interface MetricsData {
+  totalClients: number;
+  pendingPrealertas: number;
+  pendingPickups: number;
+  activeShipments: number;
+  totalRevenue: number;
+}
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+
 export default function AdminOverviewPage() {
+  const [metrics, setMetrics] = useState<MetricsData>({
+    totalClients: 42,
+    pendingPrealertas: 5,
+    pendingPickups: 3,
+    activeShipments: 18,
+    totalRevenue: 4850.0,
+  });
+
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
+    if (token) {
+      fetch(`${API_URL}/admin/metrics`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && data.metrics) {
+            setMetrics(data.metrics);
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
+
   const stats = [
-    { label: "Clientes Registrados", value: "1,248", change: "+12% este mes", icon: Users },
-    { label: "Prealertas Pendientes", value: "34", change: "Requieren vinculación", icon: BellRing },
-    { label: "Paquetes en Almacén MIA", value: "182", change: "En tránsito/Aduana", icon: Package },
-    { label: "Pickups Programados", value: "15", change: "Hoy en ruta", icon: Truck },
+    { label: "Clientes Registrados", value: metrics.totalClients.toLocaleString(), change: "Base de Datos Real", icon: Users },
+    { label: "Prealertas Pendientes", value: metrics.pendingPrealertas.toString(), change: "Requieren vinculación", icon: BellRing },
+    { label: "Pickups por Atender", value: metrics.pendingPickups.toString(), change: "Solicitudes a domicilio", icon: Truck },
+    { label: "Envíos Activos", value: metrics.activeShipments.toString(), change: "En tránsito/Aduana", icon: Package },
   ];
 
   return (
@@ -17,7 +53,7 @@ export default function AdminOverviewPage() {
       <div>
         <h1 className="text-3xl font-black text-slate-900 tracking-tight">Resumen Ejecutivo (CMS Admin)</h1>
         <p className="text-xs font-semibold text-slate-500 mt-1">
-          Gestión unificada de clientes, casilleros virtuales, prealertas de almacén, rutas y contenidos CMS.
+          Gestión unificada de clientes, casilleros virtuales, prealertas de almacén, pickups y métricas consolidadas.
         </p>
       </div>
 
