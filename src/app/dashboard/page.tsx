@@ -89,7 +89,7 @@ export default function DashboardOverviewPage() {
         </div>
 
         {user?.active !== false ? (
-          <Link href="/dashboard/prealertas">
+          <Link href="/dashboard/prealertas?nueva=true">
             <Button variant="amber" className="rounded-2xl px-6 py-3 text-xs font-bold shadow-md">
               + Pre-alertar Paquete
             </Button>
@@ -189,7 +189,7 @@ export default function DashboardOverviewPage() {
                   Aún no tienes paquetes registrados o en tránsito. Notifica tus compras enviando una prealerta para darles seguimiento inmediato.
                 </p>
                 {user?.active !== false && (
-                  <Link href="/dashboard/prealertas" className="inline-block pt-1">
+                  <Link href="/dashboard/prealertas?nueva=true" className="inline-block pt-1">
                     <Button variant="amber" className="rounded-2xl px-5 py-2.5 text-xs font-bold shadow-sm">
                       <Plus className="w-3.5 h-3.5 mr-1" /> Registrar Prealerta
                     </Button>

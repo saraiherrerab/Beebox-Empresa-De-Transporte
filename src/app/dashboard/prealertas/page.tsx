@@ -1,12 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { Package, Upload, Plus, CheckCircle2, ShieldCheck, FileText, ExternalLink } from "lucide-react";
+import { Package, Upload, Plus, CheckCircle2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
-export default function PrealertasPage() {
+function PrealertasContent() {
   const { user, prealertas, addPrealerta } = useAuth();
+  const searchParams = useSearchParams();
+  const isNuevaParam = searchParams.get("nueva") === "true";
+
   const [store, setStore] = useState("Amazon US");
   const [customStore, setCustomStore] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
@@ -15,6 +19,12 @@ export default function PrealertasPage() {
   const [receiptFileName, setReceiptFileName] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [successMsg, setSuccessMsg] = useState(false);
+
+  useEffect(() => {
+    if (isNuevaParam) {
+      setShowForm(true);
+    }
+  }, [isNuevaParam]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -246,5 +256,13 @@ export default function PrealertasPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PrealertasPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-slate-400">Cargando prealertas...</div>}>
+      <PrealertasContent />
+    </Suspense>
   );
 }
