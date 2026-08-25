@@ -19,8 +19,9 @@ export interface PrealertaItem {
   description: string;
   amountPaid: string;
   receiptFileName?: string;
+  destination?: string;
   createdAt: string;
-  status: "Prealertado" | "Recibido en Almacén" | "Vinculado";
+  status: "Prealertado" | "Recibido en Almacén" | "Vinculado" | "Confirmado";
   warehouseGuide?: string;
 }
 
@@ -32,7 +33,7 @@ interface AuthContextType {
   prealertas: PrealertaItem[];
   refreshPrealertas: () => Promise<void>;
   addPrealerta: (item: Omit<PrealertaItem, "id" | "createdAt" | "status">) => Promise<void>;
-  linkPrealerta: (id: string, warehouseGuide: string) => Promise<void>;
+  linkPrealerta: (id: string, warehouseGuide: string, destination?: string) => Promise<void>;
   login: (email: string, pass: string) => Promise<void>;
   register: (name: string, email: string, password: string, phone?: string) => Promise<void>;
   logout: () => void;
@@ -168,6 +169,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             description: item.description,
             amountPaid: Number(item.amountPaid),
             receiptFileName: item.receiptFileName,
+            destination: item.destination,
           }),
         });
         if (res.ok) {
@@ -188,7 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPrealertas((prev) => [newItem, ...prev]);
   };
 
-  const linkPrealerta = async (id: string, warehouseGuide: string) => {
+  const linkPrealerta = async (id: string, warehouseGuide: string, destination?: string) => {
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
     if (token) {
       try {
@@ -198,7 +200,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ warehouseGuide }),
+          body: JSON.stringify({ warehouseGuide, destination }),
         });
         if (res.ok) {
           await refreshPrealertas();
@@ -211,7 +213,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setPrealertas((prev) =>
       prev.map((p) =>
-        p.id === id ? { ...p, status: "Vinculado", warehouseGuide } : p
+        p.id === id ? { ...p, status: "Confirmado", warehouseGuide, destination: destination || p.destination } : p
       )
     );
   };

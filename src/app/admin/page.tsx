@@ -77,13 +77,13 @@ export default function AdminOverviewPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="p-8 rounded-3xl bg-white border border-slate-200 space-y-4 shadow-sm">
           <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <BellRing className="w-5 h-5 text-amber-600" /> Gestión de Prealertas de Almacén
+            <BellRing className="w-5 h-5 text-amber-600" /> Confirmación de Prealertas de Almacén
           </h3>
           <p className="text-xs text-slate-500 leading-relaxed font-medium">
-            Vincula de forma manual las prealertas registradas por los usuarios con los trackings recibidos físicamente en la sede de Miami.
+            Corrobora la recepción física de compras en el almacén de Oklahoma, confirma el destino final de envío y asigna la guía para despacho.
           </p>
           <Link href="/admin/prealertas" className="inline-flex items-center gap-2 text-xs font-bold text-amber-700 hover:underline pt-2 uppercase">
-            IR A VINCULAR PREALERTAS <ArrowRight className="w-4 h-4" />
+            IR A CONFIRMAR PREALERTAS <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
 

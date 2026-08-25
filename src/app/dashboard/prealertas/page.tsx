@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { Package, Upload, Plus, CheckCircle2, FileText } from "lucide-react";
+import { Package, Upload, Plus, CheckCircle2, FileText, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 function PrealertasContent() {
@@ -16,6 +16,8 @@ function PrealertasContent() {
   const [trackingNumber, setTrackingNumber] = useState("");
   const [description, setDescription] = useState("");
   const [amountPaid, setAmountPaid] = useState("");
+  const [destination, setDestination] = useState("Caracas, Venezuela");
+  const [customDestination, setCustomDestination] = useState("");
   const [receiptFileName, setReceiptFileName] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [successMsg, setSuccessMsg] = useState(false);
@@ -35,13 +37,17 @@ function PrealertasContent() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const storeName = store === "Otra" ? customStore : store;
+    const finalDestination = destination === "Otra" ? customDestination : destination;
+
     addPrealerta({
       store: storeName || "Tienda Online",
       trackingNumber,
       description,
       amountPaid: amountPaid || "0.00",
+      destination: finalDestination || "Caracas, Venezuela",
       receiptFileName: receiptFileName || undefined,
     });
+
     setSuccessMsg(true);
     setTimeout(() => setSuccessMsg(false), 4000);
     setShowForm(false);
@@ -81,7 +87,7 @@ function PrealertasContent() {
       {successMsg && (
         <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 flex items-center gap-2 animate-in slide-in-from-top-2">
           <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-          ¡Prealerta registrada exitosamente! Vincularemos tu paquete automáticamente cuando ingrese al almacén de Tulsa, OK.
+          ¡Prealerta registrada exitosamente! El equipo en el almacén de Oklahoma (EE.UU.) corroborará la llegada de tu paquete y confirmará su despacho al destino seleccionado.
         </div>
       )}
 
@@ -123,10 +129,38 @@ function PrealertasContent() {
                 )}
               </div>
 
+              {/* Destino de Envío */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-amber-500" /> Destino Final del Envío
+                </label>
+                <select
+                  value={destination}
+                  onChange={(e) => setDestination(e.target.value)}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-bold text-slate-900 focus:border-amber-500 focus:outline-none"
+                >
+                  <option value="Caracas, Venezuela">🇻🇪 Caracas, Venezuela</option>
+                  <option value="Bogotá, Colombia">🇨🇴 Bogotá, Colombia</option>
+                  <option value="Otra">🌎 Otro Destino...</option>
+                </select>
+                {destination === "Otra" && (
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. Medellín, Colombia / Maracaibo, Venezuela"
+                    value={customDestination}
+                    onChange={(e) => setCustomDestination(e.target.value)}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-medium text-slate-900 mt-2 focus:border-amber-500 focus:outline-none"
+                  />
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Tracking Number */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Número de Rastreo (Tracking Number / Código de Compra)
+                  Número de Rastreo / Tracking
                 </label>
                 <input
                   type="text"
@@ -137,18 +171,16 @@ function PrealertasContent() {
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-mono font-bold text-slate-900 focus:border-amber-500 focus:outline-none"
                 />
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Descripción Técnica */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Descripción Técnica de la Compra
+                  Descripción del Paquete
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Ej. Laptop Asus Zenbook + Adaptador USB-C"
+                  placeholder="Ej. Laptop Asus Zenbook + Adaptador"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-medium text-slate-900 focus:border-amber-500 focus:outline-none"
@@ -158,7 +190,7 @@ function PrealertasContent() {
               {/* Monto Pagado */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Monto Pagado (USD)
+                  Valor Declarado (USD)
                 </label>
                 <input
                   type="number"
@@ -216,6 +248,7 @@ function PrealertasContent() {
                 <th className="py-3 px-4">Tienda</th>
                 <th className="py-3 px-4">Número de Rastreo</th>
                 <th className="py-3 px-4">Descripción</th>
+                <th className="py-3 px-4">Destino Solicitado</th>
                 <th className="py-3 px-4">Valor USD</th>
                 <th className="py-3 px-4">Estatus</th>
                 <th className="py-3 px-4 text-right">Comprobante</th>
@@ -228,6 +261,12 @@ function PrealertasContent() {
                   <td className="py-4 px-4 font-bold text-slate-900">{item.store}</td>
                   <td className="py-4 px-4 font-mono font-bold text-amber-600">{item.trackingNumber}</td>
                   <td className="py-4 px-4 text-slate-700 max-w-xs truncate">{item.description}</td>
+                  <td className="py-4 px-4 font-bold text-slate-800">
+                    <span className="inline-flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-amber-500 shrink-0" />
+                      {item.destination || "Caracas, Venezuela"}
+                    </span>
+                  </td>
                   <td className="py-4 px-4 font-mono font-bold text-slate-900">${item.amountPaid}</td>
                   <td className="py-4 px-4">
                     <span

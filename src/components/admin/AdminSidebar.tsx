@@ -53,7 +53,7 @@ export const AdminSidebar: React.FC = () => {
       group: "GESTIÓN DE CLIENTES",
       items: [
         { name: "Base de Clientes (CRM)", href: "/admin/clientes", icon: Users },
-        { name: "Vinculación Prealertas", href: "/admin/prealertas", icon: BellRing },
+        { name: "Confirmación de Prealertas", href: "/admin/prealertas", icon: BellRing },
       ],
     },
     {
