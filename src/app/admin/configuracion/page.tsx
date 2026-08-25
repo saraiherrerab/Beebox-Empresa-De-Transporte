@@ -242,29 +242,6 @@ export default function AdminConfiguracionPage() {
                 <p className="text-xs text-slate-500 font-medium">Actualiza tu clave de acceso al sistema</p>
               </div>
             </div>
-
-            {/* Pencil Edit Toggle Button */}
-            <button
-              onClick={() => {
-                setIsEditingPassword(!isEditingPassword);
-                setPasswordNotice(null);
-              }}
-              className={`p-2.5 rounded-2xl border text-xs font-bold transition-all flex items-center gap-1.5 ${
-                isEditingPassword
-                  ? "bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100"
-                  : "bg-amber-50 border-amber-200 text-amber-900 hover:bg-amber-100"
-              }`}
-            >
-              {isEditingPassword ? (
-                <>
-                  <X className="w-4 h-4" /> Cancelar
-                </>
-              ) : (
-                <>
-                  <Pencil className="w-4 h-4" /> Cambiar Contraseña
-                </>
-              )}
-            </button>
           </div>
 
           {passwordNotice && (
