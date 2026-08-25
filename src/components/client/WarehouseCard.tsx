@@ -1,12 +1,16 @@
-import React from "react";
-import { Building2, Copy, Check } from "lucide-react";
-import { useState } from "react";
+"use client";
+
+import React, { useState } from "react";
+import { Copy, Check } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export const WarehouseCard: React.FC = () => {
   const [copied, setCopied] = useState(false);
+  const { user } = useAuth();
 
   const handleCopy = () => {
-    navigator.clipboard.writeText("8400 NW 25th St, Miami, FL 33198");
+    const address = `${user?.name || "Cliente"} (${user?.suiteCode || "CAS-MIAMI"}), 8400 NW 25th St, Miami, FL 33198`;
+    navigator.clipboard.writeText(address);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -32,11 +36,13 @@ export const WarehouseCard: React.FC = () => {
         </div>
 
         <div className="space-y-1 text-xs">
-          <div className="flex justify-between">
-            <span className="text-slate-400">Nombre:</span>
-            <span className="font-bold text-slate-800">Juan Pérez CAS-88293</span>
+          <div className="flex justify-between gap-2">
+            <span className="text-slate-400">Nombre / Casillero:</span>
+            <span className="font-bold text-slate-800 font-mono text-right truncate">
+              {user?.name || "Cliente"} {user?.suiteCode ? `(${user.suiteCode})` : ""}
+            </span>
           </div>
-          <div className="flex justify-between">
+          <div className="flex justify-between gap-2">
             <span className="text-slate-400">Dirección:</span>
             <span className="font-bold text-slate-800">8400 NW 25th St</span>
           </div>

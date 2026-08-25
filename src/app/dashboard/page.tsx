@@ -1,33 +1,73 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Truck, ArrowUpRight, Copy, Check, FileUp, PackageCheck, AlertCircle } from "lucide-react";
+import { Truck, Check, FileUp, Package, Plus, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { WarehouseCard } from "@/components/client/WarehouseCard";
 import { Button } from "@/components/ui/Button";
 
-export default function DashboardOverviewPage() {
-  const { user } = useAuth();
+interface ApiShipment {
+  trackingCode: string;
+  senderName: string;
+  senderCity: string;
+  recipientName: string;
+  recipientCity: string;
+  serviceType: string;
+  weightKg: number;
+  currentStatus: string;
+  createdAt: string;
+  events?: Array<{
+    id: string;
+    status: string;
+    title: string;
+    description: string;
+    timestamp: string;
+  }>;
+}
 
-  const recentPackages = [
-    {
-      id: "pkg_1",
-      name: "iPhone 15 Pro Max",
-      tracking: "LT-449201-US",
-      origin: "Miami, USA",
-      status: "En Aduana",
-      weight: "0.8 kg",
-    },
-    {
-      id: "pkg_2",
-      name: "Zapatillas Deportivas",
-      tracking: "LT-110293-ES",
-      origin: "Madrid, ES",
-      status: "Entregado",
-      weight: "1.2 kg",
-    },
-  ];
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+
+export default function DashboardOverviewPage() {
+  const { user, prealertas } = useAuth();
+  const [shipments, setShipments] = useState<ApiShipment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
+    if (token) {
+      fetch(`${API_URL}/shipments`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && Array.isArray(data)) {
+            setShipments(data);
+          } else if (data && data.shipments) {
+            setShipments(data.shipments);
+          }
+        })
+        .catch(() => {
+          // Si está offline o falla la red, estado limpio
+          setShipments([]);
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  const totalActivePackages = shipments.length + prealertas.length;
+  const activeShipment = shipments[0] || null;
+
+  const getStepIndex = (statusStr: string) => {
+    const s = (statusStr || "").toLowerCase();
+    if (s.includes("destino") || s.includes("entregado")) return 2;
+    if (s.includes("camino") || s.includes("transito") || s.includes("reparto")) return 1;
+    return 0; // Default: En el origen
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-200">
@@ -35,81 +75,128 @@ export default function DashboardOverviewPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-            Bienvenido, {user?.name.split(" ")[0] || "Juan"}
+            Bienvenido, {user?.name ? user.name.split(" ")[0] : "Cliente"}
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Tienes <span className="text-amber-600 font-bold">3 paquetes</span> en camino a tu destino.
+            {totalActivePackages > 0 ? (
+              <>
+                Tienes <span className="text-amber-600 font-bold">{totalActivePackages} paquete(s)</span> registrados / en camino a tu destino.
+              </>
+            ) : (
+              <span>No tienes paquetes en camino a tu destino.</span>
+            )}
           </p>
         </div>
 
-        <Link href="/dashboard/prealertas">
-          <Button variant="amber" className="rounded-2xl px-6 py-3 text-xs font-bold shadow-md">
-            + Pre-alertar Paquete
-          </Button>
-        </Link>
+        {user?.active !== false ? (
+          <Link href="/dashboard/prealertas">
+            <Button variant="amber" className="rounded-2xl px-6 py-3 text-xs font-bold shadow-md">
+              + Pre-alertar Paquete
+            </Button>
+          </Link>
+        ) : (
+          <span className="px-4 py-2.5 rounded-2xl bg-rose-100 text-rose-800 text-xs font-bold uppercase border border-rose-200">
+            ⚠️ Cuenta Inhabilitada
+          </span>
+        )}
       </div>
 
-      {/* Grid Layout (Matching Image 2) */}
+      {/* Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         {/* Left 2 Cols */}
         <div className="lg:col-span-2 space-y-8">
-          {/* Tracking en Tiempo Real Stepper Card (Image 2) */}
+          {/* Tracking en Tiempo Real Stepper Card */}
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">Tracking en Tiempo Real</h3>
-                <span className="text-xs font-mono font-bold text-slate-400">Guía: LT-449201-US</span>
+            {loading ? (
+              <div className="p-8 text-center text-slate-400 flex items-center justify-center gap-2">
+                <Loader2 className="w-5 h-5 animate-spin text-amber-500" />
+                <span className="text-xs font-bold">Cargando tus paquetes en tiempo real...</span>
               </div>
-              <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-[10px] font-extrabold uppercase tracking-wider">
-                EN ADUANA
-              </span>
-            </div>
-
-            {/* Stepper Progress */}
-            <div className="relative pt-4 pb-2">
-              <div className="flex items-center justify-between relative before:absolute before:left-6 before:right-6 before:top-3.5 before:h-0.5 before:bg-slate-200 before:z-0">
-                {[
-                  { label: "RECIBIDO", date: "12 Oct", done: true },
-                  { label: "EN TRÁNSITO", date: "14 Oct", done: true },
-                  { label: "EN ADUANA", date: "16 Oct", done: true, active: true },
-                  { label: "PARA RETIRO", date: "Est. 18 Oct", done: false },
-                ].map((step, idx) => (
-                  <div key={idx} className="relative z-10 flex flex-col items-center gap-1.5">
-                    <div
-                      className={`w-7 h-7 rounded-full flex items-center justify-center text-xs transition-all ${
-                        step.active
-                          ? "bg-amber-500 text-slate-950 ring-4 ring-amber-100 font-black shadow-md"
-                          : step.done
-                          ? "bg-amber-500 text-slate-950"
-                          : "bg-slate-200 text-slate-400"
-                      }`}
-                    >
-                      {step.done ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : idx + 1}
-                    </div>
-                    <span className="text-[10px] font-extrabold text-slate-800 tracking-wider">
-                      {step.label}
-                    </span>
-                    <span className="text-[9px] text-slate-400 font-mono">{step.date}</span>
+            ) : activeShipment ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">Tracking en Tiempo Real</h3>
+                    <span className="text-xs font-mono font-bold text-slate-400">Guía: {activeShipment.trackingCode}</span>
                   </div>
-                ))}
-              </div>
-            </div>
+                  <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-[10px] font-extrabold uppercase tracking-wider">
+                    {activeShipment.currentStatus}
+                  </span>
+                </div>
 
-            {/* Subir Factura Action */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                  <FileUp className="w-5 h-5" />
+                {/* 3 Stepper Progress (En el origen -> En camino -> Llegó a su destino) */}
+                <div className="relative pt-4 pb-2">
+                  <div className="flex items-center justify-between relative before:absolute before:left-8 before:right-8 before:top-3.5 before:h-0.5 before:bg-slate-200 before:z-0 px-4">
+                    {[
+                      { label: "EN EL ORIGEN", index: 0 },
+                      { label: "EN CAMINO", index: 1 },
+                      { label: "LLEGÓ A SU DESTINO", index: 2 },
+                    ].map((step) => {
+                      const activeIndex = getStepIndex(activeShipment.currentStatus);
+                      const isDone = step.index <= activeIndex;
+                      const isCurrent = step.index === activeIndex;
+
+                      return (
+                        <div key={step.label} className="relative z-10 flex flex-col items-center gap-1.5">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs transition-all ${
+                              isCurrent
+                                ? "bg-amber-500 text-slate-950 ring-4 ring-amber-100 font-black shadow-md scale-110"
+                                : isDone
+                                ? "bg-emerald-500 text-slate-950 font-bold"
+                                : "bg-slate-200 text-slate-400"
+                            }`}
+                          >
+                            {isDone ? <Check className="w-4 h-4 stroke-[3]" /> : step.index + 1}
+                          </div>
+                          <span
+                            className={`text-[10px] font-extrabold tracking-wider ${
+                              isCurrent ? "text-amber-600 font-black" : isDone ? "text-slate-800" : "text-slate-400"
+                            }`}
+                          >
+                            {step.label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-900">Declaración Aduanal</h4>
-                  <p className="text-[11px] text-slate-500">Factura pendiente de subir para despacho aduanero</p>
+
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                      <FileUp className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900">Declaración Aduanal</h4>
+                      <p className="text-[11px] text-slate-500">Comprobante de compra o factura adjunta para aduana</p>
+                    </div>
+                  </div>
+                  <Link href="/dashboard/prealertas">
+                    <Button size="sm" variant="secondary" className="rounded-xl px-5 text-xs font-bold shrink-0">
+                      SUBIR FACTURA
+                    </Button>
+                  </Link>
                 </div>
+              </>
+            ) : (
+              <div className="text-center py-6 space-y-3">
+                <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border border-amber-200">
+                  <Package className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900">Sin envíos activos en este momento</h3>
+                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                  Aún no tienes paquetes registrados o en tránsito. Notifica tus compras enviando una prealerta para darles seguimiento inmediato.
+                </p>
+                {user?.active !== false && (
+                  <Link href="/dashboard/prealertas" className="inline-block pt-1">
+                    <Button variant="amber" className="rounded-2xl px-5 py-2.5 text-xs font-bold shadow-sm">
+                      <Plus className="w-3.5 h-3.5 mr-1" /> Registrar Prealerta
+                    </Button>
+                  </Link>
+                )}
               </div>
-              <Button size="sm" variant="secondary" className="rounded-xl px-5 text-xs font-bold shrink-0">
-                SUBIR FACTURA
-              </Button>
-            </div>
+            )}
           </div>
 
           {/* Mis Paquetes Recientes */}
@@ -121,49 +208,69 @@ export default function DashboardOverviewPage() {
               </Link>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-100 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                    <th className="py-3 px-3">PAQUETE / GUÍA</th>
-                    <th className="py-3 px-3">ORIGEN</th>
-                    <th className="py-3 px-3">ESTADO</th>
-                    <th className="py-3 px-3">PESO</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs font-medium">
-                  {recentPackages.map((pkg) => (
-                    <tr key={pkg.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-4 px-3">
-                        <span className="font-bold text-slate-900 block">{pkg.name}</span>
-                        <span className="text-[10px] font-mono text-slate-400">{pkg.tracking}</span>
-                      </td>
-                      <td className="py-4 px-3 text-slate-600">{pkg.origin}</td>
-                      <td className="py-4 px-3">
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold ${
-                            pkg.status === "En Aduana"
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-emerald-100 text-emerald-800"
-                          }`}
-                        >
-                          ● {pkg.status}
-                        </span>
-                      </td>
-                      <td className="py-4 px-3 font-mono text-slate-600">{pkg.weight}</td>
+            {shipments.length === 0 && prealertas.length === 0 ? (
+              <div className="p-8 text-center text-slate-400 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                <p className="text-xs font-bold text-slate-600 mb-1">No tienes paquetes o prealertas registradas por el momento.</p>
+                <p className="text-[11px] text-slate-400">Tus envíos y compras prealertadas aparecerán organizados en este panel.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-100 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                      <th className="py-3 px-3">PAQUETE / GUÍA</th>
+                      <th className="py-3 px-3">ORIGEN / TIENDA</th>
+                      <th className="py-3 px-3">ESTADO</th>
+                      <th className="py-3 px-3 text-right">DETALLE</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs font-medium">
+                    {shipments.map((pkg) => (
+                      <tr key={pkg.trackingCode} className="hover:bg-slate-50 transition-colors">
+                        <td className="py-4 px-3">
+                          <span className="font-bold text-slate-900 block">{pkg.senderName}</span>
+                          <span className="text-[10px] font-mono text-amber-700 font-bold">{pkg.trackingCode}</span>
+                        </td>
+                        <td className="py-4 px-3 text-slate-600">{pkg.senderCity}</td>
+                        <td className="py-4 px-3">
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800">
+                            ● {pkg.currentStatus}
+                          </span>
+                        </td>
+                        <td className="py-4 px-3 text-right font-mono text-slate-600">{pkg.weightKg} kg</td>
+                      </tr>
+                    ))}
+
+                    {prealertas.map((pre) => (
+                      <tr key={pre.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="py-4 px-3">
+                          <span className="font-bold text-slate-900 block">{pre.store}</span>
+                          <span className="text-[10px] font-mono text-slate-400">{pre.trackingNumber}</span>
+                        </td>
+                        <td className="py-4 px-3 text-slate-600">{pre.store}</td>
+                        <td className="py-4 px-3">
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold ${
+                              pre.status === "Vinculado" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+                            }`}
+                          >
+                            ● {pre.status}
+                          </span>
+                        </td>
+                        <td className="py-4 px-3 text-right font-mono text-slate-900 font-bold">${pre.amountPaid} USD</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Right Col: Warehouse Card & High-Contrast Yellow Pickup Banner (Image 2) */}
+        {/* Right Col: Warehouse Card & Pickup Banner */}
         <div className="space-y-8">
           <WarehouseCard />
 
-          {/* Yellow Pickup Banner with High Contrast Dark Slate Text (#0F172A) */}
           <div className="rounded-3xl bg-amber-500 p-6 sm:p-8 text-slate-950 shadow-xl space-y-4 relative overflow-hidden border border-amber-400">
             <div className="w-12 h-12 rounded-2xl bg-slate-950 text-amber-400 flex items-center justify-center border border-slate-950 shadow-md">
               <Truck className="w-6 h-6" />
