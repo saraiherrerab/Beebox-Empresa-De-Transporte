@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Truck, Check, FileUp, Package, Plus, Loader2 } from "lucide-react";
+import { Check, FileUp, Package, Plus, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { WarehouseCard } from "@/components/client/WarehouseCard";
 import { Button } from "@/components/ui/Button";
@@ -267,28 +267,9 @@ export default function DashboardOverviewPage() {
           </div>
         </div>
 
-        {/* Right Col: Warehouse Card & Pickup Banner */}
+        {/* Right Col: Warehouse Card */}
         <div className="space-y-8">
           <WarehouseCard />
-
-          <div className="rounded-3xl bg-amber-500 p-6 sm:p-8 text-slate-950 shadow-xl space-y-4 relative overflow-hidden border border-amber-400">
-            <div className="w-12 h-12 rounded-2xl bg-slate-950 text-amber-400 flex items-center justify-center border border-slate-950 shadow-md">
-              <Truck className="w-6 h-6" />
-            </div>
-
-            <div className="space-y-1">
-              <h3 className="text-xl font-black text-slate-950 tracking-tight">¿Necesitas recolección?</h3>
-              <p className="text-xs font-bold text-slate-900 leading-relaxed">
-                Programa un pickup en tu domicilio u oficina con nuestros choferes certificados.
-              </p>
-            </div>
-
-            <Link href="/dashboard/pickup" className="block pt-2">
-              <button className="w-full bg-slate-950 hover:bg-slate-900 text-amber-400 font-black py-3.5 px-6 rounded-2xl text-xs uppercase tracking-wider shadow-xl transition-all">
-                SOLICITAR PICKUP
-              </button>
-            </Link>
-          </div>
         </div>
       </div>
     </div>

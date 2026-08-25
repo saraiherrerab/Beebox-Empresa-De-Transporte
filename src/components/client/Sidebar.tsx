@@ -27,7 +27,6 @@ export const Sidebar: React.FC = () => {
     { name: "Notificaciones", href: "/dashboard/notificaciones", icon: BellRing },
     { name: "Prealertas", href: "/dashboard/prealertas", icon: Package },
     { name: "Mis Paquetes", href: "/dashboard/paquetes", icon: Truck },
-    { name: "Solicitar Pickup", href: "/dashboard/pickup", icon: Calculator },
     { name: "Calculadora", href: "/dashboard/calculadora", icon: Calculator },
     { name: "Mi Perfil", href: "/dashboard/perfil", icon: User },
   ];
