@@ -8,6 +8,8 @@ export interface UserProfile {
   email: string;
   phone: string;
   suiteCode: string;
+  active?: boolean;
+  disabledReason?: string;
 }
 
 export interface PrealertaItem {

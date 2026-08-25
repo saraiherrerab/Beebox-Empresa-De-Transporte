@@ -52,14 +52,20 @@ export default function PrealertasPage() {
           </p>
         </div>
 
-        <Button
-          onClick={() => setShowForm(!showForm)}
-          variant="amber"
-          className="rounded-2xl px-6 py-3 font-bold text-xs uppercase shadow-md shrink-0"
-        >
-          <Plus className="w-4 h-4 mr-1.5 stroke-[3]" />
-          {showForm ? "CERRAR FORMULARIO" : "NUEVA PREALERTA"}
-        </Button>
+        {user?.active !== false ? (
+          <Button
+            onClick={() => setShowForm(!showForm)}
+            variant="amber"
+            className="rounded-2xl px-6 py-3 font-bold text-xs uppercase shadow-md shrink-0"
+          >
+            <Plus className="w-4 h-4 mr-1.5 stroke-[3]" />
+            {showForm ? "CERRAR FORMULARIO" : "NUEVA PREALERTA"}
+          </Button>
+        ) : (
+          <span className="px-4 py-3 rounded-2xl bg-rose-100 text-rose-800 text-xs font-bold uppercase tracking-wider shadow-sm border border-rose-200">
+            ⚠️ Cuenta Inhabilitada
+          </span>
+        )}
       </div>
 
       {successMsg && (

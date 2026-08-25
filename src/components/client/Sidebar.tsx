@@ -24,9 +24,10 @@ export const Sidebar: React.FC = () => {
 
   const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Prealertas", href: "/dashboard/prealertas", icon: BellRing },
-    { name: "Mis Paquetes", href: "/dashboard/paquetes", icon: Package },
-    { name: "Solicitar Pickup", href: "/dashboard/pickup", icon: Truck },
+    { name: "Notificaciones", href: "/dashboard/notificaciones", icon: BellRing },
+    { name: "Prealertas", href: "/dashboard/prealertas", icon: Package },
+    { name: "Mis Paquetes", href: "/dashboard/paquetes", icon: Truck },
+    { name: "Solicitar Pickup", href: "/dashboard/pickup", icon: Calculator },
     { name: "Calculadora", href: "/dashboard/calculadora", icon: Calculator },
     { name: "Mi Perfil", href: "/dashboard/perfil", icon: User },
   ];

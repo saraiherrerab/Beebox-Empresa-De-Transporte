@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Menu, X, User, ShieldCheck } from "lucide-react";
+import { Menu, X, ShieldAlert, AlertTriangle } from "lucide-react";
 import { Sidebar } from "@/components/client/Sidebar";
+import { NotificationBell } from "@/components/client/NotificationBell";
 import { useAuth } from "@/context/AuthContext";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -19,6 +20,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </Link>
 
         <div className="flex items-center gap-3">
+          <NotificationBell />
+
           <div className="w-8 h-8 rounded-full bg-amber-500 text-slate-950 font-bold text-xs flex items-center justify-center shadow-sm">
             {user?.name ? user.name.charAt(0) : "J"}
           </div>
@@ -56,7 +59,49 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
 
       {/* Main Content Area */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-7xl mx-auto w-full">{children}</main>
+      <div className="flex-1 flex flex-col overflow-y-auto">
+        {/* Desktop Header with Notification Bell */}
+        <header className="hidden md:flex items-center justify-between px-8 py-4 bg-white border-b border-slate-200 shadow-sm">
+          <div>
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+              PORTAL DE USUARIO • CASILLERO MIAMI
+            </span>
+            <h2 className="text-sm font-bold text-slate-800">Bienvenido, {user?.name || "Cliente"}</h2>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <NotificationBell />
+            <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
+              <div className="w-9 h-9 rounded-full bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center shadow-sm">
+                {user?.name ? user.name.charAt(0) : "J"}
+              </div>
+              <div className="text-left">
+                <span className="text-xs font-bold text-slate-900 block leading-none">{user?.name || "Juan Pérez"}</span>
+                <span className="text-[10px] font-mono text-amber-700 font-bold">{user?.suiteCode || "CAS-88293-MIAMI"}</span>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Banner de Aviso de Inhabilitación (Si user.active === false) */}
+        {user?.active === false && (
+          <div className="bg-rose-500 text-white px-6 py-4 shadow-lg flex items-center justify-between border-b border-rose-600 animate-in slide-in-from-top-4 duration-300">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-white/20 shrink-0">
+                <ShieldAlert className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black tracking-wide uppercase">Tu cuenta se encuentra inhabilitada hasta nuevo aviso.</h4>
+                <p className="text-xs text-rose-100 font-medium">
+                  Algunas funciones como la creación de prealertas están pausadas. Para mayor información o asistencia, por favor contacta a soporte.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">{children}</main>
+      </div>
     </div>
   );
 }
