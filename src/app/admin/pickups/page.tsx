@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Search, Bell, CheckCircle2, Calendar, Check, Loader2 } from "lucide-react";
+import { Search, Bell, CheckCircle2, Calendar, Check, Loader2, Truck } from "lucide-react";
 
 interface ApiPickup {
   id: string;
@@ -28,7 +28,6 @@ interface ApiPickup {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 export default function AdminPickupsPage() {
-  const [activeTab, setActiveTab] = useState<"todos" | "validar" | "recolectar">("todos");
   const [search, setSearch] = useState("");
   const [pickups, setPickups] = useState<ApiPickup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,33 +44,18 @@ export default function AdminPickupsPage() {
       })
         .then((res) => res.json())
         .then((data) => {
-          if (data && data.pickups) {
+          if (data && Array.isArray(data)) {
+            setPickups(data);
+            if (data.length > 0) setSelectedPickup(data[0]);
+          } else if (data && data.pickups && Array.isArray(data.pickups)) {
             setPickups(data.pickups);
-            if (data.pickups.length > 0) {
-              setSelectedPickup(data.pickups[0]);
-            }
+            if (data.pickups.length > 0) setSelectedPickup(data.pickups[0]);
+          } else {
+            setPickups([]);
           }
         })
         .catch(() => {
-          // Fallback local
-          const defaultPickups: ApiPickup[] = [
-            {
-              id: "pk_1",
-              pickupCode: "PK-9901-DOM",
-              senderName: "Juan Pérez Rodríguez",
-              senderPhone: "+52 55 1234 5678",
-              senderAddress: "Av. Insurgentes Sur 1234",
-              senderCity: "Ciudad de México",
-              boxCount: 2,
-              totalWeightKg: 4.5,
-              pickupDate: "2026-10-18",
-              timeSlot: "mañana",
-              status: "PENDIENTE",
-              user: { name: "Juan Pérez Rodríguez", suiteCode: "CAS-88293-MIAMI" },
-            },
-          ];
-          setPickups(defaultPickups);
-          setSelectedPickup(defaultPickups[0]);
+          setPickups([]);
         })
         .finally(() => setLoading(false));
     } else {
@@ -102,7 +86,7 @@ export default function AdminPickupsPage() {
           setTimeout(() => setValidatedNotice(null), 4000);
         }
       } catch {
-        // Fallback local
+        // Error handling
       }
     }
   };
@@ -140,10 +124,6 @@ export default function AdminPickupsPage() {
           <span className="px-3 py-1.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black uppercase tracking-wider border border-amber-200">
             • {pickups.filter((p) => p.status === "PENDIENTE").length} PENDIENTES
           </span>
-
-          <button className="p-2.5 rounded-full bg-slate-900 text-white shadow-md">
-            <Bell className="w-4 h-4" />
-          </button>
         </div>
       </div>
 
@@ -158,7 +138,15 @@ export default function AdminPickupsPage() {
       {loading ? (
         <div className="p-12 text-center text-slate-400 flex items-center justify-center gap-2">
           <Loader2 className="w-5 h-5 animate-spin text-amber-500" />
-          <span className="text-xs font-bold">Cargando solicitudes de pickup...</span>
+          <span className="text-xs font-bold">Cargando solicitudes de pickup desde el servidor...</span>
+        </div>
+      ) : filteredPickups.length === 0 ? (
+        <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-sm space-y-3">
+          <Truck className="w-12 h-12 text-slate-300 mx-auto" />
+          <h3 className="text-base font-bold text-slate-800">No hay solicitudes de recolección en este momento</h3>
+          <p className="text-xs text-slate-500 max-w-md mx-auto">
+            Las solicitudes de pickup programadas por los clientes a través del portal aparecerán reflejadas aquí en tiempo real.
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -180,7 +168,7 @@ export default function AdminPickupsPage() {
                     <div>
                       <h4 className="text-xs font-black text-slate-900">{p.senderName}</h4>
                       <span className="text-[10px] font-mono font-bold text-amber-600">
-                        {p.user?.suiteCode || "CAS-MIAMI"}
+                        {p.user?.suiteCode || "CAS-TULSA"}
                       </span>
                     </div>
                   </div>

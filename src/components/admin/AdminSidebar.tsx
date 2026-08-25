@@ -44,9 +44,9 @@ export const AdminSidebar: React.FC = () => {
     {
       group: "OPERACIONES",
       items: [
-        { name: "Recolecciones (Pickups)", href: "/admin/pickups", icon: Truck, badge: "5" },
+        { name: "Recolecciones (Pickups)", href: "/admin/pickups", icon: Truck },
         { name: "Control de Envíos", href: "/admin/envios", icon: Package },
-        { name: "Citas de Retiro", href: "/admin/retiros", icon: CalendarCheck, badge: "12" },
+        { name: "Citas de Retiro", href: "/admin/retiros", icon: CalendarCheck },
         { name: "Rutas de Entrega", href: "/admin/rutas", icon: Route },
       ],
     },
@@ -113,14 +113,6 @@ export const AdminSidebar: React.FC = () => {
                       <Icon className={`w-4 h-4 ${isActive ? "text-slate-950" : "text-slate-400"}`} />
                       <span>{item.name}</span>
                     </div>
-
-                    {item.badge && (
-                      <span className={`w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center ${
-                        isActive ? "bg-slate-950 text-amber-400" : "bg-amber-500 text-slate-950"
-                      }`}>
-                        {item.badge}
-                      </span>
-                    )}
                   </Link>
                 );
               })}
