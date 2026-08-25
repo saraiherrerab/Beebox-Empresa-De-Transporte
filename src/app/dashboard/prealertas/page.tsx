@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { Package, Upload, Plus, CheckCircle2, FileText, MapPin } from "lucide-react";
+import { Package, Upload, Plus, CheckCircle2, FileText, MapPin, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 function PrealertasContent() {
@@ -19,8 +19,13 @@ function PrealertasContent() {
   const [destination, setDestination] = useState("Caracas, Venezuela");
   const [customDestination, setCustomDestination] = useState("");
   const [receiptFileName, setReceiptFileName] = useState<string | null>(null);
+
+  // Pagination & Filter States
   const [showForm, setShowForm] = useState(false);
   const [successMsg, setSuccessMsg] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>("TODOS");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const pageSize = 5;
 
   useEffect(() => {
     if (isNuevaParam) {
@@ -55,6 +60,37 @@ function PrealertasContent() {
     setDescription("");
     setAmountPaid("");
     setReceiptFileName(null);
+  };
+
+  const filteredPrealertas = prealertas.filter((item) => {
+    const isConfirmed = item.status === "Confirmado" || item.status === "Vinculado";
+    if (statusFilter === "TODOS") return true;
+    if (statusFilter === "Prealertado") return item.status === "Prealertado";
+    if (statusFilter === "Confirmado") return isConfirmed;
+    return true;
+  });
+
+  const totalPages = Math.ceil(filteredPrealertas.length / pageSize) || 1;
+  const paginatedPrealertas = filteredPrealertas.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return new Date().toLocaleDateString("es-ES");
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleDateString("es-ES", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return dateStr;
+    }
   };
 
   return (
@@ -238,13 +274,35 @@ function PrealertasContent() {
 
       {/* Prealertas Table List */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden space-y-4 p-6 sm:p-8">
-        <h3 className="text-lg font-bold text-slate-900">Prealertas Registradas</h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+          <h3 className="text-lg font-bold text-slate-900">Prealertas Registradas ({filteredPrealertas.length})</h3>
+
+          {/* Status Tabs Filter */}
+          <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl">
+            {["TODOS", "Prealertado", "Confirmado"].map((status) => (
+              <button
+                key={status}
+                onClick={() => {
+                  setStatusFilter(status);
+                  setCurrentPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-extrabold uppercase transition-all ${
+                  statusFilter === status
+                    ? "bg-amber-500 text-slate-950 shadow-md font-black"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                {status === "TODOS" ? "TODAS" : status.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-200 text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
-                <th className="py-3 px-4">Fecha</th>
+                <th className="py-3 px-4">Fecha de Registro</th>
                 <th className="py-3 px-4">Tienda</th>
                 <th className="py-3 px-4">Número de Rastreo</th>
                 <th className="py-3 px-4">Descripción</th>
@@ -255,43 +313,79 @@ function PrealertasContent() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs font-medium">
-              {prealertas.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="py-4 px-4 text-slate-500 font-mono text-[11px]">{item.createdAt}</td>
-                  <td className="py-4 px-4 font-bold text-slate-900">{item.store}</td>
-                  <td className="py-4 px-4 font-mono font-bold text-amber-600">{item.trackingNumber}</td>
-                  <td className="py-4 px-4 text-slate-700 max-w-xs truncate">{item.description}</td>
-                  <td className="py-4 px-4 font-bold text-slate-800">
-                    <span className="inline-flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-amber-500 shrink-0" />
-                      {item.destination || "Caracas, Venezuela"}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4 font-mono font-bold text-slate-900">${item.amountPaid}</td>
-                  <td className="py-4 px-4">
-                    <span
-                      className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
-                        item.status === "Prealertado"
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-emerald-100 text-emerald-800"
-                      }`}
-                    >
-                      {item.status}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4 text-right">
-                    {item.receiptFileName ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg">
-                        <FileText className="w-3.5 h-3.5 text-slate-500" /> PDF
-                      </span>
-                    ) : (
-                      <span className="text-slate-400 text-[11px]">N/A</span>
-                    )}
+              {paginatedPrealertas.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-8 text-center text-slate-400">
+                    No tienes prealertas para el filtro seleccionado.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                paginatedPrealertas.map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="py-4 px-4 text-slate-600 font-mono text-[11px]">
+                      <div className="flex items-center gap-1.5 font-bold">
+                        <Calendar className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                        {formatDate(item.createdAt)}
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 font-bold text-slate-900">{item.store}</td>
+                    <td className="py-4 px-4 font-mono font-bold text-amber-600">{item.trackingNumber}</td>
+                    <td className="py-4 px-4 text-slate-700 max-w-xs truncate">{item.description}</td>
+                    <td className="py-4 px-4 font-bold text-slate-800">
+                      <span className="inline-flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-amber-500 shrink-0" />
+                        {item.destination || "Caracas, Venezuela"}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4 font-mono font-bold text-slate-900">${item.amountPaid}</td>
+                    <td className="py-4 px-4">
+                      <span
+                        className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
+                          item.status === "Prealertado"
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-emerald-100 text-emerald-800"
+                        }`}
+                      >
+                        {item.status === "Vinculado" ? "Confirmado" : item.status}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4 text-right">
+                      {item.receiptFileName ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg">
+                          <FileText className="w-3.5 h-3.5 text-slate-500" /> PDF
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 text-[11px]">N/A</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
+        </div>
+
+        {/* Footer Pagination Controls */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-100 text-xs text-slate-500 font-medium">
+          <span>Mostrando {paginatedPrealertas.length > 0 ? (currentPage - 1) * pageSize + 1 : 0}–{Math.min(currentPage * pageSize, filteredPrealertas.length)} de {filteredPrealertas.length} prealertas</span>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 flex items-center gap-1 text-[11px]"
+            >
+              <ChevronLeft className="w-4 h-4" /> ANTERIOR
+            </button>
+            <span className="font-mono font-bold px-2 text-slate-800">{currentPage} / {totalPages}</span>
+            <button
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={currentPage >= totalPages}
+              className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 flex items-center gap-1 text-[11px]"
+            >
+              SIGUIENTE <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
