@@ -42,8 +42,8 @@ export const HeroCarousel: React.FC = () => {
       titleLine2: "CON TARIFAS DESDE $6/KG.",
       description:
         "Consolida tus compras de Amazon, eBay y proveedores de China. Nosotros nos encargamos de todo el despacho aduanero.",
-      primaryBtnText: "SOLICITAR PICKUP",
-      primaryBtnHref: "/dashboard/pickup",
+      primaryBtnText: "ABRIR CASILLERO GRATIS",
+      primaryBtnHref: "/registro",
       secondaryBtnText: "VER COBERTURA",
       secondaryBtnHref: "#cobertura",
       bgGradient: "from-slate-950 via-slate-900 to-slate-950",
