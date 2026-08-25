@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Users, BellRing, Package, Truck, ArrowRight, DollarSign } from "lucide-react";
+import { Users, BellRing, Package, Truck, ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 interface MetricsData {
@@ -16,12 +16,13 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 export default function AdminOverviewPage() {
   const [metrics, setMetrics] = useState<MetricsData>({
-    totalClients: 42,
-    pendingPrealertas: 5,
-    pendingPickups: 3,
-    activeShipments: 18,
-    totalRevenue: 4850.0,
+    totalClients: 0,
+    pendingPrealertas: 0,
+    pendingPickups: 0,
+    activeShipments: 0,
+    totalRevenue: 0,
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
@@ -37,13 +38,16 @@ export default function AdminOverviewPage() {
             setMetrics(data.metrics);
           }
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
     }
   }, []);
 
   const stats = [
     { label: "Clientes Registrados", value: metrics.totalClients.toLocaleString(), change: "Base de Datos Real", icon: Users },
-    { label: "Prealertas Pendientes", value: metrics.pendingPrealertas.toString(), change: "Requieren vinculación", icon: BellRing },
+    { label: "Prealertas Pendientes", value: metrics.pendingPrealertas.toString(), change: "Requieren confirmación", icon: BellRing },
     { label: "Pickups por Atender", value: metrics.pendingPickups.toString(), change: "Solicitudes a domicilio", icon: Truck },
     { label: "Envíos Activos", value: metrics.activeShipments.toString(), change: "En tránsito/Aduana", icon: Package },
   ];
@@ -66,7 +70,9 @@ export default function AdminOverviewPage() {
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">{item.label}</span>
                 <Icon className="w-5 h-5 text-amber-600" />
               </div>
-              <div className="text-3xl font-black font-mono text-slate-900">{item.value}</div>
+              <div className="text-3xl font-black font-mono text-slate-900 flex items-center gap-2">
+                {loading ? <Loader2 className="w-6 h-6 animate-spin text-amber-500" /> : item.value}
+              </div>
               <span className="text-[11px] font-bold text-amber-700 block">{item.change}</span>
             </div>
           );
@@ -92,7 +98,7 @@ export default function AdminOverviewPage() {
             <Users className="w-5 h-5 text-amber-600" /> Directorio de Clientes y Casilleros
           </h3>
           <p className="text-xs text-slate-500 leading-relaxed font-medium">
-            Consulta códigos de casillero asignados (`CAS-XXXXX-MIAMI`), historial de compras e información de contacto de usuarios registrados.
+            Consulta códigos de casillero asignados (`CAS-XXXXX-TULSA`), historial de compras e información de contacto de usuarios registrados.
           </p>
           <Link href="/admin/clientes" className="inline-flex items-center gap-2 text-xs font-bold text-amber-700 hover:underline pt-2 uppercase">
             CONSULTAR DIRECTORIO <ArrowRight className="w-4 h-4" />
