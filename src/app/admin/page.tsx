@@ -16,7 +16,7 @@ interface MetricsData {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 export default function AdminOverviewPage() {
-  const { socket } = useAuth();
+  const { socket, user, isAuthenticated } = useAuth();
   const [metrics, setMetrics] = useState<MetricsData>({
     totalClients: 0,
     pendingPrealertas: 0,
@@ -47,6 +47,7 @@ export default function AdminOverviewPage() {
     }
   }, []);
 
+  // Re-fetch metrics when user authenticates or socket events fire
   useEffect(() => {
     fetchMetrics();
 
@@ -63,7 +64,7 @@ export default function AdminOverviewPage() {
         socket.off("shipment:updated", fetchMetrics);
       }
     };
-  }, [fetchMetrics, socket]);
+  }, [fetchMetrics, socket, isAuthenticated, user]);
 
   const stats = [
     { label: "Clientes Registrados", value: metrics.totalClients.toLocaleString(), change: "Base de Datos Real", icon: Users },

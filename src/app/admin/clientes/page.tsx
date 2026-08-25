@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Search, Users, UserPlus, Eye, ShieldAlert, ShieldCheck, Filter, Loader2, AlertTriangle, X } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 interface ApiUser {
   id: string;
@@ -22,6 +23,7 @@ interface ApiUser {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 export default function AdminClientesPage() {
+  const { isAuthenticated, user } = useAuth();
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [clients, setClients] = useState<ApiUser[]>([]);
@@ -32,7 +34,7 @@ export default function AdminClientesPage() {
   const [disabledReasonInput, setDisabledReasonInput] = useState("");
   const [processingStatus, setProcessingStatus] = useState(false);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
     if (token) {
       try {
@@ -52,11 +54,11 @@ export default function AdminClientesPage() {
     }
 
     setClients([]);
-  };
+  }, []);
 
   useEffect(() => {
     fetchUsers().finally(() => setLoading(false));
-  }, []);
+  }, [fetchUsers, isAuthenticated, user]);
 
   const handleToggleStatus = async (user: ApiUser, newActive: boolean) => {
     if (!newActive && !disabledReasonInput.trim()) {
