@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 function PrealertasContent() {
-  const { user, prealertas, addPrealerta } = useAuth();
+  const { user, prealertas, addPrealerta, refreshPrealertas } = useAuth();
   const searchParams = useSearchParams();
   const isNuevaParam = searchParams.get("nueva") === "true";
 
@@ -41,6 +41,7 @@ function PrealertasContent() {
 
   // Fetch dynamic destination routes configured by admin
   useEffect(() => {
+    refreshPrealertas();
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
     fetch(`${API_URL}/routes`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},

@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { CheckCircle2, Check, Search, MapPin, PackageCheck, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle2, Check, Search, MapPin, PackageCheck, Calendar, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 export default function AdminPrealertasPage() {
-  const { prealertas, linkPrealerta } = useAuth();
+  const { prealertas, linkPrealerta, refreshPrealertas } = useAuth();
   const [searchTracking, setSearchTracking] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("TODOS");
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -21,8 +21,11 @@ export default function AdminPrealertasPage() {
   const [warehouseGuideInput, setWarehouseGuideInput] = useState<{ [key: string]: string }>({});
   const [destinationInput, setDestinationInput] = useState<{ [key: string]: string }>({});
   const [linkedNotice, setLinkedNotice] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    refreshPrealertas();
+
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
     fetch(`${API_URL}/routes`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -43,15 +46,23 @@ export default function AdminPrealertasPage() {
         }
       })
       .catch(() => {});
-  }, []);
+  }, [refreshPrealertas]);
 
   const handleConfirmPrealerta = async (id: string, trackingNumber: string, defaultDest?: string) => {
+    setLoading(true);
     const guide = warehouseGuideInput[id] || `OK-${Math.floor(100000 + Math.random() * 900000)}`;
     const finalDest = destinationInput[id] || defaultDest || availableDestinations[0] || "Caracas, Venezuela";
 
-    await linkPrealerta(id, guide, finalDest);
-    setLinkedNotice(`Prealerta ${trackingNumber} confirmada exitosamente en el almacén con la Guía ${guide} y destino ${finalDest}.`);
-    setTimeout(() => setLinkedNotice(null), 5000);
+    try {
+      await linkPrealerta(id, guide, finalDest);
+      await refreshPrealertas();
+      setLinkedNotice(`Prealerta ${trackingNumber} confirmada exitosamente en el almacén con la Guía ${guide} y destino ${finalDest}.`);
+      setTimeout(() => setLinkedNotice(null), 5000);
+    } catch (err) {
+      console.error("Error confirmando prealerta:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filteredPrealertas = prealertas.filter((item) => {
@@ -95,11 +106,20 @@ export default function AdminPrealertasPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-200">
-      <div>
-        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Confirmación de Prealertas</h1>
-        <p className="text-xs font-semibold text-slate-500 mt-1">
-          Corrobora la recepción física de paquetes en el almacén de Oklahoma (EE.UU.), confirma la fecha de registro del cliente y asigna el despacho.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Confirmación de Prealertas</h1>
+          <p className="text-xs font-semibold text-slate-500 mt-1">
+            Corrobora la recepción física de paquetes en el almacén de Oklahoma (EE.UU.), confirma la fecha de registro del cliente y asigna el despacho.
+          </p>
+        </div>
+
+        <button
+          onClick={() => refreshPrealertas()}
+          className="px-4 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 shadow-sm"
+        >
+          <RefreshCw className="w-3.5 h-3.5" /> Actualizar Prealertas
+        </button>
       </div>
 
       {linkedNotice && (
@@ -237,7 +257,7 @@ export default function AdminPrealertasPage() {
                     <td className="py-4 px-4 text-right">
                       <Button
                         onClick={() => handleConfirmPrealerta(item.id, item.trackingNumber, item.destination)}
-                        disabled={item.status === "Confirmado" || item.status === "Vinculado"}
+                        disabled={item.status === "Confirmado" || item.status === "Vinculado" || loading}
                         variant={item.status === "Confirmado" || item.status === "Vinculado" ? "outline" : "amber"}
                         size="sm"
                         className="rounded-xl px-3.5 py-1.5 font-bold text-xs"

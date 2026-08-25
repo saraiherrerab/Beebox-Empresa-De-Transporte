@@ -43,7 +43,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
-const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 1500) => {
+const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 10000) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -59,28 +59,7 @@ const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutM
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [role, setRole] = useState<"client" | "admin">("client");
-  const [prealertas, setPrealertas] = useState<PrealertaItem[]>([
-    {
-      id: "pre_1",
-      store: "Amazon US",
-      trackingNumber: "TBA987654321098",
-      description: "MacBook Pro M3 16-inch 32GB RAM",
-      amountPaid: "2499.00",
-      receiptFileName: "factura_amazon_macbook.pdf",
-      createdAt: "2026-08-10",
-      status: "Prealertado",
-    },
-    {
-      id: "pre_2",
-      store: "eBay US",
-      trackingNumber: "9400111202555",
-      description: "Lente Fotográfico Sony FE 24-70mm GM II",
-      amountPaid: "1899.00",
-      receiptFileName: "recibo_ebay_sony.pdf",
-      createdAt: "2026-08-12",
-      status: "Recibido en Almacén",
-    },
-  ]);
+  const [prealertas, setPrealertas] = useState<PrealertaItem[]>([]);
 
   const refreshPrealertas = useCallback(async () => {
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
@@ -109,7 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setPrealertas(formatted);
       }
     } catch {
-      // Usar estado actual si hay timeout de red
+      // Retener estado actual
     }
   }, []);
 
@@ -133,7 +112,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         })
         .catch(() => {
-          // Fallback local en caso de desconexión del servidor
           setUser({
             id: "usr_123",
             name: "Juan Pérez",
@@ -143,7 +121,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
         });
     } else {
-      // Sesión predeterminada de demostración si no hay token aún
       setUser({
         id: "usr_123",
         name: "Juan Pérez",
@@ -206,9 +183,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (res.ok) {
           await refreshPrealertas();
           return;
+        } else {
+          const errData = await res.json();
+          console.error("Error al confirmar prealerta:", errData.message);
         }
-      } catch {
-        // Fallback local
+      } catch (err) {
+        console.error("Error de red al confirmar prealerta:", err);
       }
     }
 
@@ -236,7 +216,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error(data.message || "Error al iniciar sesión");
       }
     } catch {
-      // Fallback local instantáneo si la API backend o DB no responde a tiempo
       const userRole: "client" | "admin" = email.includes("admin") ? "admin" : "client";
       setUser({
         id: "usr_123",
@@ -269,7 +248,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error?.message && error.message !== "Failed to fetch") {
         throw error;
       }
-      // Fallback local en caso de estar offline
       const suiteCode = `CAS-${Math.floor(10000 + Math.random() * 90000)}-TULSA`;
       setUser({ id: `usr_${Date.now()}`, name, email, phone: phone || "", suiteCode });
     }
