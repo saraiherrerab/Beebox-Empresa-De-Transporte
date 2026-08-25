@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plane, Ship, Truck, Plus, CheckCircle2, Loader2 } from "lucide-react";
+import { Plane, Truck, Plus, CheckCircle2, Loader2, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 interface ApiRoute {
@@ -17,49 +17,36 @@ interface ApiRoute {
   };
 }
 
-interface ApiVehicle {
-  id: string;
-  name: string;
-  category: string;
-  capacity: string;
-}
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 export default function AdminRutasPage() {
   const [routes, setRoutes] = useState<ApiRoute[]>([]);
-  const [fleet, setFleet] = useState<ApiVehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [noticeMsg, setNoticeMsg] = useState<string | null>(null);
 
   // Form state
   const [routeName, setRouteName] = useState("");
-  const [originCity, setOriginCity] = useState("Tulsa, OK");
-  const [destCity, setDestCity] = useState("Ciudad de México");
-  const [selectedVehicleId, setSelectedVehicleId] = useState("");
+  const [originCity, setOriginCity] = useState("Broken Arrow, OK");
+  const [destCity, setDestCity] = useState("Caracas, Venezuela");
 
   const fetchData = () => {
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
     const headers: any = token ? { Authorization: `Bearer ${token}` } : {};
 
-    Promise.all([
-      fetch(`${API_URL}/routes`, { headers }).then((res) => res.json()),
-      fetch(`${API_URL}/fleet`).then((res) => res.json()),
-    ])
-      .then(([routesData, fleetData]) => {
-        if (routesData && routesData.routes) {
+    fetch(`${API_URL}/routes`, { headers })
+      .then((res) => res.json())
+      .then((routesData) => {
+        if (Array.isArray(routesData)) {
+          setRoutes(routesData);
+        } else if (routesData && routesData.routes) {
           setRoutes(routesData.routes);
-        }
-        if (Array.isArray(fleetData)) {
-          setFleet(fleetData);
         }
       })
       .catch(() => {
         setRoutes([
-          { id: "r1", name: "Tulsa Express", originCity: "Tulsa, OK", destCity: "Ciudad de México", status: "ACTIVA" },
-          { id: "r2", name: "Madrid Cargo", originCity: "Madrid, ES", destCity: "Ciudad de México", status: "ACTIVA" },
-          { id: "r3", name: "CDMX Local", originCity: "CDMX Central", destCity: "CDMX Vallejo", status: "ACTIVA" },
+          { id: "r1", name: "Ruta Caracas, VE", originCity: "Broken Arrow, OK", destCity: "Caracas, Venezuela", status: "ACTIVA" },
+          { id: "r2", name: "Ruta Bogotá, CO", originCity: "Broken Arrow, OK", destCity: "Bogotá, Colombia", status: "ACTIVA" },
         ]);
       })
       .finally(() => setLoading(false));
@@ -86,19 +73,18 @@ export default function AdminRutasPage() {
             name: routeName,
             originCity,
             destCity,
-            vehicleId: selectedVehicleId || undefined,
           }),
         });
-        const data = await res.json();
         if (res.ok) {
-          setNoticeMsg(`Ruta ${routeName} creada exitosamente.`);
+          setNoticeMsg(`Destino ${destCity} configurado exitosamente.`);
           setRouteName("");
+          setDestCity("");
           setShowAddForm(false);
           fetchData();
           setTimeout(() => setNoticeMsg(null), 4000);
         }
       } catch {
-        setNoticeMsg("Error de conexión al crear ruta.");
+        setNoticeMsg("Error de conexión al guardar destino.");
       }
     }
   };
@@ -108,13 +94,13 @@ export default function AdminRutasPage() {
       {/* Title */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Logística y Rutas de Transporte</h1>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Destinos de Envío</h1>
           <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
-            CATÁLOGO Y MONITOREO DE DESPACHOS ACTIVOS
+            REGISTRO Y CONFIGURACIÓN DE DESTINOS INTERNACIONALES ACTIVOS
           </span>
         </div>
         <Button onClick={() => setShowAddForm(!showAddForm)} variant="amber" className="rounded-2xl font-bold text-xs">
-          <Plus className="w-4 h-4 mr-1" /> NUEVA RUTA
+          <Plus className="w-4 h-4 mr-1" /> NUEVO DESTINO
         </Button>
       </div>
 
@@ -127,11 +113,11 @@ export default function AdminRutasPage() {
 
       {showAddForm && (
         <form onSubmit={handleCreateRoute} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-md space-y-4 animate-in slide-in-from-top-4">
-          <h3 className="text-sm font-black text-slate-900 uppercase">Añadir Nueva Ruta de Transporte</h3>
+          <h3 className="text-sm font-black text-slate-900 uppercase">Añadir Nuevo Destino de Envío</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <input
               type="text"
-              placeholder="Nombre de Ruta (ej. Ruta Norte CDMX)"
+              placeholder="Nombre de Ruta (ej. Ruta Caracas Express)"
               value={routeName}
               onChange={(e) => setRouteName(e.target.value)}
               className="p-3 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-amber-500"
@@ -147,7 +133,7 @@ export default function AdminRutasPage() {
             />
             <input
               type="text"
-              placeholder="Ciudad de Destino"
+              placeholder="Ciudad / País de Destino"
               value={destCity}
               onChange={(e) => setDestCity(e.target.value)}
               className="p-3 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-amber-500"
@@ -160,40 +146,40 @@ export default function AdminRutasPage() {
               CANCELAR
             </button>
             <Button type="submit" variant="amber" className="rounded-xl px-6 py-2 text-xs font-bold">
-              GUARDAR RUTA
+              GUARDAR DESTINO
             </Button>
           </div>
         </form>
       )}
 
-      {/* Top Section: Catálogo de Rutas */}
+      {/* Top Section: Catálogo de Destinos */}
       <div className="space-y-4">
         <div>
-          <h3 className="text-base font-black text-slate-900">Catálogo de Rutas Activas</h3>
+          <h3 className="text-base font-black text-slate-900">Destinos Habilitados para Prealertas y Envíos</h3>
           <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-            OPCIONES CONFIGURADAS EN EL SISTEMA
+            OPCIONES DISPONIBLES EN EL FORMULARIO DE CLIENTES Y PANEL ADMIN
           </span>
         </div>
 
         {loading ? (
           <div className="p-12 text-center text-slate-400 flex items-center justify-center gap-2">
             <Loader2 className="w-5 h-5 animate-spin text-amber-500" />
-            <span className="text-xs font-bold">Cargando rutas...</span>
+            <span className="text-xs font-bold">Cargando destinos...</span>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {routes.map((r) => (
               <div key={r.id} className="bg-white rounded-3xl p-6 border border-slate-200 shadow-md space-y-4 text-center">
                 <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center mx-auto border border-amber-200">
-                  {r.name.toLowerCase().includes("express") ? <Plane className="w-6 h-6" /> : <Truck className="w-6 h-6" />}
+                  <MapPin className="w-6 h-6 text-amber-500" />
                 </div>
-                <span className="text-[9px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-500">
+                <span className="text-[9px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">
                   {r.status}
                 </span>
                 <div>
                   <h4 className="text-sm font-black text-slate-900">{r.name}</h4>
-                  <span className="text-[10px] font-medium text-slate-400">
-                    {r.originCity} ➔ {r.destCity}
+                  <span className="text-[11px] font-bold text-slate-600 block mt-1">
+                    {r.originCity} ➔ <strong className="text-amber-600">{r.destCity}</strong>
                   </span>
                 </div>
               </div>
@@ -206,7 +192,7 @@ export default function AdminRutasPage() {
               <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center mb-2">
                 <Plus className="w-5 h-5" />
               </div>
-              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">AÑADIR AL CATÁLOGO</span>
+              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">AÑADIR DESTINO</span>
             </div>
           </div>
         )}

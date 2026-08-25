@@ -1,24 +1,53 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { CheckCircle2, Check, Search, MapPin, PackageCheck, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 export default function AdminPrealertasPage() {
   const { prealertas, linkPrealerta } = useAuth();
   const [searchTracking, setSearchTracking] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("TODOS");
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [availableDestinations, setAvailableDestinations] = useState<string[]>([
+    "Caracas, Venezuela",
+    "Bogotá, Colombia",
+  ]);
   const pageSize = 15;
 
   const [warehouseGuideInput, setWarehouseGuideInput] = useState<{ [key: string]: string }>({});
   const [destinationInput, setDestinationInput] = useState<{ [key: string]: string }>({});
   const [linkedNotice, setLinkedNotice] = useState<string | null>(null);
 
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
+    fetch(`${API_URL}/routes`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        let routeList: any[] = [];
+        if (Array.isArray(data)) routeList = data;
+        else if (data && data.routes && Array.isArray(data.routes)) routeList = data.routes;
+
+        if (routeList.length > 0) {
+          const dests = Array.from(
+            new Set(routeList.map((r: any) => r.destCity).filter(Boolean))
+          ) as string[];
+          if (dests.length > 0) {
+            setAvailableDestinations(dests);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const handleConfirmPrealerta = async (id: string, trackingNumber: string, defaultDest?: string) => {
     const guide = warehouseGuideInput[id] || `OK-${Math.floor(100000 + Math.random() * 900000)}`;
-    const finalDest = destinationInput[id] || defaultDest || "Caracas, Venezuela";
+    const finalDest = destinationInput[id] || defaultDest || availableDestinations[0] || "Caracas, Venezuela";
 
     await linkPrealerta(id, guide, finalDest);
     setLinkedNotice(`Prealerta ${trackingNumber} confirmada exitosamente en el almacén con la Guía ${guide} y destino ${finalDest}.`);
@@ -176,16 +205,17 @@ export default function AdminPrealertasPage() {
                         </span>
                       ) : (
                         <select
-                          value={destinationInput[item.id] || item.destination || "Caracas, Venezuela"}
+                          value={destinationInput[item.id] || item.destination || availableDestinations[0] || "Caracas, Venezuela"}
                           onChange={(e) =>
                             setDestinationInput({ ...destinationInput, [item.id]: e.target.value })
                           }
                           className="px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500"
                         >
-                          <option value="Caracas, Venezuela">🇻🇪 Caracas, Venezuela</option>
-                          <option value="Bogotá, Colombia">🇨🇴 Bogotá, Colombia</option>
-                          <option value="Medellín, Colombia">🇨🇴 Medellín, Colombia</option>
-                          <option value="Valencia, Venezuela">🇻🇪 Valencia, Venezuela</option>
+                          {availableDestinations.map((d) => (
+                            <option key={d} value={d}>
+                              ✈️ {d}
+                            </option>
+                          ))}
                         </select>
                       )}
                     </td>

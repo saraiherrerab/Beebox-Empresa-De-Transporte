@@ -6,6 +6,8 @@ import { useAuth } from "@/context/AuthContext";
 import { Package, Upload, Plus, CheckCircle2, FileText, MapPin, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+
 function PrealertasContent() {
   const { user, prealertas, addPrealerta } = useAuth();
   const searchParams = useSearchParams();
@@ -18,6 +20,10 @@ function PrealertasContent() {
   const [amountPaid, setAmountPaid] = useState("");
   const [destination, setDestination] = useState("Caracas, Venezuela");
   const [customDestination, setCustomDestination] = useState("");
+  const [availableDestinations, setAvailableDestinations] = useState<string[]>([
+    "Caracas, Venezuela",
+    "Bogotá, Colombia",
+  ]);
   const [receiptFileName, setReceiptFileName] = useState<string | null>(null);
 
   // Pagination & Filter States
@@ -32,6 +38,31 @@ function PrealertasContent() {
       setShowForm(true);
     }
   }, [isNuevaParam]);
+
+  // Fetch dynamic destination routes configured by admin
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
+    fetch(`${API_URL}/routes`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        let routeList: any[] = [];
+        if (Array.isArray(data)) routeList = data;
+        else if (data && data.routes && Array.isArray(data.routes)) routeList = data.routes;
+
+        if (routeList.length > 0) {
+          const dests = Array.from(
+            new Set(routeList.map((r: any) => r.destCity).filter(Boolean))
+          ) as string[];
+          if (dests.length > 0) {
+            setAvailableDestinations(dests);
+            setDestination(dests[0]);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -165,18 +196,21 @@ function PrealertasContent() {
                 )}
               </div>
 
-              {/* Destino de Envío */}
+              {/* Destino de Envío Dinámico desde Backend */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5 text-amber-500" /> Destino Final del Envío
+                  <MapPin className="w-3.5 h-3.5 text-amber-500" /> Destino Final del Envío (Configurado en Sistema)
                 </label>
                 <select
                   value={destination}
                   onChange={(e) => setDestination(e.target.value)}
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-bold text-slate-900 focus:border-amber-500 focus:outline-none"
                 >
-                  <option value="Caracas, Venezuela">🇻🇪 Caracas, Venezuela</option>
-                  <option value="Bogotá, Colombia">🇨🇴 Bogotá, Colombia</option>
+                  {availableDestinations.map((d) => (
+                    <option key={d} value={d}>
+                      ✈️ {d}
+                    </option>
+                  ))}
                   <option value="Otra">🌎 Otro Destino...</option>
                 </select>
                 {destination === "Otra" && (
