@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { io, Socket } from "socket.io-client";
 
 export interface UserProfile {
   id: string;
@@ -37,11 +38,13 @@ interface AuthContextType {
   login: (email: string, pass: string) => Promise<void>;
   register: (name: string, email: string, password: string, phone?: string) => Promise<void>;
   logout: () => void;
+  socket: Socket | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4000";
 
 const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 10000) => {
   const controller = new AbortController();
@@ -60,6 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<UserProfile | null>(null);
   const [role, setRole] = useState<"client" | "admin">("client");
   const [prealertas, setPrealertas] = useState<PrealertaItem[]>([]);
+  const [socket, setSocket] = useState<Socket | null>(null);
 
   const refreshPrealertas = useCallback(async () => {
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
@@ -91,6 +95,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Retener estado actual
     }
   }, []);
+
+  // Inicializar conexion WebSocket
+  useEffect(() => {
+    const s = io(SOCKET_URL, {
+      transports: ["websocket", "polling"],
+    });
+
+    s.on("connect", () => {});
+
+    s.on("prealerta:updated", () => {
+      refreshPrealertas();
+    });
+
+    s.on("shipment:updated", () => {
+      refreshPrealertas();
+    });
+
+    setSocket(s);
+
+    return () => {
+      s.disconnect();
+    };
+  }, [refreshPrealertas]);
 
   // Restaurar sesión al cargar si existe un JWT token
   useEffect(() => {
@@ -274,6 +301,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         register,
         logout,
+        socket,
       }}
     >
       {children}

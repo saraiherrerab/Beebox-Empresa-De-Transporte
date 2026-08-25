@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Users, BellRing, Package, Truck, ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 
 interface MetricsData {
   totalClients: number;
@@ -15,6 +16,7 @@ interface MetricsData {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 export default function AdminOverviewPage() {
+  const { socket } = useAuth();
   const [metrics, setMetrics] = useState<MetricsData>({
     totalClients: 0,
     pendingPrealertas: 0,
@@ -24,7 +26,7 @@ export default function AdminOverviewPage() {
   });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchMetrics = useCallback(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
     if (token) {
       fetch(`${API_URL}/admin/metrics`, {
@@ -45,6 +47,24 @@ export default function AdminOverviewPage() {
     }
   }, []);
 
+  useEffect(() => {
+    fetchMetrics();
+
+    if (socket) {
+      socket.on("metrics:updated", fetchMetrics);
+      socket.on("prealerta:updated", fetchMetrics);
+      socket.on("shipment:updated", fetchMetrics);
+    }
+
+    return () => {
+      if (socket) {
+        socket.off("metrics:updated", fetchMetrics);
+        socket.off("prealerta:updated", fetchMetrics);
+        socket.off("shipment:updated", fetchMetrics);
+      }
+    };
+  }, [fetchMetrics, socket]);
+
   const stats = [
     { label: "Clientes Registrados", value: metrics.totalClients.toLocaleString(), change: "Base de Datos Real", icon: Users },
     { label: "Prealertas Pendientes", value: metrics.pendingPrealertas.toString(), change: "Requieren confirmación", icon: BellRing },
@@ -57,7 +77,7 @@ export default function AdminOverviewPage() {
       <div>
         <h1 className="text-3xl font-black text-slate-900 tracking-tight">Resumen Ejecutivo (CMS Admin)</h1>
         <p className="text-xs font-semibold text-slate-500 mt-1">
-          Gestión unificada de clientes, casilleros virtuales, prealertas de almacén, pickups y métricas consolidadas.
+          Gestión unificada de clientes, casilleros virtuales, prealertas de almacén, pickups y métricas consolidadas en tiempo real (WebSocket activo).
         </p>
       </div>
 

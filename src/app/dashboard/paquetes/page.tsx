@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Search, Eye, Loader2, Package, ChevronLeft, ChevronRight } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 interface PackageItem {
   id: string;
@@ -19,6 +20,7 @@ interface PackageItem {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 export default function MisPaquetesPage() {
+  const { socket } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("todos");
   const [search, setSearch] = useState("");
   const [packages, setPackages] = useState<PackageItem[]>([]);
@@ -28,7 +30,7 @@ export default function MisPaquetesPage() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 15;
 
-  useEffect(() => {
+  const fetchPackages = useCallback(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
     if (token) {
       fetch(`${API_URL}/shipments`, {
@@ -63,6 +65,22 @@ export default function MisPaquetesPage() {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    fetchPackages();
+
+    if (socket) {
+      socket.on("shipment:updated", fetchPackages);
+      socket.on("prealerta:updated", fetchPackages);
+    }
+
+    return () => {
+      if (socket) {
+        socket.off("shipment:updated", fetchPackages);
+        socket.off("prealerta:updated", fetchPackages);
+      }
+    };
+  }, [fetchPackages, socket]);
 
   const filteredPackages = packages.filter((pkg) => {
     const matchesSearch =
