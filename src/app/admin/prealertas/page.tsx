@@ -195,7 +195,7 @@ export default function AdminPrealertasPage() {
                       </span>
                     </td>
                     <td className="py-4 px-4 font-bold text-slate-900">{item.store}</td>
-                    <td className="py-4 px-4 font-mono font-bold text-amber-700">{item.trackingNumber}</td>
+                    <td className="py-4 px-4 font-mono font-bold text-slate-900">{item.trackingNumber}</td>
                     <td className="py-4 px-4 text-slate-600 max-w-xs truncate">{item.description}</td>
                     <td className="py-4 px-4">
                       {item.status === "Confirmado" || item.status === "Vinculado" ? (

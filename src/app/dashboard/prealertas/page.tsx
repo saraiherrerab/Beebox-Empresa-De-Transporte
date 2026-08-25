@@ -365,7 +365,7 @@ function PrealertasContent() {
                       </div>
                     </td>
                     <td className="py-4 px-4 font-bold text-slate-900">{item.store}</td>
-                    <td className="py-4 px-4 font-mono font-bold text-amber-600">{item.trackingNumber}</td>
+                    <td className="py-4 px-4 font-mono font-bold text-slate-900">{item.trackingNumber}</td>
                     <td className="py-4 px-4 text-slate-700 max-w-xs truncate">{item.description}</td>
                     <td className="py-4 px-4 font-bold text-slate-800">
                       <span className="inline-flex items-center gap-1">

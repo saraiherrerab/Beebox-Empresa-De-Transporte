@@ -226,7 +226,7 @@ export default function AdminClientesPage() {
                         </span>
                       </div>
                     </td>
-                    <td className="py-4 px-4 font-mono font-bold text-amber-700">{c.suiteCode || "CAS-PENDIENTE"}</td>
+                    <td className="py-4 px-4 font-mono font-bold text-slate-900">{c.suiteCode || "CAS-PENDIENTE"}</td>
                     <td className="py-4 px-4">
                       <span className="font-bold text-slate-800 block">{c.email}</span>
                       <span className="text-[10px] text-slate-400">{c.phone || "Sin teléfono"}</span>

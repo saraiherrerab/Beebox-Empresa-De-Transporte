@@ -135,7 +135,7 @@ export default function AdminEnviosPage() {
                     </td>
                     <td className="py-4 px-4">
                       <span className="font-bold text-slate-900 block">{sh.clientName}</span>
-                      <span className="text-[10px] font-mono font-bold text-amber-600">{sh.suiteCode}</span>
+                      <span className="text-[10px] font-mono font-bold text-slate-900">{sh.suiteCode}</span>
                     </td>
                     <td className="py-4 px-4 font-mono font-bold text-slate-500">{sh.route}</td>
                     <td className="py-4 px-4">
