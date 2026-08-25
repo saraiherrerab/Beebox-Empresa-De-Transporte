@@ -272,9 +272,10 @@ function PrealertasContent() {
         </div>
       )}
 
-      {/* Prealertas Table List */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden space-y-4 p-6 sm:p-8">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+      {/* Single Unified Card Container */}
+      <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm p-6 sm:p-8 space-y-6">
+        {/* Top Header & Status Filter Tabs */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
           <h3 className="text-lg font-bold text-slate-900">Prealertas Registradas ({filteredPrealertas.length})</h3>
 
           {/* Status Tabs Filter */}
@@ -286,7 +287,7 @@ function PrealertasContent() {
                   setStatusFilter(status);
                   setCurrentPage(1);
                 }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-extrabold uppercase transition-all ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold uppercase transition-all ${
                   statusFilter === status
                     ? "bg-amber-500 text-slate-950 shadow-md font-black"
                     : "text-slate-600 hover:text-slate-900"
@@ -298,6 +299,7 @@ function PrealertasContent() {
           </div>
         </div>
 
+        {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>

@@ -80,51 +80,53 @@ export default function AdminPrealertasPage() {
         </div>
       )}
 
-      {/* Filters & Search Header Bar */}
-      <div className="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
-        {/* Status Tabs Filter */}
-        <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl w-full md:w-auto">
-          {["TODOS", "Prealertado", "Confirmado"].map((status) => (
-            <button
-              key={status}
-              onClick={() => {
-                setStatusFilter(status);
+      {/* Unified Single Card Container */}
+      <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm p-6 sm:p-8 space-y-6">
+        {/* Top Controls: Tabs & Search Bar */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-slate-100 pb-5">
+          {/* Status Tabs Filter */}
+          <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl w-full md:w-auto">
+            {["TODOS", "Prealertado", "Confirmado"].map((status) => (
+              <button
+                key={status}
+                onClick={() => {
+                  setStatusFilter(status);
+                  setCurrentPage(1);
+                }}
+                className={`px-4 py-2 rounded-xl text-xs font-extrabold uppercase transition-all flex-1 md:flex-none ${
+                  statusFilter === status
+                    ? "bg-amber-500 text-slate-950 shadow-md font-black"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                {status === "TODOS" ? "TODAS" : status.toUpperCase()}
+              </button>
+            ))}
+          </div>
+
+          {/* Search Input */}
+          <div className="relative w-full md:w-80">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              value={searchTracking}
+              onChange={(e) => {
+                setSearchTracking(e.target.value);
                 setCurrentPage(1);
               }}
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold uppercase transition-all flex-1 md:flex-none ${
-                statusFilter === status
-                  ? "bg-amber-500 text-slate-950 shadow-md font-black"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              {status === "TODOS" ? "TODAS" : status.toUpperCase()}
-            </button>
-          ))}
+              placeholder="Buscar por tracking, tienda o cliente..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-amber-500"
+            />
+          </div>
         </div>
 
-        {/* Search Input */}
-        <div className="relative w-full md:w-80">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            value={searchTracking}
-            onChange={(e) => {
-              setSearchTracking(e.target.value);
-              setCurrentPage(1);
-            }}
-            placeholder="Buscar por tracking, tienda o cliente..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-amber-500"
-          />
-        </div>
-      </div>
-
-      {/* Pre-alerts Table */}
-      <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm space-y-4 p-6 sm:p-8">
+        {/* Section Header */}
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold text-slate-900">Prealertas ({filteredPrealertas.length})</h3>
           <span className="text-xs text-slate-400 font-mono">Página {currentPage} de {totalPages}</span>
         </div>
 
+        {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
