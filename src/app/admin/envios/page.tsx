@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { Search, MapPin, Edit3, Trash2 } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Search, MapPin, Edit3, Trash2, Loader2, Package } from "lucide-react";
 
 interface ShipmentItem {
   id: string;
@@ -22,73 +22,37 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 export default function AdminEnviosPage() {
   const [activeTab, setActiveTab] = useState<string>("todos");
   const [search, setSearch] = useState("");
-  const [shipments, setShipments] = useState<ShipmentItem[]>([
-    {
-      id: "sh_1",
-      tracking: "BBX-89421",
-      type: "Vía Aéreo Express",
-      weight: "45.5 kg",
-      clientName: "Importadora Del Pacífico",
-      suiteCode: "CAS-88293-MIAMI",
-      route: "Miami → Ciudad de México",
-      status: "vuelo",
-      statusLabel: "EN TRÁNSITO",
-      lastActivity: "Hoy, 18:30 hrs",
-      activityDesc: "Vehículo en tránsito hacia el hub principal",
-    },
-    {
-      id: "sh_2",
-      tracking: "MIA-449201",
-      type: "Vía Aéreo",
-      weight: "0.8 kg",
-      clientName: "Juan Pérez Rodríguez",
-      suiteCode: "CAS-88293-MIAMI",
-      route: "MIA → MEX",
-      status: "aduana",
-      statusLabel: "EN ADUANA",
-      lastActivity: "Hoy, 09:12 AM",
-      activityDesc: "Procesado en Almacén",
-    },
-    {
-      id: "sh_3",
-      tracking: "MIA-110293",
-      type: "Vía Marítimo",
-      weight: "12.4 kg",
-      clientName: "Sofía Méndez",
-      suiteCode: "CAS-22481-MIAMI",
-      route: "MAD → MEX",
-      status: "vuelo",
-      statusLabel: "EN VUELO",
-      lastActivity: "Ayer, 16:30 PM",
-      activityDesc: "Salida de Origen",
-    },
-  ]);
+  const [shipments, setShipments] = useState<ShipmentItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
     fetch(`${API_URL}/shipments`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then((res) => res.json())
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           const mapped: ShipmentItem[] = data.map((item: any) => ({
             id: item.trackingCode || item.id,
             tracking: item.trackingCode,
-            type: item.serviceType || "Express",
+            type: item.serviceType || "Aéreo Express",
             weight: `${item.weightKg} kg`,
             clientName: item.user?.name || item.recipientName || item.senderName,
-            suiteCode: item.user?.suiteCode || "CAS-MIAMI",
+            suiteCode: item.user?.suiteCode || "CAS-TULSA",
             route: `${item.senderCity} → ${item.recipientCity}`,
-            status: item.currentStatus === "en_transito" ? "vuelo" : "disponible",
-            statusLabel: (item.currentStatus || "EN RUTA").toUpperCase().replace("_", " "),
-            lastActivity: item.estimatedDelivery || "Hoy",
-            activityDesc: `Estado actual: ${item.currentStatus}`,
+            status: item.currentStatus === "En camino" ? "vuelo" : item.currentStatus === "Llegó a su destino" ? "disponible" : "recibido",
+            statusLabel: (item.currentStatus || "En el origen").toUpperCase(),
+            lastActivity: item.estimatedDelivery || "Reciente",
+            activityDesc: `Estado: ${item.currentStatus}`,
           }));
           setShipments(mapped);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        setShipments([]);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const filteredShipments = shipments.filter(
@@ -104,7 +68,7 @@ export default function AdminEnviosPage() {
       <div>
         <h1 className="text-2xl font-black text-slate-900 tracking-tight">Control de Envíos</h1>
         <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
-          SEGUIMIENTO GLOBAL DE PAQUETES
+          SEGUIMIENTO GLOBAL DE PAQUETES DE CLIENTES
         </span>
       </div>
 
@@ -139,77 +103,78 @@ export default function AdminEnviosPage() {
         </div>
 
         {/* Global Tracking Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-200 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                <th className="py-4 px-4">NÚMERO DE GUÍA</th>
-                <th className="py-4 px-4">CLIENTE / CASILLERO</th>
-                <th className="py-4 px-4">RUTA</th>
-                <th className="py-4 px-4">ESTATUS ACTUAL</th>
-                <th className="py-4 px-4">ÚLTIMA ACTIVIDAD</th>
-                <th className="py-4 px-4 text-right">ACCIONES</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs font-medium">
-              {filteredShipments.map((sh) => (
-                <tr key={sh.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="py-4 px-4">
-                    <span className="font-mono font-bold text-slate-900 block">{sh.tracking}</span>
-                    <span className="text-[10px] text-slate-400 font-semibold">{sh.type} • {sh.weight}</span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="font-bold text-slate-900 block">{sh.clientName}</span>
-                    <span className="text-[10px] font-mono font-bold text-amber-600">{sh.suiteCode}</span>
-                  </td>
-                  <td className="py-4 px-4 font-mono font-bold text-slate-500">{sh.route}</td>
-                  <td className="py-4 px-4">
-                    <span
-                      className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${
-                        sh.status === "aduana"
-                          ? "bg-amber-100 text-amber-800"
-                          : sh.status === "vuelo"
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-emerald-100 text-emerald-800"
-                      }`}
-                    >
-                      {sh.statusLabel}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="font-bold text-slate-800 block">{sh.lastActivity}</span>
-                    <span className="text-[10px] text-slate-400">{sh.activityDesc}</span>
-                  </td>
-                  <td className="py-4 px-4 text-right">
-                    <div className="flex items-center justify-end gap-2 text-slate-400">
-                      <button className="p-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-800 transition-colors">
-                        <MapPin className="w-4 h-4" />
-                      </button>
-                      <button className="p-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-800 transition-colors">
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                      <button className="p-1.5 rounded-lg hover:bg-slate-100 hover:text-red-600 transition-colors">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
+        {loading ? (
+          <div className="p-12 text-center text-slate-400 flex items-center justify-center gap-2">
+            <Loader2 className="w-5 h-5 animate-spin text-amber-500" />
+            <span className="text-xs font-bold">Cargando envíos desde la base de datos...</span>
+          </div>
+        ) : filteredShipments.length === 0 ? (
+          <div className="p-12 text-center text-slate-400 space-y-2">
+            <Package className="w-10 h-10 mx-auto text-slate-300" />
+            <p className="text-xs font-bold text-slate-600">No hay envíos registrados en el sistema.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                  <th className="py-4 px-4">NÚMERO DE GUÍA</th>
+                  <th className="py-4 px-4">CLIENTE / CASILLERO</th>
+                  <th className="py-4 px-4">RUTA</th>
+                  <th className="py-4 px-4">ESTATUS ACTUAL</th>
+                  <th className="py-4 px-4">ÚLTIMA ACTIVIDAD</th>
+                  <th className="py-4 px-4 text-right">ACCIONES</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs font-medium">
+                {filteredShipments.map((sh) => (
+                  <tr key={sh.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="py-4 px-4">
+                      <span className="font-mono font-bold text-slate-900 block">{sh.tracking}</span>
+                      <span className="text-[10px] text-slate-400 font-semibold">{sh.type} • {sh.weight}</span>
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className="font-bold text-slate-900 block">{sh.clientName}</span>
+                      <span className="text-[10px] font-mono font-bold text-amber-600">{sh.suiteCode}</span>
+                    </td>
+                    <td className="py-4 px-4 font-mono font-bold text-slate-500">{sh.route}</td>
+                    <td className="py-4 px-4">
+                      <span
+                        className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                          sh.status === "aduana"
+                            ? "bg-amber-100 text-amber-800"
+                            : sh.status === "vuelo"
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-emerald-100 text-emerald-800"
+                        }`}
+                      >
+                        {sh.statusLabel}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className="font-bold text-slate-800 block">{sh.lastActivity}</span>
+                      <span className="text-[10px] text-slate-400">{sh.activityDesc}</span>
+                    </td>
+                    <td className="py-4 px-4 text-right">
+                      <div className="flex items-center justify-end gap-2 text-slate-400">
+                        <button className="p-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-800 transition-colors">
+                          <MapPin className="w-4 h-4" />
+                        </button>
+                        <button className="p-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-800 transition-colors">
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Footer Pagination */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-100 text-xs text-slate-500 font-medium">
           <span>Mostrando 1–{filteredShipments.length} de {filteredShipments.length} envíos</span>
-          <div className="flex items-center gap-2">
-            <button className="px-4 py-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-700 hover:bg-slate-50 uppercase text-[11px]">
-              ANTERIOR
-            </button>
-            <button className="px-4 py-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-700 hover:bg-slate-50 uppercase text-[11px]">
-              SIGUIENTE
-            </button>
-          </div>
         </div>
       </div>
     </div>
