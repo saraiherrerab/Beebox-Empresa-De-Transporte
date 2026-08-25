@@ -10,7 +10,7 @@ export default function AdminPrealertasPage() {
   const [searchTracking, setSearchTracking] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("TODOS");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const pageSize = 5;
+  const pageSize = 15;
 
   const [warehouseGuideInput, setWarehouseGuideInput] = useState<{ [key: string]: string }>({});
   const [destinationInput, setDestinationInput] = useState<{ [key: string]: string }>({});
@@ -123,7 +123,6 @@ export default function AdminPrealertasPage() {
         {/* Section Header */}
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold text-slate-900">Prealertas ({filteredPrealertas.length})</h3>
-          <span className="text-xs text-slate-400 font-mono">Página {currentPage} de {totalPages}</span>
         </div>
 
         {/* Table */}
@@ -233,7 +232,7 @@ export default function AdminPrealertasPage() {
 
         {/* Footer Pagination Controls */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-100 text-xs text-slate-500 font-medium">
-          <span>Mostrando {paginatedPrealertas.length > 0 ? (currentPage - 1) * pageSize + 1 : 0}–{Math.min(currentPage * pageSize, filteredPrealertas.length)} de {filteredPrealertas.length} prealertas</span>
+          <span className="font-mono font-bold text-slate-700">Página {currentPage} de {totalPages}</span>
 
           <div className="flex items-center gap-2">
             <button
