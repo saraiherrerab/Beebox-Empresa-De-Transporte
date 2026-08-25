@@ -102,6 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           amountPaid: String(p.amountPaid),
           receiptFileName: p.receiptFileName || undefined,
           createdAt: p.createdAt ? p.createdAt.split("T")[0] : new Date().toISOString().split("T")[0],
+          destination: p.destination || "Caracas, Venezuela",
           status: p.status as any,
           warehouseGuide: p.warehouseGuide || undefined,
         }));

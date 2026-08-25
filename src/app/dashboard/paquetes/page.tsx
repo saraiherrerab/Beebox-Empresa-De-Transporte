@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Search, Eye, Loader2 } from "lucide-react";
+import { Search, Eye, Loader2, Package, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface PackageItem {
   id: string;
@@ -24,6 +24,10 @@ export default function MisPaquetesPage() {
   const [packages, setPackages] = useState<PackageItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const pageSize = 15;
+
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
     if (token) {
@@ -39,13 +43,13 @@ export default function MisPaquetesPage() {
               id: item.trackingCode,
               tracking: item.trackingCode,
               description: item.prealerta?.description || `Envío de ${item.senderName}`,
-              origin: item.senderCity || "Miami, FL",
-              destination: item.recipientCity || "Ciudad de México",
-              route: `${item.senderCity || "MIA"} → ${item.recipientCity || "CDMX"} (${item.serviceType || "Aéreo"})`,
+              origin: item.senderCity || "Broken Arrow, OK",
+              destination: item.recipientCity || "Caracas, Venezuela",
+              route: `${item.senderCity || "Broken Arrow, OK"} → ${item.recipientCity || "Caracas, VE"}`,
               weight: `${item.weightKg} kg`,
-              cubicFeet: item.dimensions || "N/A",
-              status: item.currentStatus,
-              statusLabel: (item.currentStatus || "en_transito").toUpperCase().replace("_", " "),
+              cubicFeet: item.dimensions || "25x20x15 cm",
+              status: item.currentStatus || "En el origen",
+              statusLabel: (item.currentStatus || "En el origen").toUpperCase(),
             }));
             setPackages(mapped);
           }
@@ -63,10 +67,18 @@ export default function MisPaquetesPage() {
   const filteredPackages = packages.filter((pkg) => {
     const matchesSearch =
       pkg.tracking.toLowerCase().includes(search.toLowerCase()) ||
-      pkg.description.toLowerCase().includes(search.toLowerCase());
+      pkg.description.toLowerCase().includes(search.toLowerCase()) ||
+      pkg.destination.toLowerCase().includes(search.toLowerCase());
+
     if (activeTab === "todos") return matchesSearch;
     return matchesSearch && pkg.status.toLowerCase().includes(activeTab.toLowerCase());
   });
+
+  const totalPages = Math.ceil(filteredPackages.length / pageSize) || 1;
+  const paginatedPackages = filteredPackages.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   return (
     <div className="space-y-8 animate-in fade-in duration-200">
@@ -81,17 +93,28 @@ export default function MisPaquetesPage() {
       {/* Main Table Container Card */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
         {/* Filters Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-6 text-xs font-black uppercase tracking-wider text-slate-400 overflow-x-auto">
-            {["todos", "recoleccion", "transito", "aduana", "entregado"].map((tab) => (
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+          {/* Status Tabs Filter */}
+          <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl overflow-x-auto">
+            {[
+              { id: "todos", label: "TODOS" },
+              { id: "origen", label: "EN EL ORIGEN" },
+              { id: "camino", label: "EN CAMINO" },
+              { id: "destino", label: "LLEGÓ A SU DESTINO" },
+            ].map((tab) => (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`pb-2 border-b-2 transition-all shrink-0 ${
-                  activeTab === tab ? "border-amber-500 text-amber-700 font-bold" : "border-transparent hover:text-slate-700"
+                key={tab.id}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setCurrentPage(1);
+                }}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold uppercase transition-all shrink-0 ${
+                  activeTab === tab.id
+                    ? "bg-amber-500 text-slate-950 shadow-md font-black"
+                    : "text-slate-600 hover:text-slate-900"
                 }`}
               >
-                {tab === "todos" ? "TODOS LOS PAQUETES" : tab.toUpperCase()}
+                {tab.label}
               </button>
             ))}
           </div>
@@ -101,9 +124,12 @@ export default function MisPaquetesPage() {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar guía o descripción..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-full bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-amber-500"
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Buscar por guía, descripción o destino..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-amber-500"
             />
           </div>
         </div>
@@ -114,23 +140,27 @@ export default function MisPaquetesPage() {
             <Loader2 className="w-5 h-5 animate-spin text-amber-500" />
             <span className="text-xs font-bold">Cargando tus paquetes en tiempo real...</span>
           </div>
+        ) : paginatedPackages.length === 0 ? (
+          <div className="p-12 text-center text-slate-400 space-y-2">
+            <Package className="w-10 h-10 mx-auto text-slate-300" />
+            <p className="text-xs font-bold text-slate-600">No se encontraron paquetes registrados en este estatus.</p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                  <th className="py-4 px-4">NÚMERO DE GUÍA</th>
+                  <th className="py-4 px-4">NÚMERO DE GUÍA ALMACÉN</th>
                   <th className="py-4 px-4">DESCRIPCIÓN</th>
                   <th className="py-4 px-4">ORIGEN / DESTINO</th>
                   <th className="py-4 px-4">RUTA</th>
                   <th className="py-4 px-4">PESO</th>
-                  <th className="py-4 px-4">DIMENSIONES</th>
-                  <th className="py-4 px-4">ESTATUS</th>
-                  <th className="py-4 px-4 text-right">ACCIONES</th>
+                  <th className="py-4 px-4">ESTATUS EN TIEMPO REAL</th>
+                  <th className="py-4 px-4 text-right">DETALLE</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs font-medium">
-                {filteredPackages.map((pkg) => (
+                {paginatedPackages.map((pkg) => (
                   <tr key={pkg.id} className="hover:bg-slate-50 transition-colors">
                     <td className="py-4 px-4 font-mono font-bold text-slate-900">{pkg.tracking}</td>
                     <td className="py-4 px-4">
@@ -138,22 +168,21 @@ export default function MisPaquetesPage() {
                     </td>
                     <td className="py-4 px-4">
                       <span className="font-bold text-slate-800 block">{pkg.origin}</span>
-                      <span className="text-[10px] text-slate-400">&rarr; {pkg.destination}</span>
+                      <span className="text-[10px] text-amber-700 font-bold">&rarr; {pkg.destination}</span>
                     </td>
                     <td className="py-4 px-4 font-mono font-bold text-slate-500">{pkg.route}</td>
-                    <td className="py-4 px-4 font-mono text-slate-700">{pkg.weight}</td>
-                    <td className="py-4 px-4 font-mono text-slate-700">{pkg.cubicFeet}</td>
+                    <td className="py-4 px-4 font-mono font-bold text-slate-800">{pkg.weight}</td>
                     <td className="py-4 px-4">
                       <span
                         className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${
-                          pkg.status === "aduana"
-                            ? "bg-amber-100 text-amber-800"
-                            : pkg.status === "entregado"
-                            ? "bg-emerald-100 text-emerald-800"
-                            : "bg-blue-100 text-blue-800"
+                          pkg.status === "Llegó a su destino"
+                            ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                            : pkg.status === "En camino"
+                            ? "bg-blue-100 text-blue-800 border border-blue-200"
+                            : "bg-amber-100 text-amber-800 border border-amber-200"
                         }`}
                       >
-                        ● {pkg.statusLabel}
+                        {pkg.statusLabel}
                       </span>
                     </td>
                     <td className="py-4 px-4 text-right">
@@ -167,6 +196,29 @@ export default function MisPaquetesPage() {
             </table>
           </div>
         )}
+
+        {/* Footer Pagination */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-100 text-xs text-slate-500 font-medium">
+          <span className="font-mono font-bold text-slate-700">Página {currentPage} de {totalPages}</span>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 flex items-center gap-1 text-[11px]"
+            >
+              <ChevronLeft className="w-4 h-4" /> ANTERIOR
+            </button>
+            <span className="font-mono font-bold px-2 text-slate-800">{currentPage} / {totalPages}</span>
+            <button
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={currentPage >= totalPages}
+              className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 flex items-center gap-1 text-[11px]"
+            >
+              SIGUIENTE <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
