@@ -213,7 +213,7 @@ export default function AdminPrealertasPage() {
                         >
                           {availableDestinations.map((d) => (
                             <option key={d} value={d}>
-                              ✈️ {d}
+                              {d}
                             </option>
                           ))}
                         </select>

@@ -208,10 +208,10 @@ function PrealertasContent() {
                 >
                   {availableDestinations.map((d) => (
                     <option key={d} value={d}>
-                      ✈️ {d}
+                      {d}
                     </option>
                   ))}
-                  <option value="Otra">🌎 Otro Destino...</option>
+                  <option value="Otra">Otro Destino...</option>
                 </select>
                 {destination === "Otra" && (
                   <input

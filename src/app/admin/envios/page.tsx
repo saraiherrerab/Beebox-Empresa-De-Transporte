@@ -208,7 +208,7 @@ export default function AdminEnviosPage() {
                       >
                         {STANDARDIZED_STATUSES.map((st) => (
                           <option key={st} value={st}>
-                            {st === "En el origen" ? "📦 En el origen" : st === "En camino" ? "🚚 En camino" : "✅ Llegó a su destino"}
+                            {st}
                           </option>
                         ))}
                       </select>
