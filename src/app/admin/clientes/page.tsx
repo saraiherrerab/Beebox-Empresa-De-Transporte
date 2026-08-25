@@ -43,37 +43,15 @@ export default function AdminClientesPage() {
         if (res.ok && data.users) {
           setClients(data.users);
           return;
+        } else {
+          console.error("Error al obtener usuarios:", data.message);
         }
-      } catch {
-        // Fallback local
+      } catch (err) {
+        console.error("Error de red al obtener usuarios:", err);
       }
     }
 
-    setClients([
-      {
-        id: "usr_1",
-        name: "Juan Pérez Rodríguez",
-        createdAt: "2024-10-12T00:00:00.000Z",
-        suiteCode: "CAS-88293-MIAMI",
-        email: "juan.perez@email.com",
-        phone: "+52 55 1234 5678",
-        role: "client",
-        active: true,
-        _count: { shipments: 12, prealertas: 4 },
-      },
-      {
-        id: "usr_2",
-        name: "Sofía Méndez",
-        createdAt: "2024-09-03T00:00:00.000Z",
-        suiteCode: "CAS-22481-MIAMI",
-        email: "sofia.m@email.com",
-        phone: "+52 55 9876 5432",
-        role: "client",
-        active: false,
-        disabledReason: "Falta documento de identificación y comprobante fiscal.",
-        _count: { shipments: 3, prealertas: 1 },
-      },
-    ]);
+    setClients([]);
   };
 
   useEffect(() => {
