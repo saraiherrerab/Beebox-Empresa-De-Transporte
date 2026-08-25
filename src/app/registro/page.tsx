@@ -102,7 +102,7 @@ export default function RegistroPage() {
                   <Sparkles className="w-4 h-4 text-amber-500" /> Beneficios de tu Casillero BeeBox:
                 </div>
                 <ul className="text-xs text-slate-600 space-y-1 font-medium pl-6 list-disc">
-                  <li>Dirección física propia en Tulsa, Oklahoma, USA.</li>
+                  <li>Dirección física propia: 1925 W Concord Cir N, Broken Arrow, OK 74012.</li>
                   <li>Prealerta automática de paquetes.</li>
                   <li>Control y seguimiento en tiempo real.</li>
                 </ul>

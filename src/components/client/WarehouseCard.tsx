@@ -9,7 +9,7 @@ export const WarehouseCard: React.FC = () => {
   const { user } = useAuth();
 
   const handleCopy = () => {
-    const address = `${user?.name || "Cliente"} (${user?.suiteCode || "CAS-TULSA"}), 7105 E 38th St, Tulsa, OK 74145, USA`;
+    const address = `${user?.name || "Cliente"} (${user?.suiteCode || "CAS-OK"}), 1925 W Concord Cir N, Broken Arrow, OK 74012`;
     navigator.clipboard.writeText(address);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -24,7 +24,7 @@ export const WarehouseCard: React.FC = () => {
       <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-            🇺🇸 TULSA OKLAHOMA WAREHOUSE
+            🇺🇸 BEEBOX OKLAHOMA HUB
           </span>
           <button
             onClick={handleCopy}
@@ -35,7 +35,7 @@ export const WarehouseCard: React.FC = () => {
           </button>
         </div>
 
-        <div className="space-y-1 text-xs">
+        <div className="space-y-1.5 text-xs">
           <div className="flex justify-between gap-2">
             <span className="text-slate-400">Nombre / Casillero:</span>
             <span className="font-bold text-slate-800 font-mono text-right truncate">
@@ -44,7 +44,9 @@ export const WarehouseCard: React.FC = () => {
           </div>
           <div className="flex justify-between gap-2">
             <span className="text-slate-400">Dirección:</span>
-            <span className="font-bold text-slate-800">7105 E 38th St, Tulsa, OK 74145</span>
+            <span className="font-bold text-slate-800 text-right leading-tight">
+              1925 W Concord Cir N, Broken Arrow, OK 74012
+            </span>
           </div>
         </div>
       </div>
