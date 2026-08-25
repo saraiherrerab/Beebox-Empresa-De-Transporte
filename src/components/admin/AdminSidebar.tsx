@@ -46,7 +46,6 @@ export const AdminSidebar: React.FC = () => {
       items: [
         { name: "Recolecciones (Pickups)", href: "/admin/pickups", icon: Truck },
         { name: "Control de Envíos", href: "/admin/envios", icon: Package },
-        { name: "Citas de Retiro", href: "/admin/retiros", icon: CalendarCheck },
         { name: "Rutas de Entrega", href: "/admin/rutas", icon: Route },
       ],
     },
