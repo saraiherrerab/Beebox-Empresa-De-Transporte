@@ -51,61 +51,11 @@ export default function MisPaquetesPage() {
           }
         })
         .catch(() => {
-          setPackages([
-            {
-              id: "pkg_1",
-              tracking: "MIA-449201",
-              description: "iPhone 15 Pro Max 256GB - Titanium",
-              origin: "Miami, USA",
-              destination: "Ciudad de México, MX",
-              route: "MIA → CDMX (Aéreo)",
-              weight: "0.8 kg",
-              cubicFeet: "0.05 FT³",
-              status: "aduana",
-              statusLabel: "En Aduana",
-            },
-            {
-              id: "pkg_2",
-              tracking: "MIA-110293",
-              description: "Zapatillas Deportivas Edición Limitada",
-              origin: "Miami, USA",
-              destination: "Ciudad de México, MX",
-              route: "MIA → CDMX (Marítimo)",
-              weight: "1.2 kg",
-              cubicFeet: "0.12 FT³",
-              status: "entregado",
-              statusLabel: "Entregado",
-            },
-          ]);
+          setPackages([]);
         })
         .finally(() => setLoading(false));
     } else {
-      setPackages([
-        {
-          id: "pkg_1",
-          tracking: "MIA-449201",
-          description: "iPhone 15 Pro Max 256GB - Titanium",
-          origin: "Miami, USA",
-          destination: "Ciudad de México, MX",
-          route: "MIA → CDMX (Aéreo)",
-          weight: "0.8 kg",
-          cubicFeet: "0.05 FT³",
-          status: "aduana",
-          statusLabel: "En Aduana",
-        },
-        {
-          id: "pkg_2",
-          tracking: "MIA-110293",
-          description: "Zapatillas Deportivas Edición Limitada",
-          origin: "Miami, USA",
-          destination: "Ciudad de México, MX",
-          route: "MIA → CDMX (Marítimo)",
-          weight: "1.2 kg",
-          cubicFeet: "0.12 FT³",
-          status: "entregado",
-          statusLabel: "Entregado",
-        },
-      ]);
+      setPackages([]);
       setLoading(false);
     }
   }, []);
