@@ -62,7 +62,7 @@ export const AdminSidebar: React.FC = () => {
     },
     {
       group: "CONFIGURACIÓN",
-      items: [{ name: "Configuración del Sistema", href: "/admin/configuracion", icon: Settings }],
+      items: [{ name: "Perfil y Seguridad", href: "/admin/configuracion", icon: Settings }],
     },
   ];
 
