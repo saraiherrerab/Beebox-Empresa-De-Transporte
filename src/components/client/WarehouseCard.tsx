@@ -9,7 +9,7 @@ export const WarehouseCard: React.FC = () => {
   const { user } = useAuth();
 
   const handleCopy = () => {
-    const address = `${user?.name || "Cliente"} (${user?.suiteCode || "CAS-MIAMI"}), 8400 NW 25th St, Miami, FL 33198`;
+    const address = `${user?.name || "Cliente"} (${user?.suiteCode || "CAS-TULSA"}), 7105 E 38th St, Tulsa, OK 74145, USA`;
     navigator.clipboard.writeText(address);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -24,7 +24,7 @@ export const WarehouseCard: React.FC = () => {
       <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-            🇺🇸 MIAMI WAREHOUSE
+            🇺🇸 TULSA OKLAHOMA WAREHOUSE
           </span>
           <button
             onClick={handleCopy}
@@ -44,7 +44,7 @@ export const WarehouseCard: React.FC = () => {
           </div>
           <div className="flex justify-between gap-2">
             <span className="text-slate-400">Dirección:</span>
-            <span className="font-bold text-slate-800">8400 NW 25th St</span>
+            <span className="font-bold text-slate-800">7105 E 38th St, Tulsa, OK 74145</span>
           </div>
         </div>
       </div>

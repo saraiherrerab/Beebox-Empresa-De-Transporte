@@ -64,7 +64,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <header className="hidden md:flex items-center justify-between px-8 py-4 bg-white border-b border-slate-200 shadow-sm">
           <div>
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
-              PORTAL DE USUARIO • CASILLERO MIAMI
+              PORTAL DE USUARIO • CASILLERO TULSA, OK
             </span>
             <h2 className="text-sm font-bold text-slate-800">Bienvenido, {user?.name || "Cliente"}</h2>
           </div>
@@ -77,7 +77,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
               <div className="text-left">
                 <span className="text-xs font-bold text-slate-900 block leading-none">{user?.name || "Juan Pérez"}</span>
-                <span className="text-[10px] font-mono text-amber-700 font-bold">{user?.suiteCode || "CAS-88293-MIAMI"}</span>
+                <span className="text-[10px] font-mono text-amber-700 font-bold">{user?.suiteCode || "CAS-88293-TULSA"}</span>
               </div>
             </div>
           </div>

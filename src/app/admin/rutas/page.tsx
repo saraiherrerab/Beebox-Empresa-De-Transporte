@@ -35,7 +35,7 @@ export default function AdminRutasPage() {
 
   // Form state
   const [routeName, setRouteName] = useState("");
-  const [originCity, setOriginCity] = useState("Miami, FL");
+  const [originCity, setOriginCity] = useState("Tulsa, OK");
   const [destCity, setDestCity] = useState("Ciudad de México");
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
 
@@ -57,7 +57,7 @@ export default function AdminRutasPage() {
       })
       .catch(() => {
         setRoutes([
-          { id: "r1", name: "Miami Express", originCity: "Miami, FL", destCity: "Ciudad de México", status: "ACTIVA" },
+          { id: "r1", name: "Tulsa Express", originCity: "Tulsa, OK", destCity: "Ciudad de México", status: "ACTIVA" },
           { id: "r2", name: "Madrid Cargo", originCity: "Madrid, ES", destCity: "Ciudad de México", status: "ACTIVA" },
           { id: "r3", name: "CDMX Local", originCity: "CDMX Central", destCity: "CDMX Vallejo", status: "ACTIVA" },
         ]);

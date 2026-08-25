@@ -137,7 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             name: "Juan Pérez",
             email: "juan.perez@beebox.com",
             phone: "+52 55 9876 5432",
-            suiteCode: "CAS-88293-MIAMI",
+            suiteCode: "CAS-88293-TULSA",
           });
         });
     } else {
@@ -147,7 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         name: "Juan Pérez",
         email: "juan.perez@beebox.com",
         phone: "+52 55 9876 5432",
-        suiteCode: "CAS-88293-MIAMI",
+        suiteCode: "CAS-88293-TULSA",
       });
     }
   }, [refreshPrealertas]);
@@ -240,7 +240,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         name: userRole === "admin" ? "Admin Principal" : "Juan Pérez",
         email,
         phone: "+52 55 9876 5432",
-        suiteCode: "CAS-88293-MIAMI",
+        suiteCode: "CAS-88293-TULSA",
       });
       setRole(userRole);
     }
@@ -267,7 +267,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw error;
       }
       // Fallback local en caso de estar offline
-      const suiteCode = `CAS-${Math.floor(10000 + Math.random() * 90000)}-MIAMI`;
+      const suiteCode = `CAS-${Math.floor(10000 + Math.random() * 90000)}-TULSA`;
       setUser({ id: `usr_${Date.now()}`, name, email, phone: phone || "", suiteCode });
     }
   };

@@ -43,7 +43,7 @@ export default function RegistroPage() {
     try {
       await register(name, email, password, phone);
       setLoading(false);
-      const generatedCode = `CAS-${Math.floor(10000 + Math.random() * 90000)}-MIAMI`;
+      const generatedCode = `CAS-${Math.floor(10000 + Math.random() * 90000)}-TULSA`;
       setCreatedSuite(generatedCode);
       setTimeout(() => {
         router.push("/dashboard");
@@ -102,7 +102,7 @@ export default function RegistroPage() {
                   <Sparkles className="w-4 h-4 text-amber-500" /> Beneficios de tu Casillero BeeBox:
                 </div>
                 <ul className="text-xs text-slate-600 space-y-1 font-medium pl-6 list-disc">
-                  <li>Dirección física propia en Miami.</li>
+                  <li>Dirección física propia en Tulsa, Oklahoma, USA.</li>
                   <li>Prealerta automática de paquetes.</li>
                   <li>Control y seguimiento en tiempo real.</li>
                 </ul>

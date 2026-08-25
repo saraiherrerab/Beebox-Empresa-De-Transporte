@@ -71,7 +71,7 @@ export default function PrealertasPage() {
       {successMsg && (
         <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 flex items-center gap-2 animate-in slide-in-from-top-2">
           <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-          ¡Prealerta registrada exitosamente! Vincularemos tu paquete automáticamente cuando ingrese al almacén de Miami.
+          ¡Prealerta registrada exitosamente! Vincularemos tu paquete automáticamente cuando ingrese al almacén de Tulsa, OK.
         </div>
       )}
 

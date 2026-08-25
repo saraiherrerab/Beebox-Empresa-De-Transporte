@@ -3,7 +3,7 @@ import { MapPin, Globe2 } from "lucide-react";
 
 export const GlobalCoverage: React.FC = () => {
   const hubs = [
-    { city: "Miami, US", label: "Hub Principal EE.UU." },
+    { city: "Tulsa, OK", label: "Hub Principal EE.UU." },
     { city: "Madrid, ES", label: "Hub Europa" },
     { city: "Shenzhen, CN", label: "Hub Asia" },
     { city: "Santiago, CL", label: "Hub Latinoamérica" },
