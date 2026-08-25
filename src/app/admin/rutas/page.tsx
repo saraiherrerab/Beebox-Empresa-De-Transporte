@@ -154,12 +154,6 @@ export default function AdminRutasPage() {
 
       {/* Top Section: Catálogo de Destinos */}
       <div className="space-y-4">
-        <div>
-          <h3 className="text-base font-black text-slate-900">Destinos Habilitados para Prealertas y Envíos</h3>
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-            OPCIONES DISPONIBLES EN EL FORMULARIO DE CLIENTES Y PANEL ADMIN
-          </span>
-        </div>
 
         {loading ? (
           <div className="p-12 text-center text-slate-400 flex items-center justify-center gap-2">
