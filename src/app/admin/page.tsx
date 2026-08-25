@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Users, BellRing, Package, Truck, ArrowRight, Loader2 } from "lucide-react";
+import { Users, BellRing, Package, ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 
@@ -69,7 +69,6 @@ export default function AdminOverviewPage() {
   const stats = [
     { label: "Clientes Registrados", value: metrics.totalClients.toLocaleString(), change: "Base de Datos Real", icon: Users },
     { label: "Prealertas Pendientes", value: metrics.pendingPrealertas.toString(), change: "Requieren confirmación", icon: BellRing },
-    { label: "Pickups por Atender", value: metrics.pendingPickups.toString(), change: "Solicitudes a domicilio", icon: Truck },
     { label: "Envíos Activos", value: metrics.activeShipments.toString(), change: "En tránsito/Aduana", icon: Package },
   ];
 
@@ -78,11 +77,11 @@ export default function AdminOverviewPage() {
       <div>
         <h1 className="text-3xl font-black text-slate-900 tracking-tight">Resumen Ejecutivo (CMS Admin)</h1>
         <p className="text-xs font-semibold text-slate-500 mt-1">
-          Gestión unificada de clientes, casilleros virtuales, prealertas de almacén, pickups y métricas consolidadas en tiempo real (WebSocket activo).
+          Gestión unificada de clientes, casilleros virtuales, prealertas de almacén y métricas consolidadas en tiempo real (WebSocket activo).
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-3 gap-6">
         {stats.map((item, idx) => {
           const Icon = item.icon;
           return (
