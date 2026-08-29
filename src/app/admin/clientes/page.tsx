@@ -24,6 +24,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 export default function AdminClientesPage() {
   const { isAuthenticated, user } = useAuth();
+  const isSuperAdmin = user?.role === "super_admin" || user?.email?.includes("super");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [clients, setClients] = useState<ApiUser[]>([]);
@@ -240,7 +241,7 @@ export default function AdminClientesPage() {
                     </td>
                     <td className="py-4 px-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {c.active !== false ? (
+                        {isSuperAdmin && c.active !== false && (
                           <button
                             onClick={() => {
                               setSelectedClient(c);
@@ -251,10 +252,12 @@ export default function AdminClientesPage() {
                           >
                             <ShieldAlert className="w-3.5 h-3.5" /> Inhabilitar
                           </button>
-                        ) : (
+                        )}
+                        {isSuperAdmin && c.active === false && (
                           <button
                             onClick={() => handleToggleStatus(c, true)}
-                            className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 font-bold text-[10px] flex items-center gap-1 transition-colors"
+                            disabled={processingStatus}
+                            className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 font-bold text-[10px] flex items-center gap-1 transition-colors disabled:opacity-50"
                           >
                             <ShieldCheck className="w-3.5 h-3.5" /> Reactivar
                           </button>

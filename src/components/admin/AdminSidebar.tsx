@@ -19,13 +19,16 @@ import {
   ArrowRight,
   LogOut,
   Calculator,
+  Shield,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 export const AdminSidebar: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
-  const { setRole, logout } = useAuth();
+  const { user, setRole, logout } = useAuth();
+
+  const isSuperAdmin = user?.role === "super_admin" || user?.email?.includes("super");
 
   const handleSwitchToClient = () => {
     setRole("client");
@@ -51,9 +54,12 @@ export const AdminSidebar: React.FC = () => {
       ],
     },
     {
-      group: "GESTIÓN DE CLIENTES",
+      group: "USUARIOS Y SEGURIDAD",
       items: [
         { name: "Base de Clientes (CRM)", href: "/admin/clientes", icon: Users },
+        ...(isSuperAdmin
+          ? [{ name: "Administradores", href: "/admin/administradores", icon: Shield }]
+          : []),
         { name: "Confirmación de Prealertas", href: "/admin/prealertas", icon: BellRing },
       ],
     },
@@ -82,11 +88,9 @@ export const AdminSidebar: React.FC = () => {
 
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 text-white text-[10px] font-black tracking-wider uppercase shadow-sm">
             <ShieldCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span>PANEL ADMINISTRATIVO (CMS)</span>
+            <span>{isSuperAdmin ? "SUPER ADMIN PANEL" : "PANEL OPERATIVO"}</span>
           </div>
         </div>
-
-
 
         {/* Grouped Navigation */}
         <nav className="space-y-5 pt-1">
@@ -125,12 +129,12 @@ export const AdminSidebar: React.FC = () => {
       <div className="pt-6 border-t border-slate-200 space-y-4">
         <div className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-slate-200 shadow-sm">
           <div className="w-10 h-10 rounded-full bg-slate-900 text-amber-400 font-black text-xs flex items-center justify-center shrink-0 shadow-sm">
-            AD
+            {user?.name ? user.name.charAt(0).toUpperCase() : "AD"}
           </div>
           <div className="overflow-hidden">
-            <h4 className="text-xs font-bold text-slate-900 truncate">Admin Principal</h4>
+            <h4 className="text-xs font-bold text-slate-900 truncate">{user?.name || "Administrador"}</h4>
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 block truncate">
-              SUPERUSER CMS
+              {isSuperAdmin ? "⭐ SUPER ADMIN" : "🛡️ OPERADOR"}
             </span>
           </div>
         </div>

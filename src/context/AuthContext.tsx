@@ -9,6 +9,7 @@ export interface UserProfile {
   email: string;
   phone: string;
   suiteCode: string;
+  role?: string;
   active?: boolean;
   disabledReason?: string;
 }

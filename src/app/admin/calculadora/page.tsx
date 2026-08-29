@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Calculator, Save, CheckCircle2, Loader2, Globe, MapPin, RotateCcw, Plus, Edit3, X, Eye, ShieldCheck, Clock, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/context/AuthContext";
 
 interface ApiCity {
   id: string;
@@ -32,10 +33,12 @@ interface ApiRateConfig {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 export default function AdminCalculadoraPage() {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === "super_admin" || user?.email?.includes("super");
+
   const [countries, setCountries] = useState<ApiCountry[]>([]);
   const [selectedCountryId, setSelectedCountryId] = useState<string>("");
   const [selectedCityId, setSelectedCityId] = useState<string>("");
-
   const [rates, setRates] = useState<ApiRateConfig[]>([]);
   const [isCustom, setIsCustom] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
@@ -340,32 +343,40 @@ export default function AdminCalculadoraPage() {
 
         {/* Top Actions: Edit / Reset */}
         <div className="flex items-center gap-3">
-          {!isEditing ? (
-            <Button
-              onClick={() => startEditMode()}
-              variant="amber"
-              className="rounded-2xl font-black text-xs px-5 py-3 shadow-md"
-            >
-              <Edit3 className="w-4 h-4 mr-1.5" /> EDITAR TARIFAS DE ESTE DESTINO
-            </Button>
-          ) : (
-            <button
-              type="button"
-              onClick={cancelEditMode}
-              className="px-4 py-2.5 rounded-2xl bg-white border border-slate-300 text-slate-700 text-xs font-bold hover:bg-slate-100 transition-colors flex items-center gap-1.5"
-            >
-              <X className="w-4 h-4" /> SALIR DE EDICIÓN
-            </button>
-          )}
+          {isSuperAdmin ? (
+            <>
+              {!isEditing ? (
+                <Button
+                  onClick={() => startEditMode()}
+                  variant="amber"
+                  className="rounded-2xl font-black text-xs px-5 py-3 shadow-md"
+                >
+                  <Edit3 className="w-4 h-4 mr-1.5" /> EDITAR TARIFAS DE ESTE DESTINO
+                </Button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={cancelEditMode}
+                  className="px-4 py-2.5 rounded-2xl bg-white border border-slate-300 text-slate-700 text-xs font-bold hover:bg-slate-100 transition-colors flex items-center gap-1.5"
+                >
+                  <X className="w-4 h-4" /> SALIR DE EDICIÓN
+                </button>
+              )}
 
-          {selectedCountryId && isCustom && !isEditing && (
-            <button
-              type="button"
-              onClick={handleResetToGlobal}
-              className="px-4 py-2.5 rounded-2xl bg-white border border-rose-200 text-rose-700 text-xs font-bold hover:bg-rose-50 transition-colors flex items-center gap-1.5 shadow-sm"
-            >
-              <RotateCcw className="w-3.5 h-3.5" /> VOLVER A TARIFA GLOBAL
-            </button>
+              {selectedCountryId && isCustom && !isEditing && (
+                <button
+                  type="button"
+                  onClick={handleResetToGlobal}
+                  className="px-4 py-2.5 rounded-2xl bg-white border border-rose-200 text-rose-700 text-xs font-bold hover:bg-rose-50 transition-colors flex items-center gap-1.5 shadow-sm"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" /> VOLVER A TARIFA GLOBAL
+                </button>
+              )}
+            </>
+          ) : (
+            <div className="px-3.5 py-2 rounded-2xl bg-slate-900 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm">
+              <Eye className="w-4 h-4 text-amber-400" /> Modo Consulta (Solo Lectura)
+            </div>
           )}
         </div>
       </div>
@@ -405,13 +416,15 @@ export default function AdminCalculadoraPage() {
                         </span>
                       </div>
 
-                      <button
-                        onClick={() => startEditMode(r.serviceType)}
-                        title="Editar esta modalidad"
-                        className="p-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-amber-100 hover:text-amber-900 border border-slate-200 transition-colors"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </button>
+                      {isSuperAdmin && (
+                        <button
+                          onClick={() => startEditMode(r.serviceType)}
+                          title="Editar esta modalidad"
+                          className="p-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-amber-100 hover:text-amber-900 border border-slate-200 transition-colors"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
 
                     {/* Rates Grid */}
