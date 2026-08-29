@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Calculator, Save, CheckCircle2, Loader2, Globe, MapPin, AlertCircle, RotateCcw, Plus } from "lucide-react";
+import { Calculator, Save, CheckCircle2, Loader2, Globe, MapPin, RotateCcw, Plus, Edit3, X, Eye, ShieldCheck, Clock, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 interface ApiCity {
@@ -26,6 +26,7 @@ interface ApiRateConfig {
   insuranceRate: number;
   estimatedDaysMin?: number;
   estimatedDaysMax?: number;
+  isServiceCustom?: boolean;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
@@ -39,6 +40,9 @@ export default function AdminCalculadoraPage() {
   const [isCustom, setIsCustom] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
   const [noticeMsg, setNoticeMsg] = useState<string | null>(null);
+
+  // View Mode vs Edit Mode State
+  const [isEditing, setIsEditing] = useState<boolean>(false);
 
   // Form for editing rates
   const [selectedService, setSelectedService] = useState("Aéreo Express");
@@ -112,6 +116,7 @@ export default function AdminCalculadoraPage() {
   }, []);
 
   useEffect(() => {
+    setIsEditing(false); // Default to read-only mode when switching destination
     fetchRates(selectedCountryId, selectedCityId);
   }, [selectedCountryId, selectedCityId]);
 
@@ -126,6 +131,16 @@ export default function AdminCalculadoraPage() {
       setEstimatedDaysMin(found.estimatedDaysMin || (serviceName.includes("Express") ? 2 : serviceName.includes("Marítimo") ? 15 : 5));
       setEstimatedDaysMax(found.estimatedDaysMax || (serviceName.includes("Express") ? 4 : serviceName.includes("Marítimo") ? 25 : 7));
     }
+  };
+
+  const startEditMode = (serviceName?: string) => {
+    if (serviceName) handleSelectService(serviceName);
+    setIsEditing(true);
+  };
+
+  const cancelEditMode = () => {
+    setIsEditing(false);
+    fetchRates(selectedCountryId, selectedCityId);
   };
 
   const handleSaveRates = async (e: React.FormEvent) => {
@@ -159,6 +174,7 @@ export default function AdminCalculadoraPage() {
             ? activeCountry.name
             : "Tarifas Globales";
           setNoticeMsg(`Tarifa '${selectedService}' guardada correctamente para ${destName}.`);
+          setIsEditing(false);
           fetchRates(selectedCountryId, selectedCityId);
           setTimeout(() => setNoticeMsg(null), 4000);
         }
@@ -186,6 +202,7 @@ export default function AdminCalculadoraPage() {
         });
         if (res.ok) {
           setNoticeMsg("Tarifas personalizadas eliminadas. El destino ahora usa las Tarifas Globales.");
+          setIsEditing(false);
           fetchRates(selectedCountryId, selectedCityId);
           setTimeout(() => setNoticeMsg(null), 4000);
         }
@@ -212,12 +229,25 @@ export default function AdminCalculadoraPage() {
             MATRIZ DE PRECIOS DINÁMICOS POR PAÍS Y CIUDAD DE DESTINO
           </span>
         </div>
+
+        {/* View Mode Indicator Badge */}
+        <div className="flex items-center gap-2">
+          {!isEditing ? (
+            <span className="px-3.5 py-1.5 rounded-2xl bg-slate-900 text-white text-xs font-black uppercase flex items-center gap-1.5 shadow-sm">
+              <Eye className="w-3.5 h-3.5 text-amber-400" /> Modo Visualización
+            </span>
+          ) : (
+            <span className="px-3.5 py-1.5 rounded-2xl bg-amber-500 text-white text-xs font-black uppercase flex items-center gap-1.5 shadow-md">
+              <Edit3 className="w-3.5 h-3.5" /> Modo Edición Activo
+            </span>
+          )}
+        </div>
       </div>
 
       {/* 1. Selector Bar */}
       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
         <h3 className="text-xs font-black uppercase text-slate-900 tracking-wider flex items-center gap-2">
-          <Globe className="w-4 h-4 text-amber-500" /> Seleccionar Destino para Configurar Tarifas
+          <Globe className="w-4 h-4 text-amber-500" /> Seleccionar Destino a Consultar o Editar
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -270,7 +300,7 @@ export default function AdminCalculadoraPage() {
         </div>
       )}
 
-      {/* 2. Prominent Destination Context & Status Banner */}
+      {/* 2. Prominent Destination Context Banner */}
       <div className={`p-6 rounded-3xl border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all ${
         !selectedCountryId
           ? "bg-amber-500/10 border-amber-300 text-amber-950"
@@ -280,7 +310,7 @@ export default function AdminCalculadoraPage() {
       }`}>
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-black uppercase tracking-widest opacity-60">DESTINO ACTUALMENTE SELECCIONADO</span>
+            <span className="text-xs font-black uppercase tracking-widest opacity-60">DESTINO CONSULTADO</span>
             {selectedCountryId && (
               isCustom ? (
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-200 text-emerald-900 border border-emerald-300">
@@ -308,24 +338,36 @@ export default function AdminCalculadoraPage() {
           </p>
         </div>
 
-        {/* Status Action Buttons */}
-        {selectedCountryId && (
-          <div>
-            {isCustom ? (
-              <button
-                type="button"
-                onClick={handleResetToGlobal}
-                className="px-4 py-2.5 rounded-2xl bg-white border border-rose-200 text-rose-700 text-xs font-bold hover:bg-rose-50 transition-colors flex items-center gap-1.5 shadow-sm"
-              >
-                <RotateCcw className="w-3.5 h-3.5" /> RESTABLECER Y VOLVER A TARIFA GLOBAL
-              </button>
-            ) : (
-              <span className="px-4 py-2 rounded-2xl bg-white/80 border border-slate-300 text-slate-700 text-xs font-bold flex items-center gap-1.5">
-                <Plus className="w-3.5 h-3.5 text-amber-600" /> Edita abajo para personalizar este destino
-              </span>
-            )}
-          </div>
-        )}
+        {/* Top Actions: Edit / Reset */}
+        <div className="flex items-center gap-3">
+          {!isEditing ? (
+            <Button
+              onClick={() => startEditMode()}
+              variant="amber"
+              className="rounded-2xl font-black text-xs px-5 py-3 shadow-md"
+            >
+              <Edit3 className="w-4 h-4 mr-1.5" /> EDITAR TARIFAS DE ESTE DESTINO
+            </Button>
+          ) : (
+            <button
+              type="button"
+              onClick={cancelEditMode}
+              className="px-4 py-2.5 rounded-2xl bg-white border border-slate-300 text-slate-700 text-xs font-bold hover:bg-slate-100 transition-colors flex items-center gap-1.5"
+            >
+              <X className="w-4 h-4" /> SALIR DE EDICIÓN
+            </button>
+          )}
+
+          {selectedCountryId && isCustom && !isEditing && (
+            <button
+              type="button"
+              onClick={handleResetToGlobal}
+              className="px-4 py-2.5 rounded-2xl bg-white border border-rose-200 text-rose-700 text-xs font-bold hover:bg-rose-50 transition-colors flex items-center gap-1.5 shadow-sm"
+            >
+              <RotateCcw className="w-3.5 h-3.5" /> VOLVER A TARIFA GLOBAL
+            </button>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -334,166 +376,254 @@ export default function AdminCalculadoraPage() {
           <span className="text-xs font-bold">Cargando tarifas de {locationLabel}...</span>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Rate Cards (5 Cols) */}
-          <div className="lg:col-span-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-black text-slate-900 uppercase tracking-tight">
-                Modalidades para {activeCountry ? activeCountry.name : "Tarifa Global"}
-              </h3>
-              <span className="text-[10px] font-mono font-bold text-slate-400">
-                {rates.length} SERVICIOS
-              </span>
-            </div>
+        <div>
+          {/* MODO VISUALIZACIÓN (READ-ONLY RESUMEN) */}
+          {!isEditing ? (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-amber-500" /> Matriz de Tarifas Vigentes ({rates.length} Modalidades)
+                </h3>
+                <span className="text-xs font-bold text-slate-500">
+                  Ubicación: <strong className="text-amber-800 font-mono">{locationLabel}</strong>
+                </span>
+              </div>
 
-            {rates.map((r) => (
-              <div
-                key={r.serviceType}
-                onClick={() => handleSelectService(r.serviceType)}
-                className={`p-5 rounded-3xl bg-white border-2 shadow-sm space-y-2 cursor-pointer transition-all ${
-                  selectedService === r.serviceType ? "border-amber-400 ring-2 ring-amber-100" : "border-slate-200 hover:border-slate-300"
-                }`}
-              >
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {rates.map((r) => (
+                  <div
+                    key={r.serviceType}
+                    className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4 hover:border-amber-300 transition-all group"
+                  >
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                      <div>
+                        <h4 className="text-sm font-black text-slate-900">{r.serviceType}</h4>
+                        <span className="text-[10px] font-extrabold uppercase block">
+                          {selectedCountryId
+                            ? (r.isServiceCustom ? <span className="text-emerald-600">🟢 Personalizado</span> : <span className="text-slate-400">ℹ️ Heredado Global</span>)
+                            : <span className="text-slate-400">🌐 Estándar Global</span>}
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={() => startEditMode(r.serviceType)}
+                        title="Editar esta modalidad"
+                        className="p-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-amber-100 hover:text-amber-900 border border-slate-200 transition-colors"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    {/* Rates Grid */}
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                        <span className="text-[9px] font-black uppercase text-slate-400 block">PRECIO POR KG</span>
+                        <span className="text-base font-black font-mono text-amber-600">${r.pricePerKg} <span className="text-[10px]">USD/kg</span></span>
+                      </div>
+
+                      <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                        <span className="text-[9px] font-black uppercase text-slate-400 block">BASE FIJA</span>
+                        <span className="text-base font-black font-mono text-slate-900">${r.basePrice} <span className="text-[10px]">USD</span></span>
+                      </div>
+
+                      <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                        <span className="text-[9px] font-black uppercase text-slate-400 block">SEGURO</span>
+                        <span className="text-xs font-black font-mono text-slate-800">{((r.insuranceRate || 0.02) * 100).toFixed(1)}%</span>
+                      </div>
+
+                      <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                        <span className="text-[9px] font-black uppercase text-slate-400 block">DÍAS TRÁNSITO</span>
+                        <span className="text-xs font-black font-mono text-slate-800">{r.estimatedDaysMin || 3}-{r.estimatedDaysMax || 5} días</span>
+                      </div>
+                    </div>
+
+                    {r.serviceType === "Marítimo" && (
+                      <div className="bg-amber-50/60 p-3 rounded-2xl border border-amber-200/60 flex justify-between items-center text-xs">
+                        <span className="font-bold text-amber-900">Precio por Pie Cúbico (ft³):</span>
+                        <span className="font-mono font-black text-amber-700">${r.pricePerCubicFeet || 4.5} USD</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            /* MODO EDICIÓN (FORMULARIO ACTIVADO) */
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-in slide-in-from-bottom-4">
+              {/* Rate Selection Cards Left (5 Cols) */}
+              <div className="lg:col-span-5 space-y-4">
                 <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-tight">
+                    Selecciona Modalidad a Editar
+                  </h3>
+                  <span className="text-[10px] font-mono font-bold text-slate-400">
+                    {rates.length} SERVICIOS
+                  </span>
+                </div>
+
+                {rates.map((r) => (
+                  <div
+                    key={r.serviceType}
+                    onClick={() => handleSelectService(r.serviceType)}
+                    className={`p-5 rounded-3xl bg-white border-2 shadow-sm space-y-2 cursor-pointer transition-all ${
+                      selectedService === r.serviceType ? "border-amber-400 ring-2 ring-amber-100" : "border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-xs font-black text-slate-900">{r.serviceType}</h4>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase">
+                          {selectedCountryId ? locationLabel : "Global General"}
+                        </span>
+                      </div>
+                      <span className="text-sm font-mono font-black text-amber-600">${r.pricePerKg} USD/kg</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Edit Form Right (7 Cols) */}
+              <div className="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-8 border-2 border-amber-400 shadow-xl space-y-6">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                   <div>
-                    <h4 className="text-xs font-black text-slate-900">{r.serviceType}</h4>
-                    <span className="text-[9px] font-bold text-slate-400 uppercase">
-                      {selectedCountryId ? locationLabel : "Global General"}
+                    <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                      <Edit3 className="w-5 h-5 text-amber-600" /> Editando Tarifa: {selectedService}
+                    </h3>
+                    <span className="text-[11px] font-bold text-slate-400 block mt-0.5">
+                      Destino: <strong className="text-amber-800">{locationLabel}</strong>
                     </span>
                   </div>
-                  <span className="text-sm font-mono font-black text-amber-600">${r.pricePerKg} USD/kg</span>
-                </div>
-                <div className="text-[10px] text-slate-500 flex justify-between pt-2 border-t border-slate-100 font-bold">
-                  <span>Base: <strong>${r.basePrice} USD</strong></span>
-                  <span>Seguro: <strong>{((r.insuranceRate || 0.02) * 100).toFixed(1)}%</strong></span>
-                  <span>Tránsito: <strong>{r.estimatedDaysMin || 3}-{r.estimatedDaysMax || 5} días</strong></span>
-                </div>
-              </div>
-            ))}
-          </div>
 
-          {/* Rate Form (7 Cols) */}
-          <div className="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
-            <div className="border-b border-slate-100 pb-4">
-              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                <Calculator className="w-5 h-5 text-amber-600" /> Editar Tarifas: {selectedService}
-              </h3>
-              <span className="text-[11px] font-bold text-slate-400 block mt-0.5">
-                Destino asignado: <strong className="text-amber-800">{locationLabel}</strong>
-              </span>
+                  <button
+                    type="button"
+                    onClick={cancelEditMode}
+                    className="p-2 rounded-xl bg-slate-100 text-slate-500 hover:text-slate-900"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveRates} className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-2">
+                      Tipo de Servicio / Modalidad
+                    </label>
+                    <select
+                      value={selectedService}
+                      onChange={(e) => handleSelectService(e.target.value)}
+                      className="w-full rounded-2xl bg-slate-50 border border-slate-200 p-3.5 text-xs font-bold text-slate-900"
+                    >
+                      <option value="Aéreo Express">Aéreo Express</option>
+                      <option value="Aéreo Estándar">Aéreo Estándar</option>
+                      <option value="Marítimo">Marítimo</option>
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-2">
+                        Precio Base Fijo ($ USD)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={basePrice}
+                        onChange={(e) => setBasePrice(Number(e.target.value))}
+                        className="w-full rounded-2xl bg-slate-50 border border-slate-200 p-3.5 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-2">
+                        Precio por Kilogramo ($ USD/kg)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={pricePerKg}
+                        onChange={(e) => setPricePerKg(Number(e.target.value))}
+                        className="w-full rounded-2xl bg-slate-50 border border-slate-200 p-3.5 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {selectedService === "Marítimo" && (
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-2">
+                        Precio por Pie Cúbico ($ USD / ft³)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={pricePerCubicFeet}
+                        onChange={(e) => setPricePerCubicFeet(Number(e.target.value))}
+                        className="w-full rounded-2xl bg-slate-50 border border-slate-200 p-3.5 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-2">
+                        Seguro (Tasa 0.02 = 2%)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.005"
+                        value={insuranceRate}
+                        onChange={(e) => setInsuranceRate(Number(e.target.value))}
+                        className="w-full rounded-2xl bg-slate-50 border border-slate-200 p-3.5 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-2">
+                        Días Mín. Tránsito
+                      </label>
+                      <input
+                        type="number"
+                        value={estimatedDaysMin}
+                        onChange={(e) => setEstimatedDaysMin(Number(e.target.value))}
+                        className="w-full rounded-2xl bg-slate-50 border border-slate-200 p-3.5 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-2">
+                        Días Máx. Tránsito
+                      </label>
+                      <input
+                        type="number"
+                        value={estimatedDaysMax}
+                        onChange={(e) => setEstimatedDaysMax(Number(e.target.value))}
+                        className="w-full rounded-2xl bg-slate-50 border border-slate-200 p-3.5 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={cancelEditMode}
+                      className="flex-1 py-3.5 rounded-2xl border border-slate-200 bg-slate-100 font-bold text-xs text-slate-700 hover:bg-slate-200 transition-colors"
+                    >
+                      CANCELAR
+                    </button>
+
+                    <Button type="submit" variant="amber" className="flex-1 py-3.5 justify-center font-bold text-xs uppercase shadow-md">
+                      <Save className="w-4 h-4 mr-2" />
+                      GUARDAR CAMBIOS
+                    </Button>
+                  </div>
+                </form>
+              </div>
             </div>
-
-            <form onSubmit={handleSaveRates} className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-2">
-                  Tipo de Servicio / Modalidad
-                </label>
-                <select
-                  value={selectedService}
-                  onChange={(e) => handleSelectService(e.target.value)}
-                  className="w-full rounded-2xl bg-slate-50 border border-slate-200 p-3.5 text-xs font-bold text-slate-900"
-                >
-                  <option value="Aéreo Express">Aéreo Express</option>
-                  <option value="Aéreo Estándar">Aéreo Estándar</option>
-                  <option value="Marítimo">Marítimo</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-2">
-                    Precio Base Fijo ($ USD)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={basePrice}
-                    onChange={(e) => setBasePrice(Number(e.target.value))}
-                    className="w-full rounded-2xl bg-slate-50 border border-slate-200 p-3.5 text-xs font-mono font-bold text-slate-900"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-2">
-                    Precio por Kilogramo ($ USD/kg)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={pricePerKg}
-                    onChange={(e) => setPricePerKg(Number(e.target.value))}
-                    className="w-full rounded-2xl bg-slate-50 border border-slate-200 p-3.5 text-xs font-mono font-bold text-slate-900"
-                    required
-                  />
-                </div>
-              </div>
-
-              {selectedService === "Marítimo" && (
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-2">
-                    Precio por Pie Cúbico ($ USD / ft³)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={pricePerCubicFeet}
-                    onChange={(e) => setPricePerCubicFeet(Number(e.target.value))}
-                    className="w-full rounded-2xl bg-slate-50 border border-slate-200 p-3.5 text-xs font-mono font-bold text-slate-900"
-                  />
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-2">
-                    Seguro (Tasa 0.02 = 2%)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.005"
-                    value={insuranceRate}
-                    onChange={(e) => setInsuranceRate(Number(e.target.value))}
-                    className="w-full rounded-2xl bg-slate-50 border border-slate-200 p-3.5 text-xs font-mono font-bold text-slate-900"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-2">
-                    Días Mín. Tránsito
-                  </label>
-                  <input
-                    type="number"
-                    value={estimatedDaysMin}
-                    onChange={(e) => setEstimatedDaysMin(Number(e.target.value))}
-                    className="w-full rounded-2xl bg-slate-50 border border-slate-200 p-3.5 text-xs font-mono font-bold text-slate-900"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-2">
-                    Días Máx. Tránsito
-                  </label>
-                  <input
-                    type="number"
-                    value={estimatedDaysMax}
-                    onChange={(e) => setEstimatedDaysMax(Number(e.target.value))}
-                    className="w-full rounded-2xl bg-slate-50 border border-slate-200 p-3.5 text-xs font-mono font-bold text-slate-900"
-                    required
-                  />
-                </div>
-              </div>
-
-              <Button type="submit" variant="amber" className="w-full py-4 justify-center font-bold text-xs uppercase shadow-md">
-                <Save className="w-4 h-4 mr-2" />
-                {selectedCountryId
-                  ? `GUARDAR TARIFAS PARA ${activeCountry?.name || "ESTE PAÍS"}`
-                  : "GUARDAR TARIFAS GLOBALES GENERALES"}
-              </Button>
-            </form>
-          </div>
+          )}
         </div>
       )}
     </div>
