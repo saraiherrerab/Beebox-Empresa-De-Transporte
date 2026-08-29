@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useAuth } from "@/context/AuthContext";
-import { CheckCircle2, Check, Search, MapPin, PackageCheck, Calendar, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { useAuth, PrealertaItem } from "@/context/AuthContext";
+import { CheckCircle2, Check, Search, MapPin, PackageCheck, Calendar, ChevronLeft, ChevronRight, RefreshCw, Edit3, X, Save, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 export default function AdminPrealertasPage() {
-  const { prealertas, linkPrealerta, refreshPrealertas } = useAuth();
+  const { prealertas, linkPrealerta, updatePrealerta, refreshPrealertas } = useAuth();
   const [searchTracking, setSearchTracking] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("TODOS");
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -23,6 +23,17 @@ export default function AdminPrealertasPage() {
   const [providerWRInput, setProviderWRInput] = useState<{ [key: string]: string }>({});
   const [linkedNotice, setLinkedNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Edit Modal State
+  const [editingItem, setEditingItem] = useState<PrealertaItem | null>(null);
+  const [editStore, setEditStore] = useState("");
+  const [editTrackingNumber, setEditTrackingNumber] = useState("");
+  const [editProviderWR, setEditProviderWR] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editAmountPaid, setEditAmountPaid] = useState("");
+  const [editDestination, setEditDestination] = useState("");
+  const [editStatus, setEditStatus] = useState<string>("Prealertado");
+  const [editSubmitting, setEditSubmitting] = useState(false);
 
   useEffect(() => {
     refreshPrealertas();
@@ -48,6 +59,43 @@ export default function AdminPrealertasPage() {
       })
       .catch(() => {});
   }, [refreshPrealertas]);
+
+  const handleOpenEdit = (item: PrealertaItem) => {
+    setEditingItem(item);
+    setEditStore(item.store);
+    setEditTrackingNumber(item.trackingNumber);
+    setEditProviderWR(item.providerWarehouseReceipt || "");
+    setEditDescription(item.description);
+    setEditAmountPaid(item.amountPaid);
+    setEditDestination(item.destination || availableDestinations[0] || "Caracas, Venezuela");
+    setEditStatus(item.status === "Recibido en Almacén" ? "Recibido en Almacén" : "Prealertado");
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem) return;
+
+    setEditSubmitting(true);
+    try {
+      await updatePrealerta(editingItem.id, {
+        store: editStore,
+        trackingNumber: editTrackingNumber,
+        providerWarehouseReceipt: editProviderWR || undefined,
+        description: editDescription,
+        amountPaid: editAmountPaid,
+        destination: editDestination,
+        status: editStatus as any,
+      });
+      await refreshPrealertas();
+      setLinkedNotice(`Prealerta '${editTrackingNumber}' actualizada correctamente.`);
+      setEditingItem(null);
+      setTimeout(() => setLinkedNotice(null), 4000);
+    } catch (err: any) {
+      alert(err.message || "Error al actualizar la prealerta.");
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
 
   const handleConfirmPrealerta = async (id: string, trackingNumber: string, defaultDest?: string) => {
     setLoading(true);
@@ -79,8 +127,8 @@ export default function AdminPrealertasPage() {
     const isConfirmed = item.status === "Confirmado" || item.status === "Vinculado";
     const matchesStatus =
       statusFilter === "TODOS" ||
-      (statusFilter === "Prealertado" && item.status === "Prealertado") ||
-      (statusFilter === "Confirmado" && isConfirmed);
+      (statusFilter === "POR CONFIRMAR" && !isConfirmed) ||
+      (statusFilter === "CONFIRMADO" && isConfirmed);
 
     return matchesSearch && matchesStatus;
   });
@@ -114,7 +162,7 @@ export default function AdminPrealertasPage() {
         <div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">Confirmación de Prealertas</h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Corrobora la recepción física de paquetes en el almacén de Oklahoma (EE.UU.), confirma la fecha de registro del cliente y asigna el despacho.
+            Corrobora la recepción física de paquetes en el almacén de Oklahoma (EE.UU.), audita datos y asigna la guía de envío internacional.
           </p>
         </div>
 
@@ -133,13 +181,13 @@ export default function AdminPrealertasPage() {
         </div>
       )}
 
-      {/* Unified Single Card Container */}
+      {/* Single Card Container */}
       <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm p-6 sm:p-8 space-y-6">
         {/* Top Controls: Tabs & Search Bar */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-slate-100 pb-5">
           {/* Status Tabs Filter */}
           <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl w-full md:w-auto">
-            {["TODOS", "Prealertado", "Confirmado"].map((status) => (
+            {["TODOS", "POR CONFIRMAR", "CONFIRMADO"].map((status) => (
               <button
                 key={status}
                 onClick={() => {
@@ -152,7 +200,7 @@ export default function AdminPrealertasPage() {
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
-                {status === "TODOS" ? "TODAS" : status.toUpperCase()}
+                {status}
               </button>
             ))}
           </div>
@@ -281,23 +329,36 @@ export default function AdminPrealertasPage() {
                       )}
                     </td>
                     <td className="py-4 px-4 text-right">
-                      <Button
-                        onClick={() => handleConfirmPrealerta(item.id, item.trackingNumber, item.destination)}
-                        disabled={item.status === "Confirmado" || item.status === "Vinculado" || loading}
-                        variant={item.status === "Confirmado" || item.status === "Vinculado" ? "outline" : "amber"}
-                        size="sm"
-                        className="rounded-xl px-3.5 py-1.5 font-bold text-xs"
-                      >
-                        {item.status === "Confirmado" || item.status === "Vinculado" ? (
-                          <>
-                            <Check className="w-3.5 h-3.5 mr-1 text-emerald-600 stroke-[3]" /> Confirmado
-                          </>
-                        ) : (
-                          <>
-                            <PackageCheck className="w-3.5 h-3.5 mr-1" /> Confirmar Llegada
-                          </>
+                      <div className="flex items-center justify-end gap-2">
+                        {item.status !== "Confirmado" && item.status !== "Vinculado" && (
+                          <button
+                            onClick={() => handleOpenEdit(item)}
+                            title="Editar Prealerta"
+                            className="p-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold transition-all shadow-sm flex items-center gap-1 text-[11px] px-2.5"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 text-amber-600" />
+                            Editar
+                          </button>
                         )}
-                      </Button>
+
+                        <Button
+                          onClick={() => handleConfirmPrealerta(item.id, item.trackingNumber, item.destination)}
+                          disabled={item.status === "Confirmado" || item.status === "Vinculado" || loading}
+                          variant={item.status === "Confirmado" || item.status === "Vinculado" ? "outline" : "amber"}
+                          size="sm"
+                          className="rounded-xl px-3.5 py-1.5 font-bold text-xs"
+                        >
+                          {item.status === "Confirmado" || item.status === "Vinculado" ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 mr-1 text-emerald-600 stroke-[3]" /> Confirmado
+                            </>
+                          ) : (
+                            <>
+                              <PackageCheck className="w-3.5 h-3.5 mr-1" /> Confirmar Llegada
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -329,6 +390,139 @@ export default function AdminPrealertasPage() {
           </div>
         </div>
       </div>
+
+      {/* Edit Prealerta Modal */}
+      {editingItem && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl space-y-6 relative animate-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setEditingItem(null)}
+              className="absolute top-6 right-6 p-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold mb-2">
+                <Edit3 className="w-3.5 h-3.5" /> Auditoría de Almacén
+              </div>
+              <h2 className="text-xl font-black text-slate-900">Editar Prealerta</h2>
+              <p className="text-xs text-slate-500 font-medium mt-1">
+                Corrige los datos del paquete recibido antes de proceder a la confirmación final y despacho.
+              </p>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Tienda de Origen</label>
+                  <input
+                    type="text"
+                    required
+                    value={editStore}
+                    onChange={(e) => setEditStore(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Tracking Courier Origen</label>
+                  <input
+                    type="text"
+                    required
+                    value={editTrackingNumber}
+                    onChange={(e) => setEditTrackingNumber(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 font-mono font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">WR Proveedor / Recibo Almacén</label>
+                  <input
+                    type="text"
+                    placeholder="Ej. WR-98765"
+                    value={editProviderWR}
+                    onChange={(e) => setEditProviderWR(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 font-mono font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Valor Declarado ($USD)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={editAmountPaid}
+                    onChange={(e) => setEditAmountPaid(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 font-mono font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Descripción del Contenido</label>
+                <textarea
+                  rows={2}
+                  required
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 font-medium text-slate-900 focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Destino de Envío</label>
+                  <select
+                    value={editDestination}
+                    onChange={(e) => setEditDestination(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                  >
+                    {availableDestinations.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Estado Operacional</label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                  >
+                    <option value="Prealertado">Prealertado</option>
+                    <option value="Recibido en Almacén">Recibido en Almacén</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingItem(null)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white font-bold text-slate-700 hover:bg-slate-50 transition-all"
+                >
+                  Cancelar
+                </button>
+                <Button
+                  type="submit"
+                  disabled={editSubmitting}
+                  variant="amber"
+                  className="rounded-xl px-5 py-2.5 font-bold flex items-center gap-1.5"
+                >
+                  <Save className="w-4 h-4" /> Guardar Cambios
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
