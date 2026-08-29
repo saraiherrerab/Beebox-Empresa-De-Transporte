@@ -351,6 +351,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem("beebox_token");
     }
     setUser(null);
+    setRole("client");
   };
 
   return (

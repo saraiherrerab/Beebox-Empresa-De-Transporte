@@ -127,17 +127,19 @@ export const AdminSidebar: React.FC = () => {
 
       {/* Admin User Footer */}
       <div className="pt-6 border-t border-slate-200 space-y-4">
-        <div className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-slate-200 shadow-sm">
-          <div className="w-10 h-10 rounded-full bg-slate-900 text-amber-400 font-black text-xs flex items-center justify-center shrink-0 shadow-sm">
-            {user?.name ? user.name.charAt(0).toUpperCase() : "AD"}
+        {user && (
+          <div className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-slate-200 shadow-sm">
+            <div className="w-10 h-10 rounded-full bg-slate-900 text-amber-400 font-black text-xs flex items-center justify-center shrink-0 shadow-sm">
+              {user.name ? user.name.charAt(0).toUpperCase() : "SA"}
+            </div>
+            <div className="overflow-hidden">
+              <h4 className="text-xs font-bold text-slate-900 truncate">{user.name}</h4>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 block truncate">
+                {isSuperAdmin ? "⭐ SUPER ADMIN" : "🛡️ OPERADOR"}
+              </span>
+            </div>
           </div>
-          <div className="overflow-hidden">
-            <h4 className="text-xs font-bold text-slate-900 truncate">{user?.name || "Administrador"}</h4>
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 block truncate">
-              {isSuperAdmin ? "⭐ SUPER ADMIN" : "🛡️ OPERADOR"}
-            </span>
-          </div>
-        </div>
+        )}
 
         <button
           onClick={handleLogout}
