@@ -110,11 +110,25 @@ export default function AdminClientesPage() {
     setProcessingStatus(false);
   };
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 15;
+
+  // Resetear a la primera página al buscar
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
   const filteredClients = clients.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.email.toLowerCase().includes(search.toLowerCase()) ||
       c.suiteCode.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const totalPages = Math.ceil(filteredClients.length / ITEMS_PER_PAGE) || 1;
+  const paginatedClients = filteredClients.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
   );
 
   return (
@@ -181,93 +195,132 @@ export default function AdminClientesPage() {
             <span className="text-xs font-bold">Cargando clientes desde el servidor...</span>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                  <th className="py-4 px-4">CLIENTE / REGISTRO</th>
-                  <th className="py-4 px-4">CASILLERO ID</th>
-                  <th className="py-4 px-4">CONTACTO</th>
-                  <th className="py-4 px-4">ESTADO</th>
-                  <th className="py-4 px-4">ROL</th>
-                  <th className="py-4 px-4 text-right">ACCIONES</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs font-medium">
-                {filteredClients.map((c) => (
-                  <tr key={c.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="py-4 px-4 flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center shadow-sm">
-                        {c.name.charAt(0)}
-                      </div>
-                      <div>
-                        <span className="font-bold text-slate-900 block">{c.name}</span>
-                        <span className="text-[10px] text-slate-400">
-                          Registrado: {c.createdAt ? c.createdAt.split("T")[0] : "Reciente"}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 font-mono font-bold text-slate-900">{c.suiteCode || "CAS-PENDIENTE"}</td>
-                    <td className="py-4 px-4">
-                      <span className="font-bold text-slate-800 block">{c.email}</span>
-                      <span className="text-[10px] text-slate-400">{c.phone || "Sin teléfono"}</span>
-                    </td>
-                    <td className="py-4 px-4">
-                      {c.active !== false ? (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800">
-                          <ShieldCheck className="w-3 h-3" /> Activo
-                        </span>
-                      ) : (
-                        <div className="space-y-0.5">
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-100 text-rose-800">
-                            <ShieldAlert className="w-3 h-3" /> Inhabilitado
-                          </span>
-                          {c.disabledReason && (
-                            <p className="text-[10px] text-rose-600 font-bold max-w-xs truncate" title={c.disabledReason}>
-                              Motivo admin: {c.disabledReason}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-4 px-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${
-                          c.role === "admin" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-800"
-                        }`}
-                      >
-                        {c.role || "client"}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {isSuperAdmin && c.active !== false && (
-                          <button
-                            onClick={() => {
-                              setSelectedClient(c);
-                              setModalMode("disable");
-                              setDisabledReasonInput("");
-                            }}
-                            className="px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 font-bold text-[10px] flex items-center gap-1 transition-colors"
-                          >
-                            <ShieldAlert className="w-3.5 h-3.5" /> Inhabilitar
-                          </button>
-                        )}
-                        {isSuperAdmin && c.active === false && (
-                          <button
-                            onClick={() => handleToggleStatus(c, true)}
-                            disabled={processingStatus}
-                            className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 font-bold text-[10px] flex items-center gap-1 transition-colors disabled:opacity-50"
-                          >
-                            <ShieldCheck className="w-3.5 h-3.5" /> Reactivar
-                          </button>
-                        )}
-                      </div>
-                    </td>
+          <div className="space-y-6">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    <th className="py-4 px-4">CLIENTE / REGISTRO</th>
+                    <th className="py-4 px-4">CASILLERO ID</th>
+                    <th className="py-4 px-4">CONTACTO</th>
+                    <th className="py-4 px-4">ESTADO</th>
+                    <th className="py-4 px-4">ROL</th>
+                    {isSuperAdmin && <th className="py-4 px-4 text-right">ACCIONES</th>}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs font-medium">
+                  {paginatedClients.map((c) => (
+                    <tr key={c.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="py-4 px-4 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center shadow-sm">
+                          {c.name.charAt(0)}
+                        </div>
+                        <div>
+                          <span className="font-bold text-slate-900 block">{c.name}</span>
+                          <span className="text-[10px] text-slate-400">
+                            Registrado: {c.createdAt ? c.createdAt.split("T")[0] : "Reciente"}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 font-mono font-bold text-slate-900">{c.suiteCode || "CAS-PENDIENTE"}</td>
+                      <td className="py-4 px-4">
+                        <span className="font-bold text-slate-800 block">{c.email}</span>
+                        <span className="text-[10px] text-slate-400">{c.phone || "Sin teléfono"}</span>
+                      </td>
+                      <td className="py-4 px-4">
+                        {c.active !== false ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800">
+                            <ShieldCheck className="w-3 h-3" /> Activo
+                          </span>
+                        ) : (
+                          <div className="space-y-0.5">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-100 text-rose-800">
+                              <ShieldAlert className="w-3 h-3" /> Inhabilitado
+                            </span>
+                            {c.disabledReason && (
+                              <p className="text-[10px] text-rose-600 font-bold max-w-xs truncate" title={c.disabledReason}>
+                                Motivo admin: {c.disabledReason}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-4 px-4">
+                        <span
+                          className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                            c.role === "admin" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-800"
+                          }`}
+                        >
+                          {c.role || "client"}
+                        </span>
+                      </td>
+                      {isSuperAdmin && (
+                        <td className="py-4 px-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {c.active !== false ? (
+                              <button
+                                onClick={() => {
+                                  setSelectedClient(c);
+                                  setModalMode("disable");
+                                  setDisabledReasonInput("");
+                                }}
+                                className="px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 font-bold text-[10px] flex items-center gap-1 transition-colors"
+                              >
+                                <ShieldAlert className="w-3.5 h-3.5" /> Inhabilitar
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleToggleStatus(c, true)}
+                                disabled={processingStatus}
+                                className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 font-bold text-[10px] flex items-center gap-1 transition-colors disabled:opacity-50"
+                              >
+                                <ShieldCheck className="w-3.5 h-3.5" /> Reactivar
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Controles de Paginación (15 por página) */}
+            {filteredClients.length > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-100">
+                <span className="text-xs font-bold text-slate-500">
+                  Mostrando{" "}
+                  <strong className="text-slate-900">
+                    {(currentPage - 1) * ITEMS_PER_PAGE + 1} -{" "}
+                    {Math.min(currentPage * ITEMS_PER_PAGE, filteredClients.length)}
+                  </strong>{" "}
+                  de <strong className="text-slate-900">{filteredClients.length}</strong> clientes
+                </span>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    className="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-bold hover:bg-slate-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Anterior
+                  </button>
+
+                  <span className="text-xs font-bold text-slate-700 px-2">
+                    Página <strong>{currentPage}</strong> de <strong>{totalPages}</strong>
+                  </span>
+
+                  <button
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    className="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-bold hover:bg-slate-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
