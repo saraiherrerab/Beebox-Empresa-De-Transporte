@@ -83,12 +83,12 @@ export const Sidebar: React.FC = () => {
       <div className="pt-6 border-t border-slate-200 space-y-4">
         <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200">
           <div className="w-10 h-10 rounded-full bg-amber-500 text-slate-950 font-bold flex items-center justify-center text-sm border-2 border-white shadow-sm shrink-0">
-            {user?.name ? user.name.charAt(0) : "J"}
+            {user?.name ? user.name.charAt(0).toUpperCase() : ""}
           </div>
           <div className="overflow-hidden">
-            <h4 className="text-xs font-bold text-slate-900 truncate">{user?.name || "Juan Pérez"}</h4>
+            <h4 className="text-xs font-bold text-slate-900 truncate">{user?.name || ""}</h4>
             <span className="text-[10px] font-mono font-bold text-amber-700 truncate block">
-              {user?.suiteCode || "CAS-88293-MIAMI"}
+              {user?.suiteCode || ""}
             </span>
           </div>
         </div>

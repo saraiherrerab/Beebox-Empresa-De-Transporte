@@ -142,22 +142,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         })
         .catch(() => {
-          setUser({
-            id: "usr_123",
-            name: "Juan Pérez",
-            email: "juan.perez@beebox.com",
-            phone: "+52 55 9876 5432",
-            suiteCode: "CAS-88293-TULSA",
-          });
+          setUser(null);
         });
     } else {
-      setUser({
-        id: "usr_123",
-        name: "Juan Pérez",
-        email: "juan.perez@beebox.com",
-        phone: "+52 55 9876 5432",
-        suiteCode: "CAS-88293-TULSA",
-      });
+      setUser(null);
     }
   }, [refreshPrealertas]);
 
@@ -278,7 +266,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userRole: "client" | "admin" = email.includes("admin") ? "admin" : "client";
       setUser({
         id: "usr_123",
-        name: userRole === "admin" ? "Admin Principal" : "Juan Pérez",
+        name: userRole === "admin" ? "Admin Principal" : email.split("@")[0],
         email,
         phone: "+52 55 9876 5432",
         suiteCode: "CAS-88293-TULSA",

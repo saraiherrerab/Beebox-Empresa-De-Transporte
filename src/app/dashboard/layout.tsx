@@ -23,7 +23,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <NotificationBell />
 
           <div className="w-8 h-8 rounded-full bg-amber-500 text-slate-950 font-bold text-xs flex items-center justify-center shadow-sm">
-            {user?.name ? user.name.charAt(0) : "J"}
+            {user?.name ? user.name.charAt(0).toUpperCase() : ""}
           </div>
 
           <button
@@ -73,11 +73,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <NotificationBell />
             <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
               <div className="w-9 h-9 rounded-full bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center shadow-sm">
-                {user?.name ? user.name.charAt(0) : "J"}
+                {user?.name ? user.name.charAt(0).toUpperCase() : ""}
               </div>
               <div className="text-left">
-                <span className="text-xs font-bold text-slate-900 block leading-none">{user?.name || "Juan Pérez"}</span>
-                <span className="text-[10px] font-mono text-amber-700 font-bold">{user?.suiteCode || "CAS-88293-TULSA"}</span>
+                <span className="text-xs font-bold text-slate-900 block leading-none">{user?.name || ""}</span>
+                <span className="text-[10px] font-mono text-amber-700 font-bold">{user?.suiteCode || ""}</span>
               </div>
             </div>
           </div>

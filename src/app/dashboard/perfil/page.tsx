@@ -20,12 +20,12 @@ export default function ProfilePage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm text-center space-y-4">
           <div className="w-20 h-20 rounded-full bg-amber-500 text-slate-950 font-black text-2xl flex items-center justify-center mx-auto border-4 border-amber-100 shadow-md">
-            {user?.name ? user.name.charAt(0) : "J"}
+            {user?.name ? user.name.charAt(0).toUpperCase() : ""}
           </div>
           <div>
-            <h3 className="text-lg font-bold text-slate-900">{user?.name || "Juan Pérez"}</h3>
+            <h3 className="text-lg font-bold text-slate-900">{user?.name || ""}</h3>
             <span className="text-xs font-mono font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
-              {user?.suiteCode || "CAS-88293-MX"}
+              {user?.suiteCode || ""}
             </span>
           </div>
           <div className="pt-2 text-xs text-slate-500 flex items-center justify-center gap-1">
@@ -42,7 +42,7 @@ export default function ProfilePage() {
                 Nombre Completo
               </label>
               <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800">
-                {user?.name || "Juan Pérez"}
+                {user?.name || ""}
               </div>
             </div>
 
@@ -51,7 +51,7 @@ export default function ProfilePage() {
                 Correo Electrónico
               </label>
               <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800">
-                {user?.email || "juan.perez@beebox.com"}
+                {user?.email || ""}
               </div>
             </div>
 
