@@ -18,10 +18,10 @@ Además, se corrige la lógica de filtrado de estados en la vista administrativa
 
 1. **Permisos de Edición**:
    - Reservado exclusivamente para usuarios con rol `admin` o `super_admin` (y clientes propietarios mientras el paquete esté en estado inicial `Prealertado`).
-2. **Restricción de Estado Operacional**:
+2. **Restricción de Estado Operacional y Generación de Envío**:
    - **Editables**: Prealertas en estado `Prealertado` o `Recibido en Almacén`.
    - **Bloqueadas**: Prealertas en estado `Confirmado` o `Vinculado`.
-   - Una vez que la prealerta ha sido confirmada y convertida en una Guía de Almacén Internacional (`OK-xxxxx`), su edición queda **congelada y bloqueada** para preservar la integridad de las guías ya despachadas.
+   - **Transición Automática**: Al confirmar una prealerta, se genera la guía de envío internacional con estado inicial automático **`En el origen`** (Broken Arrow, OK) y se crea el primer evento de rastreo de la guía.
 
 ---
 
