@@ -362,18 +362,6 @@ export default function CalculadoraDashboardPage() {
               </div>
             )}
 
-            <Button variant="outline" className="w-full bg-white hover:bg-slate-100 text-slate-900 font-bold py-3.5 justify-center shadow-md border-none text-xs uppercase">
-              <Bookmark className="w-4 h-4 mr-2 text-slate-900" /> GUARDAR COTIZACIÓN
-            </Button>
-          </div>
-
-          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-2">
-            <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-amber-500" /> ¿SABÍAS QUE?
-            </h4>
-            <p className="text-xs text-slate-500 leading-relaxed font-medium">
-              Si consolidas varios paquetes en un solo envío, puedes ahorrar hasta un <span className="font-bold text-amber-600">35% en costos de flete</span> internacional.
-            </p>
           </div>
         </div>
       </div>
