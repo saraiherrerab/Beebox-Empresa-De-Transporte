@@ -135,14 +135,15 @@ export const RateCalculator: React.FC = () => {
                   <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
                     Origen (Almacén BeeBox)
                   </label>
-                  <select
-                    value={origin}
-                    onChange={(e) => setOrigin(e.target.value)}
-                    className="w-full rounded-xl border border-slate-700 bg-beebox-navy-950 px-4 py-3 text-sm text-white focus:border-beebox-amber-500 focus:outline-none"
-                  >
-                    <option value="Broken Arrow, OK (EE.UU.)">Broken Arrow, OK (Hub Principal EE.UU.)</option>
-                    <option value="Miami, FL (EE.UU.)">Miami, FL (Bodega Sur EE.UU.)</option>
-                  </select>
+                  <div className="w-full rounded-xl border border-slate-700 bg-beebox-navy-950/90 px-4 py-3 text-sm text-amber-400 font-bold flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-beebox-amber-400 shrink-0" />
+                      Broken Arrow, OK (EE.UU.)
+                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                      HUB PRINCIPAL
+                    </span>
+                  </div>
                 </div>
 
                 {/* Destination Country/City */}
