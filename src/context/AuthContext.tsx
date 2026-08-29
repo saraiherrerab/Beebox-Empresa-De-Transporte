@@ -17,6 +17,7 @@ export interface PrealertaItem {
   id: string;
   store: string;
   trackingNumber: string;
+  providerWarehouseReceipt?: string;
   description: string;
   amountPaid: string;
   receiptFileName?: string;
@@ -34,7 +35,8 @@ interface AuthContextType {
   prealertas: PrealertaItem[];
   refreshPrealertas: () => Promise<void>;
   addPrealerta: (item: Omit<PrealertaItem, "id" | "createdAt" | "status">) => Promise<void>;
-  linkPrealerta: (id: string, warehouseGuide: string, destination?: string) => Promise<void>;
+  updatePrealerta: (id: string, data: Partial<PrealertaItem>) => Promise<void>;
+  linkPrealerta: (id: string, warehouseGuide: string, destination?: string, providerWarehouseReceipt?: string) => Promise<void>;
   login: (email: string, pass: string) => Promise<void>;
   register: (name: string, email: string, password: string, phone?: string) => Promise<void>;
   logout: () => void;
@@ -81,6 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: p.id,
           store: p.store,
           trackingNumber: p.trackingNumber,
+          providerWarehouseReceipt: p.providerWarehouseReceipt || undefined,
           description: p.description,
           amountPaid: String(p.amountPaid),
           receiptFileName: p.receiptFileName || undefined,
@@ -171,6 +174,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           body: JSON.stringify({
             store: item.store,
             trackingNumber: item.trackingNumber,
+            providerWarehouseReceipt: item.providerWarehouseReceipt,
             description: item.description,
             amountPaid: Number(item.amountPaid),
             receiptFileName: item.receiptFileName,
@@ -195,7 +199,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPrealertas((prev) => [newItem, ...prev]);
   };
 
-  const linkPrealerta = async (id: string, warehouseGuide: string, destination?: string) => {
+  const updatePrealerta = async (id: string, data: Partial<PrealertaItem>) => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
+    if (token) {
+      try {
+        const res = await fetchWithTimeout(`${API_URL}/prealertas/${id}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(data),
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          throw new Error(json.message || "Error al actualizar la prealerta.");
+        }
+        await refreshPrealertas();
+        return;
+      } catch (err: any) {
+        if (err?.message) throw err;
+      }
+    }
+
+    setPrealertas((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, ...data } : p))
+    );
+  };
+
+  const linkPrealerta = async (id: string, warehouseGuide: string, destination?: string, providerWarehouseReceipt?: string) => {
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
     if (token) {
       try {
@@ -205,7 +237,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ warehouseGuide, destination }),
+          body: JSON.stringify({ warehouseGuide, destination, providerWarehouseReceipt }),
         });
         if (res.ok) {
           await refreshPrealertas();
@@ -221,7 +253,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setPrealertas((prev) =>
       prev.map((p) =>
-        p.id === id ? { ...p, status: "Confirmado", warehouseGuide, destination: destination || p.destination } : p
+        p.id === id ? { ...p, status: "Confirmado", warehouseGuide, destination: destination || p.destination, providerWarehouseReceipt: providerWarehouseReceipt || p.providerWarehouseReceipt } : p
       )
     );
   };
@@ -297,6 +329,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         prealertas,
         refreshPrealertas,
         addPrealerta,
+        updatePrealerta,
         linkPrealerta,
         login,
         register,

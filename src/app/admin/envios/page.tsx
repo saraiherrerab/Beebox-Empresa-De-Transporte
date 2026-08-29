@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 interface ShipmentItem {
   id: string;
   tracking: string;
+  providerWarehouseReceipt?: string;
   type: string;
   weight: string;
   clientName: string;
@@ -46,6 +47,7 @@ export default function AdminEnviosPage() {
           const mapped: ShipmentItem[] = data.map((item: any) => ({
             id: item.trackingCode || item.id,
             tracking: item.trackingCode,
+            providerWarehouseReceipt: item.providerWarehouseReceipt || item.prealerta?.providerWarehouseReceipt || undefined,
             type: item.serviceType || "Aéreo Express",
             weight: `${item.weightKg} kg`,
             clientName: item.user?.name || item.recipientName || item.senderName,
@@ -112,6 +114,7 @@ export default function AdminEnviosPage() {
   const filteredShipments = shipments.filter((sh) => {
     const matchesSearch =
       sh.tracking.toLowerCase().includes(search.toLowerCase()) ||
+      (sh.providerWarehouseReceipt && sh.providerWarehouseReceipt.toLowerCase().includes(search.toLowerCase())) ||
       sh.clientName.toLowerCase().includes(search.toLowerCase()) ||
       sh.suiteCode.toLowerCase().includes(search.toLowerCase());
 
@@ -186,7 +189,7 @@ export default function AdminEnviosPage() {
                 setSearch(e.target.value);
                 setCurrentPage(1);
               }}
-              placeholder="Buscar guía, cliente o casillero..."
+              placeholder="Buscar guía, WR, cliente..."
               className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-amber-500"
             />
           </div>
@@ -208,7 +211,8 @@ export default function AdminEnviosPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                  <th className="py-4 px-4">NÚMERO DE GUÍA</th>
+                  <th className="py-4 px-4">GUÍA ALMACÉN</th>
+                  <th className="py-4 px-4">WR PROVEEDOR</th>
                   <th className="py-4 px-4">CLIENTE / CASILLERO</th>
                   <th className="py-4 px-4">RUTA</th>
                   <th className="py-4 px-4">CAMBIAR ESTATUS DEL PAQUETE</th>
@@ -221,6 +225,15 @@ export default function AdminEnviosPage() {
                     <td className="py-4 px-4">
                       <span className="font-mono font-bold text-slate-900 block">{sh.tracking}</span>
                       <span className="text-[10px] text-slate-400 font-semibold">{sh.type} • {sh.weight}</span>
+                    </td>
+                    <td className="py-4 px-4 font-mono">
+                      {sh.providerWarehouseReceipt ? (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-amber-50 text-amber-900 border border-amber-200">
+                          {sh.providerWarehouseReceipt}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 font-mono text-[11px]">-</span>
+                      )}
                     </td>
                     <td className="py-4 px-4">
                       <span className="font-bold text-slate-900 block">{sh.clientName}</span>

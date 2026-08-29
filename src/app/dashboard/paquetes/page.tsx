@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 interface PackageItem {
   id: string;
   tracking: string;
+  providerWarehouseReceipt?: string;
   description: string;
   origin: string;
   destination: string;
@@ -44,6 +45,7 @@ export default function MisPaquetesPage() {
             const mapped: PackageItem[] = data.map((item: any) => ({
               id: item.trackingCode,
               tracking: item.trackingCode,
+              providerWarehouseReceipt: item.providerWarehouseReceipt || item.prealerta?.providerWarehouseReceipt || undefined,
               description: item.prealerta?.description || `Envío de ${item.senderName}`,
               origin: item.senderCity || "Broken Arrow, OK",
               destination: item.recipientCity || "Caracas, Venezuela",
@@ -85,6 +87,7 @@ export default function MisPaquetesPage() {
   const filteredPackages = packages.filter((pkg) => {
     const matchesSearch =
       pkg.tracking.toLowerCase().includes(search.toLowerCase()) ||
+      (pkg.providerWarehouseReceipt && pkg.providerWarehouseReceipt.toLowerCase().includes(search.toLowerCase())) ||
       pkg.description.toLowerCase().includes(search.toLowerCase()) ||
       pkg.destination.toLowerCase().includes(search.toLowerCase());
 
@@ -146,7 +149,7 @@ export default function MisPaquetesPage() {
                 setSearch(e.target.value);
                 setCurrentPage(1);
               }}
-              placeholder="Buscar por guía, descripción o destino..."
+              placeholder="Buscar por guía, WR, descripción..."
               className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-amber-500"
             />
           </div>
@@ -168,12 +171,13 @@ export default function MisPaquetesPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                  <th className="py-4 px-4">NÚMERO DE GUÍA ALMACÉN</th>
+                  <th className="py-4 px-4">GUÍA ALMACÉN BEBOX</th>
+                  <th className="py-4 px-4">WR PROVEEDOR</th>
                   <th className="py-4 px-4">DESCRIPCIÓN</th>
                   <th className="py-4 px-4">ORIGEN / DESTINO</th>
                   <th className="py-4 px-4">RUTA</th>
                   <th className="py-4 px-4">PESO</th>
-                  <th className="py-4 px-4">ESTATUS EN TIEMPO REAL</th>
+                  <th className="py-4 px-4">ESTATUS</th>
                   <th className="py-4 px-4 text-right">DETALLE</th>
                 </tr>
               </thead>
@@ -181,6 +185,15 @@ export default function MisPaquetesPage() {
                 {paginatedPackages.map((pkg) => (
                   <tr key={pkg.id} className="hover:bg-slate-50 transition-colors">
                     <td className="py-4 px-4 font-mono font-bold text-slate-900">{pkg.tracking}</td>
+                    <td className="py-4 px-4 font-mono">
+                      {pkg.providerWarehouseReceipt ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                          {pkg.providerWarehouseReceipt}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 text-[11px]">-</span>
+                      )}
+                    </td>
                     <td className="py-4 px-4">
                       <span className="font-bold text-slate-900 block">{pkg.description}</span>
                     </td>

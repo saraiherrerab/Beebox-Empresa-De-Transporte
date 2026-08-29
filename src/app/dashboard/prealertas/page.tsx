@@ -9,13 +9,14 @@ import { Button } from "@/components/ui/Button";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 function PrealertasContent() {
-  const { user, prealertas, addPrealerta, refreshPrealertas } = useAuth();
+  const { user, prealertas, addPrealerta, updatePrealerta, refreshPrealertas } = useAuth();
   const searchParams = useSearchParams();
   const isNuevaParam = searchParams.get("nueva") === "true";
 
   const [store, setStore] = useState("Amazon US");
   const [customStore, setCustomStore] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
+  const [providerWarehouseReceipt, setProviderWarehouseReceipt] = useState("");
   const [description, setDescription] = useState("");
   const [amountPaid, setAmountPaid] = useState("");
   const [destination, setDestination] = useState("Caracas, Venezuela");
@@ -25,6 +26,18 @@ function PrealertasContent() {
     "Bogotá, Colombia",
   ]);
   const [receiptFileName, setReceiptFileName] = useState<string | null>(null);
+
+  // Edit Modal State
+  const [editingPrealerta, setEditingPrealerta] = useState<any | null>(null);
+  const [editStore, setEditStore] = useState("Amazon US");
+  const [editCustomStore, setEditCustomStore] = useState("");
+  const [editTrackingNumber, setEditTrackingNumber] = useState("");
+  const [editProviderWR, setEditProviderWR] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editAmountPaid, setEditAmountPaid] = useState("");
+  const [editDestination, setEditDestination] = useState("Caracas, Venezuela");
+  const [editCustomDestination, setEditCustomDestination] = useState("");
+  const [editErrorMsg, setEditErrorMsg] = useState("");
 
   // Pagination & Filter States
   const [showForm, setShowForm] = useState(false);
@@ -79,6 +92,7 @@ function PrealertasContent() {
     addPrealerta({
       store: storeName || "Tienda Online",
       trackingNumber,
+      providerWarehouseReceipt: providerWarehouseReceipt || undefined,
       description,
       amountPaid: amountPaid || "0.00",
       destination: finalDestination || "Caracas, Venezuela",
@@ -89,9 +103,54 @@ function PrealertasContent() {
     setTimeout(() => setSuccessMsg(false), 4000);
     setShowForm(false);
     setTrackingNumber("");
+    setProviderWarehouseReceipt("");
     setDescription("");
     setAmountPaid("");
     setReceiptFileName(null);
+  };
+
+  const openEditModal = (item: any) => {
+    setEditErrorMsg("");
+    setEditingPrealerta(item);
+    if (["Amazon US", "eBay US", "Walmart US", "Apple Store", "AliExpress"].includes(item.store)) {
+      setEditStore(item.store);
+      setEditCustomStore("");
+    } else {
+      setEditStore("Otra");
+      setEditCustomStore(item.store);
+    }
+    setEditTrackingNumber(item.trackingNumber || "");
+    setEditProviderWR(item.providerWarehouseReceipt || "");
+    setEditDescription(item.description || "");
+    setEditAmountPaid(item.amountPaid || "0.00");
+    if (availableDestinations.includes(item.destination)) {
+      setEditDestination(item.destination);
+      setEditCustomDestination("");
+    } else {
+      setEditDestination("Otra");
+      setEditCustomDestination(item.destination || "");
+    }
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPrealerta) return;
+    const finalStore = editStore === "Otra" ? editCustomStore : editStore;
+    const finalDestination = editDestination === "Otra" ? editCustomDestination : editDestination;
+
+    try {
+      await updatePrealerta(editingPrealerta.id, {
+        store: finalStore,
+        trackingNumber: editTrackingNumber,
+        providerWarehouseReceipt: editProviderWR || undefined,
+        description: editDescription,
+        amountPaid: editAmountPaid,
+        destination: finalDestination,
+      });
+      setEditingPrealerta(null);
+    } catch (err: any) {
+      setEditErrorMsg(err.message || "Error al actualizar la prealerta.");
+    }
   };
 
   const filteredPrealertas = prealertas.filter((item) => {
@@ -227,7 +286,7 @@ function PrealertasContent() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Tracking Number */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
@@ -243,6 +302,25 @@ function PrealertasContent() {
                 />
               </div>
 
+              {/* Warehouse Proveedor (WR#) */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                  Warehouse Proveedor / Recibo de Almacén (Opcional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej: WR-987654 / WH-2026-ABC"
+                  value={providerWarehouseReceipt}
+                  onChange={(e) => setProviderWarehouseReceipt(e.target.value)}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-mono font-bold text-slate-900 focus:border-amber-500 focus:outline-none"
+                />
+                <p className="text-[10px] text-slate-400 mt-1 font-medium">
+                  Identificador asignado por el almacén del proveedor externo (si lo posees).
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Descripción Técnica */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
@@ -307,6 +385,139 @@ function PrealertasContent() {
         </div>
       )}
 
+      {/* Edit Prealerta Modal */}
+      {editingPrealerta && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-2xl w-full border border-slate-200 shadow-2xl space-y-6 animate-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <Package className="w-5 h-5 text-amber-500" /> Editar Prealerta
+            </h3>
+
+            {editErrorMsg && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700">
+                ⚠️ {editErrorMsg}
+              </div>
+            )}
+
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Tienda</label>
+                  <select
+                    value={editStore}
+                    onChange={(e) => setEditStore(e.target.value)}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-medium text-slate-900 focus:border-amber-500 focus:outline-none"
+                  >
+                    <option value="Amazon US">Amazon US</option>
+                    <option value="eBay US">eBay US</option>
+                    <option value="Walmart US">Walmart US</option>
+                    <option value="Apple Store">Apple Store</option>
+                    <option value="AliExpress">AliExpress</option>
+                    <option value="Otra">Otra tienda...</option>
+                  </select>
+                  {editStore === "Otra" && (
+                    <input
+                      type="text"
+                      required
+                      placeholder="Nombre del comercio"
+                      value={editCustomStore}
+                      onChange={(e) => setEditCustomStore(e.target.value)}
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-medium text-slate-900 mt-2 focus:border-amber-500 focus:outline-none"
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Destino Solicitado</label>
+                  <select
+                    value={editDestination}
+                    onChange={(e) => setEditDestination(e.target.value)}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-bold text-slate-900 focus:border-amber-500 focus:outline-none"
+                  >
+                    {availableDestinations.map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                    <option value="Otra">Otro Destino...</option>
+                  </select>
+                  {editDestination === "Otra" && (
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej. Medellín, Colombia"
+                      value={editCustomDestination}
+                      onChange={(e) => setEditCustomDestination(e.target.value)}
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-medium text-slate-900 mt-2 focus:border-amber-500 focus:outline-none"
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Tracking Tienda</label>
+                  <input
+                    type="text"
+                    required
+                    value={editTrackingNumber}
+                    onChange={(e) => setEditTrackingNumber(e.target.value)}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-mono font-bold text-slate-900 focus:border-amber-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Warehouse Proveedor (WR#)</label>
+                  <input
+                    type="text"
+                    placeholder="Ej: WR-987654"
+                    value={editProviderWR}
+                    onChange={(e) => setEditProviderWR(e.target.value)}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-mono font-bold text-slate-900 focus:border-amber-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Descripción</label>
+                  <input
+                    type="text"
+                    required
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-medium text-slate-900 focus:border-amber-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Valor Declarado (USD)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={editAmountPaid}
+                    onChange={(e) => setEditAmountPaid(e.target.value)}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-mono font-bold text-slate-900 focus:border-amber-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setEditingPrealerta(null)}
+                  className="px-5 py-3 rounded-2xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                >
+                  CANCELAR
+                </button>
+                <Button type="submit" variant="amber" className="rounded-2xl px-6 py-3 font-bold text-xs">
+                  GUARDAR CAMBIOS
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Single Unified Card Container */}
       <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm p-6 sm:p-8 space-y-6">
         {/* Top Header & Status Filter Tabs */}
@@ -339,64 +550,85 @@ function PrealertasContent() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-200 text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
-                <th className="py-3 px-4">Fecha de Registro</th>
+                <th className="py-3 px-4">Fecha</th>
                 <th className="py-3 px-4">Tienda</th>
-                <th className="py-3 px-4">Número de Rastreo</th>
+                <th className="py-3 px-4">Rastreo / Tracking</th>
+                <th className="py-3 px-4">WR Proveedor</th>
                 <th className="py-3 px-4">Descripción</th>
-                <th className="py-3 px-4">Destino Solicitado</th>
+                <th className="py-3 px-4">Destino</th>
                 <th className="py-3 px-4">Valor USD</th>
                 <th className="py-3 px-4">Estatus</th>
-                <th className="py-3 px-4 text-right">Comprobante</th>
+                <th className="py-3 px-4 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs font-medium">
               {paginatedPrealertas.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-400">
+                  <td colSpan={9} className="py-8 text-center text-slate-400">
                     No tienes prealertas para el filtro seleccionado.
                   </td>
                 </tr>
               ) : (
-                paginatedPrealertas.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="py-4 px-4 text-slate-600 font-mono text-[11px]">
-                      <div className="flex items-center gap-1.5 font-bold">
-                        <Calendar className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                        {formatDate(item.createdAt)}
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 font-bold text-slate-900">{item.store}</td>
-                    <td className="py-4 px-4 font-mono font-bold text-slate-900">{item.trackingNumber}</td>
-                    <td className="py-4 px-4 text-slate-700 max-w-xs truncate">{item.description}</td>
-                    <td className="py-4 px-4 font-bold text-slate-800">
-                      <span className="inline-flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-amber-500 shrink-0" />
-                        {item.destination || "Caracas, Venezuela"}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 font-mono font-bold text-slate-900">${item.amountPaid}</td>
-                    <td className="py-4 px-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
-                          item.status === "Prealertado"
-                            ? "bg-amber-100 text-amber-800"
-                            : "bg-emerald-100 text-emerald-800"
-                        }`}
-                      >
-                        {item.status === "Vinculado" ? "Confirmado" : item.status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 text-right">
-                      {item.receiptFileName ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg">
-                          <FileText className="w-3.5 h-3.5 text-slate-500" /> PDF
+                paginatedPrealertas.map((item) => {
+                  const isEditable = item.status === "Prealertado";
+                  return (
+                    <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="py-4 px-4 text-slate-600 font-mono text-[11px]">
+                        <div className="flex items-center gap-1.5 font-bold">
+                          <Calendar className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                          {formatDate(item.createdAt)}
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 font-bold text-slate-900">{item.store}</td>
+                      <td className="py-4 px-4 font-mono font-bold text-slate-900">{item.trackingNumber}</td>
+                      <td className="py-4 px-4">
+                        {item.providerWarehouseReceipt ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-amber-50 text-amber-900 border border-amber-200">
+                            {item.providerWarehouseReceipt}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 font-mono text-[11px]">-</span>
+                        )}
+                      </td>
+                      <td className="py-4 px-4 text-slate-700 max-w-xs truncate">{item.description}</td>
+                      <td className="py-4 px-4 font-bold text-slate-800">
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-amber-500 shrink-0" />
+                          {item.destination || "Caracas, Venezuela"}
                         </span>
-                      ) : (
-                        <span className="text-slate-400 text-[11px]">N/A</span>
-                      )}
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="py-4 px-4 font-mono font-bold text-slate-900">${item.amountPaid}</td>
+                      <td className="py-4 px-4">
+                        <span
+                          className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
+                            item.status === "Prealertado"
+                              ? "bg-amber-100 text-amber-800"
+                              : "bg-emerald-100 text-emerald-800"
+                          }`}
+                        >
+                          {item.status === "Vinculado" ? "Confirmado" : item.status}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 text-right">
+                        {isEditable ? (
+                          <button
+                            onClick={() => openEditModal(item)}
+                            className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white font-bold text-[11px] text-slate-700 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-900 transition-colors shadow-sm"
+                          >
+                            EDITAR
+                          </button>
+                        ) : (
+                          <span
+                            title="No es posible editar una prealerta en tránsito o confirmada"
+                            className="px-3 py-1.5 rounded-xl border border-slate-100 bg-slate-50 font-bold text-[11px] text-slate-400 cursor-not-allowed inline-block"
+                          >
+                            BLOQUEADO
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

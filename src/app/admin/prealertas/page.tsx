@@ -20,6 +20,7 @@ export default function AdminPrealertasPage() {
 
   const [warehouseGuideInput, setWarehouseGuideInput] = useState<{ [key: string]: string }>({});
   const [destinationInput, setDestinationInput] = useState<{ [key: string]: string }>({});
+  const [providerWRInput, setProviderWRInput] = useState<{ [key: string]: string }>({});
   const [linkedNotice, setLinkedNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -52,9 +53,11 @@ export default function AdminPrealertasPage() {
     setLoading(true);
     const guide = warehouseGuideInput[id] || `OK-${Math.floor(100000 + Math.random() * 900000)}`;
     const finalDest = destinationInput[id] || defaultDest || availableDestinations[0] || "Caracas, Venezuela";
+    const currentItem = prealertas.find((p) => p.id === id);
+    const finalProviderWR = providerWRInput[id] !== undefined ? providerWRInput[id] : (currentItem?.providerWarehouseReceipt || "");
 
     try {
-      await linkPrealerta(id, guide, finalDest);
+      await linkPrealerta(id, guide, finalDest, finalProviderWR || undefined);
       await refreshPrealertas();
       setLinkedNotice(`Prealerta ${trackingNumber} confirmada exitosamente en el almacén con la Guía ${guide} y destino ${finalDest}.`);
       setTimeout(() => setLinkedNotice(null), 5000);
@@ -68,6 +71,7 @@ export default function AdminPrealertasPage() {
   const filteredPrealertas = prealertas.filter((item) => {
     const matchesSearch =
       item.trackingNumber.toLowerCase().includes(searchTracking.toLowerCase()) ||
+      (item.providerWarehouseReceipt || "").toLowerCase().includes(searchTracking.toLowerCase()) ||
       item.store.toLowerCase().includes(searchTracking.toLowerCase()) ||
       item.description.toLowerCase().includes(searchTracking.toLowerCase()) ||
       (item.destination || "").toLowerCase().includes(searchTracking.toLowerCase());
@@ -183,6 +187,7 @@ export default function AdminPrealertasPage() {
                 <th className="py-3 px-4">Estado</th>
                 <th className="py-3 px-4">Tienda</th>
                 <th className="py-3 px-4">Tracking Origen</th>
+                <th className="py-3 px-4">WR Proveedor</th>
                 <th className="py-3 px-4">Descripción</th>
                 <th className="py-3 px-4">Destino de Envío</th>
                 <th className="py-3 px-4">Guía Almacén BeeBox</th>
@@ -192,7 +197,7 @@ export default function AdminPrealertasPage() {
             <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-800">
               {paginatedPrealertas.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-400">
+                  <td colSpan={9} className="py-8 text-center text-slate-400">
                     No se encontraron prealertas para el filtro seleccionado.
                   </td>
                 </tr>
@@ -216,6 +221,27 @@ export default function AdminPrealertasPage() {
                     </td>
                     <td className="py-4 px-4 font-bold text-slate-900">{item.store}</td>
                     <td className="py-4 px-4 font-mono font-bold text-slate-900">{item.trackingNumber}</td>
+                    <td className="py-4 px-4">
+                      {item.status === "Confirmado" || item.status === "Vinculado" ? (
+                        item.providerWarehouseReceipt ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-amber-50 text-amber-900 border border-amber-200">
+                            {item.providerWarehouseReceipt}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 font-mono text-[11px]">-</span>
+                        )
+                      ) : (
+                        <input
+                          type="text"
+                          placeholder="Ej. WR-98765"
+                          value={providerWRInput[item.id] !== undefined ? providerWRInput[item.id] : (item.providerWarehouseReceipt || "")}
+                          onChange={(e) =>
+                            setProviderWRInput({ ...providerWRInput, [item.id]: e.target.value })
+                          }
+                          className="w-28 px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                        />
+                      )}
+                    </td>
                     <td className="py-4 px-4 text-slate-600 max-w-xs truncate">{item.description}</td>
                     <td className="py-4 px-4">
                       {item.status === "Confirmado" || item.status === "Vinculado" ? (

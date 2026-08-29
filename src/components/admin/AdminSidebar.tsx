@@ -18,6 +18,7 @@ import {
   Sparkles,
   ArrowRight,
   LogOut,
+  Calculator,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -46,6 +47,7 @@ export const AdminSidebar: React.FC = () => {
       items: [
         { name: "Control de Envíos", href: "/admin/envios", icon: Package },
         { name: "Destinos de Envío", href: "/admin/rutas", icon: Route },
+        { name: "Tarifas y Calculadora", href: "/admin/calculadora", icon: Calculator },
       ],
     },
     {
