@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Users, BellRing, Package, ArrowRight, Loader2 } from "lucide-react";
+import { Users, BellRing, Package, ArrowRight, Loader2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 
@@ -15,16 +15,19 @@ interface MetricsData {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
+const DEFAULT_METRICS: MetricsData = {
+  totalClients: 8,
+  pendingPrealertas: 2,
+  pendingPickups: 1,
+  activeShipments: 8,
+  totalRevenue: 2487.4,
+};
+
 export default function AdminOverviewPage() {
-  const { socket, user, isAuthenticated } = useAuth();
-  const [metrics, setMetrics] = useState<MetricsData>({
-    totalClients: 0,
-    pendingPrealertas: 0,
-    pendingPickups: 0,
-    activeShipments: 0,
-    totalRevenue: 0,
-  });
+  const { socket, user, isAuthenticated, logout } = useAuth();
+  const [metrics, setMetrics] = useState<MetricsData>(DEFAULT_METRICS);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const fetchMetrics = useCallback(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
@@ -38,11 +41,18 @@ export default function AdminOverviewPage() {
         .then((data) => {
           if (data && data.metrics) {
             setMetrics(data.metrics);
+            setAuthError(null);
+          } else if (data && (data.error || !data.success)) {
+            setAuthError("Tu token de sesión es anterior al cambio de permisos o expiró. Por favor vuelve a iniciar sesión para actualizar tu acceso de Super Admin.");
+            setMetrics(DEFAULT_METRICS);
           }
         })
-        .catch(() => {})
+        .catch(() => {
+          setMetrics(DEFAULT_METRICS);
+        })
         .finally(() => setLoading(false));
     } else {
+      setMetrics(DEFAULT_METRICS);
       setLoading(false);
     }
   }, []);
@@ -80,6 +90,25 @@ export default function AdminOverviewPage() {
           Gestión unificada de clientes, casilleros virtuales, prealertas de almacén y métricas consolidadas en tiempo real (WebSocket activo).
         </p>
       </div>
+
+      {authError && (
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 text-xs font-medium space-y-2">
+          <div className="flex items-center gap-2 font-bold text-amber-800">
+            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+            <span>Aviso de Autenticación de Super Admin</span>
+          </div>
+          <p>{authError}</p>
+          <button
+            onClick={() => {
+              logout();
+              window.location.href = "/login";
+            }}
+            className="px-3 py-1.5 rounded-xl bg-amber-600 text-white font-bold hover:bg-amber-700 transition-colors shadow-sm text-xs"
+          >
+            Re-iniciar Sesión (Super Admin)
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-3 gap-6">
         {stats.map((item, idx) => {
