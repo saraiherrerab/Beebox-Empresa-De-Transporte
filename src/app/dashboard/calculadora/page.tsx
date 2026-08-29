@@ -301,6 +301,16 @@ export default function CalculadoraDashboardPage() {
 
             {calculationResult ? (
               <div className="space-y-4 text-xs font-medium text-slate-300">
+                <div className="p-3 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-[11px] font-bold flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-amber-400" /> Destino Aplicado:
+                  </span>
+                  <span className="text-amber-400 font-bold">
+                    {countries.find((c) => c.id === selectedCountryId)?.name || "Global"}
+                    {selectedCityId ? ` ➔ ${activeCountry?.cities?.find((ct: any) => ct.id === selectedCityId)?.name}` : ""}
+                  </span>
+                </div>
+
                 {calculationResult.isVolumetric && (
                   <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[11px] font-bold flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 shrink-0" />
