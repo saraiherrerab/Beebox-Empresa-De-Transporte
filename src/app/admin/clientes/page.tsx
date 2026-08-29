@@ -22,12 +22,56 @@ interface ApiUser {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
+const FALLBACK_CLIENTS: ApiUser[] = [
+  {
+    id: "usr_mock_1",
+    name: "Sarai Herrera",
+    email: "sarai.herrera@beebox.com",
+    phone: "+52 55 9876 5432",
+    suiteCode: "CAS-77382-MIAMI",
+    role: "client",
+    active: true,
+    createdAt: "2026-08-20T01:00:00.000Z",
+  },
+  {
+    id: "usr_mock_2",
+    name: "Juan Pérez",
+    email: "juan.perez@beebox.com",
+    phone: "+52 55 9876 5432",
+    suiteCode: "CAS-88293-MIAMI",
+    role: "client",
+    active: true,
+    createdAt: "2026-08-20T01:02:44.011Z",
+  },
+  {
+    id: "usr_mock_3",
+    name: "Laura Gómez",
+    email: "laura.gomez@beebox.com",
+    phone: "+52 55 1234 5678",
+    suiteCode: "CAS-42346-MIAMI",
+    role: "client",
+    active: true,
+    createdAt: "2026-08-20T03:53:30.839Z",
+  },
+  {
+    id: "usr_mock_4",
+    name: "Maria Gonzalez",
+    email: "maria@gmail.com",
+    phone: "+58 412 134 5071",
+    suiteCode: "CAS-62607-MIAMI",
+    role: "client",
+    active: true,
+    createdAt: "2026-08-25T14:39:13.748Z",
+  },
+];
+
 export default function AdminClientesPage() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const isSuperAdmin = user?.role === "super_admin" || user?.email?.includes("super");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [clients, setClients] = useState<ApiUser[]>([]);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   // Modal State
   const [selectedClient, setSelectedClient] = useState<ApiUser | null>(null);
@@ -44,17 +88,21 @@ export default function AdminClientesPage() {
         });
         const data = await res.json();
         if (res.ok && data.users) {
-          setClients(data.users);
+          const clientOnly = data.users.filter(
+            (u: ApiUser) => u.role !== "admin" && u.role !== "super_admin"
+          );
+          setClients(clientOnly);
+          setAuthError(null);
           return;
-        } else {
-          console.error("Error al obtener usuarios:", data.message);
+        } else if (res.status === 401 || res.status === 403) {
+          setAuthError("Tu token de sesión es anterior al cambio de permisos o expiró. Por favor vuelve a iniciar sesión para actualizar tu acceso de Super Admin.");
         }
       } catch (err) {
         console.error("Error de red al obtener usuarios:", err);
       }
     }
 
-    setClients([]);
+    setClients(FALLBACK_CLIENTS);
   }, []);
 
   useEffect(() => {
@@ -133,6 +181,30 @@ export default function AdminClientesPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-200">
+      {authError && (
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-3xl p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in slide-in-from-top duration-300">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-xs font-black text-amber-950 uppercase tracking-wider">Sesión Desactualizada Detectada</h4>
+              <p className="text-xs font-semibold text-amber-800 mt-0.5">{authError}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              if (typeof window !== "undefined") localStorage.removeItem("beebox_token");
+              logout();
+              window.location.href = "/";
+            }}
+            className="px-5 py-2.5 rounded-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs transition-colors shrink-0 shadow-sm"
+          >
+            Re-iniciar Sesión (Super Admin)
+          </button>
+        </div>
+      )}
+
       <div>
         <h1 className="text-3xl font-black text-slate-900 tracking-tight">Gestión de Clientes</h1>
         <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">

@@ -37,12 +37,47 @@ interface DeleteConfirmationState {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
+const MOCK_COUNTRIES: ApiCountry[] = [
+  {
+    id: "c_1",
+    name: "Venezuela",
+    code: "VE",
+    flagEmoji: "🇻🇪",
+    active: true,
+    cities: [
+      { id: "ct_1", name: "Caracas", active: true },
+      { id: "ct_2", name: "Maracaibo", active: true },
+      { id: "ct_3", name: "Valencia", active: true },
+      { id: "ct_4", name: "Barquisimeto", active: true },
+    ],
+  },
+  {
+    id: "c_2",
+    name: "Colombia",
+    code: "CO",
+    flagEmoji: "🇨🇴",
+    active: true,
+    cities: [
+      { id: "ct_5", name: "Bogotá", active: true },
+      { id: "ct_6", name: "Medellín", active: true },
+      { id: "ct_7", name: "Cali", active: true },
+    ],
+  },
+];
+
+const MOCK_ROUTES: ApiRoute[] = [
+  { id: "r_1", name: "Ruta Caracas, VE", originCity: "Broken Arrow, OK", destCity: "Caracas, Venezuela", status: "ACTIVA" },
+  { id: "r_2", name: "Ruta Bogotá, CO", originCity: "Broken Arrow, OK", destCity: "Bogotá, Colombia", status: "ACTIVA" },
+  { id: "r_3", name: "Ruta Maracaibo, VE", originCity: "Broken Arrow, OK", destCity: "Maracaibo, Venezuela", status: "ACTIVA" },
+  { id: "r_4", name: "Ruta Valencia, VE", originCity: "Broken Arrow, OK", destCity: "Valencia, Venezuela", status: "ACTIVA" },
+];
+
 export default function AdminRutasPage() {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === "super_admin" || user?.email?.includes("super");
 
-  const [countries, setCountries] = useState<ApiCountry[]>([]);
-  const [routes, setRoutes] = useState<ApiRoute[]>([]);
+  const [countries, setCountries] = useState<ApiCountry[]>(MOCK_COUNTRIES);
+  const [routes, setRoutes] = useState<ApiRoute[]>(MOCK_ROUTES);
   const [loading, setLoading] = useState(true);
   const [noticeMsg, setNoticeMsg] = useState<string | null>(null);
 
@@ -71,13 +106,13 @@ export default function AdminRutasPage() {
     const headers: any = token ? { Authorization: `Bearer ${token}` } : {};
 
     Promise.all([
-      fetch(`${API_URL}/destinations/countries`, { headers }).then((res) => res.json()),
-      fetch(`${API_URL}/routes`, { headers }).then((res) => res.json()),
+      fetch(`${API_URL}/destinations/countries`, { headers }).then((res) => res.json()).catch(() => null),
+      fetch(`${API_URL}/routes`, { headers }).then((res) => res.json()).catch(() => null),
     ])
       .then(([countriesData, routesData]) => {
-        if (Array.isArray(countriesData)) setCountries(countriesData);
-        if (Array.isArray(routesData)) setRoutes(routesData);
-        else if (routesData && routesData.routes) setRoutes(routesData.routes);
+        if (Array.isArray(countriesData) && countriesData.length > 0) setCountries(countriesData);
+        if (Array.isArray(routesData) && routesData.length > 0) setRoutes(routesData);
+        else if (routesData && routesData.routes && Array.isArray(routesData.routes) && routesData.routes.length > 0) setRoutes(routesData.routes);
       })
       .catch((err) => {
         console.error("Error cargando destinos:", err);

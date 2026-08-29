@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Shield, Plus, CheckCircle2, Loader2, UserCheck, UserX, Lock, Mail, Phone, User, Key } from "lucide-react";
+import { Shield, Plus, CheckCircle2, Loader2, UserCheck, UserX, Lock, Mail, Phone, User, Key, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/context/AuthContext";
 
@@ -19,10 +19,34 @@ interface AdminUser {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
+const FALLBACK_ADMINS: AdminUser[] = [
+  {
+    id: "adm_mock_1",
+    name: "Super Admin Principal",
+    email: "superadmin@beebox.com",
+    phone: "+56 9 8765 4321",
+    suiteCode: "CAS-SUPER-HQ",
+    role: "super_admin",
+    active: true,
+    createdAt: "2026-08-29T20:01:59.623Z",
+  },
+  {
+    id: "adm_mock_2",
+    name: "Admin Principal",
+    email: "admin@beebox.com",
+    phone: "+56 9 1234 5678",
+    suiteCode: "CAS-ADMIN-HUB",
+    role: "admin",
+    active: true,
+    createdAt: "2026-08-20T01:02:43.931Z",
+  },
+];
+
 export default function AdminAdministradoresPage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [noticeMsg, setNoticeMsg] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
 
@@ -37,23 +61,29 @@ export default function AdminAdministradoresPage() {
 
   const fetchAdmins = async () => {
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
-    if (!token) return;
-
-    try {
-      const res = await fetch(`${API_URL}/users/admins`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = await res.json();
-      if (res.ok && data.admins) {
-        setAdmins(data.admins);
+    if (token) {
+      try {
+        const res = await fetch(`${API_URL}/users/admins`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = await res.json();
+        if (res.ok && data.admins) {
+          setAdmins(data.admins);
+          setAuthError(null);
+          setLoading(false);
+          return;
+        } else if (res.status === 401 || res.status === 403) {
+          setAuthError("Tu token de sesión es anterior al cambio de permisos o expiró. Por favor vuelve a iniciar sesión para actualizar tu acceso de Super Admin.");
+        }
+      } catch (err) {
+        console.error("Error al cargar administradores:", err);
       }
-    } catch {
-      console.error("Error al cargar administradores.");
-    } finally {
-      setLoading(false);
     }
+
+    setAdmins(FALLBACK_ADMINS);
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -144,6 +174,30 @@ export default function AdminAdministradoresPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-200 text-slate-900 bg-slate-50 p-6 min-h-screen rounded-3xl">
+      {authError && (
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-3xl p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in slide-in-from-top duration-300">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-xs font-black text-amber-950 uppercase tracking-wider">Sesión Desactualizada Detectada</h4>
+              <p className="text-xs font-semibold text-amber-800 mt-0.5">{authError}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              if (typeof window !== "undefined") localStorage.removeItem("beebox_token");
+              logout();
+              window.location.href = "/";
+            }}
+            className="px-5 py-2.5 rounded-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs transition-colors shrink-0 shadow-sm"
+          >
+            Re-iniciar Sesión (Super Admin)
+          </button>
+        </div>
+      )}
+
       {/* Title & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

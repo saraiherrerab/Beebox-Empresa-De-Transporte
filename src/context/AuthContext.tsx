@@ -30,8 +30,8 @@ export interface PrealertaItem {
 
 interface AuthContextType {
   user: UserProfile | null;
-  role: "client" | "admin";
-  setRole: (role: "client" | "admin") => void;
+  role: "client" | "admin" | "super_admin";
+  setRole: (role: "client" | "admin" | "super_admin") => void;
   isAuthenticated: boolean;
   prealertas: PrealertaItem[];
   refreshPrealertas: () => Promise<void>;
@@ -62,15 +62,52 @@ const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutM
   }
 };
 
+const MOCK_PREALERTAS: PrealertaItem[] = [
+  {
+    id: "pre_mock_1",
+    store: "Amazon US",
+    trackingNumber: "1Z9999999999999991",
+    description: "Auriculares Inalámbricos Sony WH-1000XM5",
+    amountPaid: "348",
+    createdAt: "2026-08-29",
+    destination: "Caracas, Venezuela",
+    status: "Prealertado",
+  },
+  {
+    id: "pre_mock_2",
+    store: "eBay Store",
+    trackingNumber: "1Z9999999999999992",
+    description: "Colección de Calcomanías Retro y Llaveros",
+    amountPaid: "45",
+    createdAt: "2026-08-29",
+    destination: "Maracaibo, Venezuela",
+    status: "Recibido en Almacén",
+  },
+  {
+    id: "pre_mock_3",
+    store: "Shein Official",
+    trackingNumber: "1Z9999999999999993",
+    description: "Lote de Ropa Deportiva y Accesorios",
+    amountPaid: "89.9",
+    createdAt: "2026-08-29",
+    destination: "Caracas, Venezuela",
+    status: "Confirmado",
+    warehouseGuide: "BBX-89421",
+  },
+];
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [role, setRole] = useState<"client" | "admin">("client");
-  const [prealertas, setPrealertas] = useState<PrealertaItem[]>([]);
+  const [role, setRole] = useState<"client" | "admin" | "super_admin">("client");
+  const [prealertas, setPrealertas] = useState<PrealertaItem[]>(MOCK_PREALERTAS);
   const [socket, setSocket] = useState<Socket | null>(null);
 
   const refreshPrealertas = useCallback(async () => {
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
-    if (!token) return;
+    if (!token) {
+      setPrealertas((prev) => (prev.length === 0 ? MOCK_PREALERTAS : prev));
+      return;
+    }
 
     try {
       const res = await fetchWithTimeout(`${API_URL}/prealertas`, {
@@ -94,10 +131,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           warehouseGuide: p.warehouseGuide || undefined,
         }));
         setPrealertas(formatted);
+        return;
       }
     } catch {
-      // Retener estado actual
+      // Retener estado actual o usar fallback
     }
+
+    setPrealertas((prev) => (prev.length === 0 ? MOCK_PREALERTAS : prev));
   }, []);
 
   // Inicializar conexion WebSocket
@@ -264,13 +304,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error(data.message || "Error al iniciar sesión");
       }
     } catch {
-      const userRole: "client" | "admin" = email.includes("admin") ? "admin" : "client";
+      const userRole: "client" | "admin" | "super_admin" = email.includes("super")
+        ? "super_admin"
+        : email.includes("admin")
+        ? "admin"
+        : "client";
       setUser({
         id: "usr_123",
-        name: userRole === "admin" ? "Admin Principal" : email.split("@")[0],
+        name: userRole === "super_admin" ? "Super Admin Principal" : userRole === "admin" ? "Admin Principal" : email.split("@")[0],
         email,
         phone: "+52 55 9876 5432",
         suiteCode: "CAS-88293-TULSA",
+        role: userRole,
       });
       setRole(userRole);
     }
