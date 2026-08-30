@@ -268,14 +268,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           },
           body: JSON.stringify({ warehouseGuide, destination, providerWarehouseReceipt }),
         });
-        if (res.ok) {
-          await refreshPrealertas();
-          return;
-        } else {
-          const errData = await res.json();
-          console.error("Error al confirmar prealerta:", errData.message);
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message || "Error al confirmar prealerta en el servidor.");
         }
-      } catch (err) {
+        await refreshPrealertas();
+        return;
+      } catch (err: any) {
+        if (err?.message) throw err;
         console.error("Error de red al confirmar prealerta:", err);
       }
     }
