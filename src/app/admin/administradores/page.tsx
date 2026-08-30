@@ -17,7 +17,7 @@ interface AdminUser {
   createdAt: string;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+import { API_URL } from "@/config/api";
 
 const FALLBACK_ADMINS: AdminUser[] = [
   {

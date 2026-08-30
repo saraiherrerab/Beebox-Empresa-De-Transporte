@@ -7,8 +7,7 @@ import { PickupWizardStep2 } from "@/components/client/PickupWizardStep2";
 import { PickupWizardStep3 } from "@/components/client/PickupWizardStep3";
 import { PickupWizardStep4 } from "@/components/client/PickupWizardStep4";
 import { Button } from "@/components/ui/Button";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+import { API_URL } from "@/config/api";
 
 export default function SolicitarPickupPage() {
   const [currentStep, setCurrentStep] = useState(1);

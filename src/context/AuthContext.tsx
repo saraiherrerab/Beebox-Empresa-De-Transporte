@@ -44,10 +44,9 @@ interface AuthContextType {
   socket: Socket | null;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import { API_URL, SOCKET_URL } from "@/config/api";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4000";
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 10000) => {
   const controller = new AbortController();

@@ -4,8 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth, PrealertaItem } from "@/context/AuthContext";
 import { CheckCircle2, Check, Search, MapPin, PackageCheck, Calendar, ChevronLeft, ChevronRight, RefreshCw, Edit3, X, Save, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+import { API_URL } from "@/config/api";
 
 export default function AdminPrealertasPage() {
   const { prealertas, linkPrealerta, updatePrealerta, refreshPrealertas } = useAuth();

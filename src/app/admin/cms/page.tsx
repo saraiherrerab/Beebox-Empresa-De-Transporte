@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Save, CheckCircle2, Plus, Trash2, Eye, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { API_URL } from "@/config/api";
 
 interface ApiCMSContent {
   id: string;
@@ -13,8 +14,6 @@ interface ApiCMSContent {
   linkUrl?: string;
   active: boolean;
 }
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 export default function AdminCMSPage() {
   const [items, setItems] = useState<ApiCMSContent[]>([]);

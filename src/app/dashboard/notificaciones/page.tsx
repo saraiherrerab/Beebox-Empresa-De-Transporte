@@ -3,8 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Bell, CheckCircle2, PackageCheck, AlertCircle, Info, CheckCheck, Loader2, Filter } from "lucide-react";
 import { NotificationItem } from "@/components/client/NotificationBell";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+import { API_URL } from "@/config/api";
 
 export default function ClientNotificationsPage() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);

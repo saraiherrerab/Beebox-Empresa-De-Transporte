@@ -5,8 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Package, Upload, Plus, CheckCircle2, FileText, MapPin, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+import { API_URL } from "@/config/api";
 
 function PrealertasContent() {
   const { user, prealertas, addPrealerta, updatePrealerta, refreshPrealertas } = useAuth();

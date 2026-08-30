@@ -5,8 +5,7 @@ import { Calculator, ArrowRight, CheckCircle2, RefreshCw, Globe, MapPin, Loader2
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+import { API_URL } from "@/config/api";
 
 interface ApiCity {
   id: string;

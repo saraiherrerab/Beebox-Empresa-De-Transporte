@@ -35,7 +35,7 @@ interface DeleteConfirmationState {
   step: 1 | 2; // Step 1: ¿Seguro?, Step 2: ¿Seguro seguro?
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+import { API_URL } from "@/config/api";
 
 const MOCK_COUNTRIES: ApiCountry[] = [
   {

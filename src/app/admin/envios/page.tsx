@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Search, MapPin, Loader2, Package, CheckCircle2, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { API_URL } from "@/config/api";
 
 interface ShipmentItem {
   id: string;
@@ -18,8 +19,6 @@ interface ShipmentItem {
   activityDesc: string;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
-
 const STANDARDIZED_STATUSES = [
   "En el origen",
   "En camino",
@@ -34,40 +33,11 @@ const normalizeStatus = (rawStatus: string): string => {
   return "En el origen";
 };
 
-const FALLBACK_SHIPMENTS: ShipmentItem[] = [
-  {
-    id: "BBX-89421",
-    tracking: "BBX-89421",
-    providerWarehouseReceipt: "WR-99823",
-    type: "Aéreo Express",
-    weight: "3.5 kg",
-    clientName: "Sarai Herrera",
-    suiteCode: "CAS-77382-MIAMI",
-    route: "Broken Arrow, OK → Caracas, Venezuela",
-    currentStatus: "En el origen",
-    lastActivity: "3-5 días hábiles",
-    activityDesc: "Estado actual: En el origen",
-  },
-  {
-    id: "OK-151345",
-    tracking: "OK-151345",
-    providerWarehouseReceipt: "WR-44102",
-    type: "Aéreo Express",
-    weight: "1.0 kg",
-    clientName: "Juan Pérez",
-    suiteCode: "CAS-88293-MIAMI",
-    route: "Broken Arrow, OK → Bogotá, Colombia",
-    currentStatus: "En el origen",
-    lastActivity: "3-5 días hábiles",
-    activityDesc: "Estado actual: En el origen",
-  },
-];
-
 export default function AdminEnviosPage() {
-  const { socket } = useAuth();
+  const { socket, prealertas, refreshPrealertas } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("todos");
   const [search, setSearch] = useState("");
-  const [shipments, setShipments] = useState<ShipmentItem[]>([]);
+  const [dbShipments, setDbShipments] = useState<ShipmentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [noticeMsg, setNoticeMsg] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -80,7 +50,7 @@ export default function AdminEnviosPage() {
     })
       .then((res) => res.json())
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           const mapped: ShipmentItem[] = data.map((item: any) => {
             const normalizedStatus = normalizeStatus(item.currentStatus);
             return {
@@ -90,30 +60,32 @@ export default function AdminEnviosPage() {
               type: item.serviceType || "Aéreo Express",
               weight: `${item.weightKg || 1.0} kg`,
               clientName: item.user?.name || item.recipientName || item.senderName || "Cliente BeeBox",
-              suiteCode: item.user?.suiteCode || "CAS-MIAMI",
+              suiteCode: item.user?.suiteCode || "CAS-OK-HUB",
               route: `${item.senderCity || "Broken Arrow, OK"} → ${item.recipientCity || "Destino"}`,
               currentStatus: normalizedStatus,
               lastActivity: item.estimatedDelivery || "Reciente",
               activityDesc: `Estado actual: ${normalizedStatus}`,
             };
           });
-          setShipments(mapped);
-        } else {
-          setShipments(FALLBACK_SHIPMENTS);
+          setDbShipments(mapped);
         }
       })
       .catch(() => {
-        setShipments(FALLBACK_SHIPMENTS);
+        // En caso de error, retener envíos
       })
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
     fetchShipments();
+    refreshPrealertas();
 
     if (socket) {
       socket.on("shipment:updated", fetchShipments);
-      socket.on("prealerta:updated", fetchShipments);
+      socket.on("prealerta:updated", () => {
+        fetchShipments();
+        refreshPrealertas();
+      });
     }
 
     return () => {
@@ -122,7 +94,7 @@ export default function AdminEnviosPage() {
         socket.off("prealerta:updated", fetchShipments);
       }
     };
-  }, [fetchShipments, socket]);
+  }, [fetchShipments, refreshPrealertas, socket]);
 
   const handleUpdateStatus = async (trackingCode: string, newStatus: string) => {
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
@@ -139,7 +111,7 @@ export default function AdminEnviosPage() {
       });
 
       if (res.ok) {
-        setShipments((prev) =>
+        setDbShipments((prev) =>
           prev.map((sh) =>
             sh.tracking === trackingCode ? { ...sh, currentStatus: newStatus } : sh
           )
@@ -153,25 +125,65 @@ export default function AdminEnviosPage() {
     }
   };
 
-  const filteredShipments = shipments.filter((sh) => {
+  // Fusión reactiva: combinar envíos de la base de datos con todas las prealertas confirmadas
+  const mergedShipments = useMemo(() => {
+    const list: ShipmentItem[] = [...dbShipments];
+
+    const confirmedPrealertas = (prealertas || []).filter(
+      (p) => p.status === "Confirmado" || p.status === "Vinculado"
+    );
+
+    for (const p of confirmedPrealertas) {
+      const trackingCode = p.warehouseGuide || p.trackingNumber || `OK-${Math.floor(100000 + Math.random() * 900000)}`;
+      const alreadyExists = list.some(
+        (sh) =>
+          sh.tracking === trackingCode ||
+          sh.tracking === p.trackingNumber ||
+          (p.providerWarehouseReceipt && sh.providerWarehouseReceipt === p.providerWarehouseReceipt)
+      );
+
+      if (!alreadyExists) {
+        list.unshift({
+          id: trackingCode,
+          tracking: trackingCode,
+          providerWarehouseReceipt: p.providerWarehouseReceipt,
+          type: "Aéreo Express",
+          weight: "1.0 kg",
+          clientName: p.store || "Cliente BeeBox",
+          suiteCode: "CAS-OK-HUB",
+          route: `Broken Arrow, OK → ${p.destination || "Caracas, Venezuela"}`,
+          currentStatus: "En el origen",
+          lastActivity: "Reciente",
+          activityDesc: "Estado actual: En el origen",
+        });
+      }
+    }
+
+    return list;
+  }, [dbShipments, prealertas]);
+
+  const filteredShipments = useMemo(() => {
     const searchLower = (search || "").toLowerCase();
-    const trackingStr = (sh.tracking || "").toLowerCase();
-    const wrStr = (sh.providerWarehouseReceipt || "").toLowerCase();
-    const clientStr = (sh.clientName || "").toLowerCase();
-    const suiteStr = (sh.suiteCode || "").toLowerCase();
 
-    const matchesSearch =
-      trackingStr.includes(searchLower) ||
-      wrStr.includes(searchLower) ||
-      clientStr.includes(searchLower) ||
-      suiteStr.includes(searchLower);
+    return mergedShipments.filter((sh) => {
+      const trackingStr = (sh.tracking || "").toLowerCase();
+      const wrStr = (sh.providerWarehouseReceipt || "").toLowerCase();
+      const clientStr = (sh.clientName || "").toLowerCase();
+      const suiteStr = (sh.suiteCode || "").toLowerCase();
 
-    if (activeTab === "todos") return matchesSearch;
-    if (activeTab === "origen") return matchesSearch && sh.currentStatus === "En el origen";
-    if (activeTab === "camino") return matchesSearch && sh.currentStatus === "En camino";
-    if (activeTab === "destino") return matchesSearch && sh.currentStatus === "Llegó a su destino";
-    return matchesSearch;
-  });
+      const matchesSearch =
+        trackingStr.includes(searchLower) ||
+        wrStr.includes(searchLower) ||
+        clientStr.includes(searchLower) ||
+        suiteStr.includes(searchLower);
+
+      if (activeTab === "todos") return matchesSearch;
+      if (activeTab === "origen") return matchesSearch && sh.currentStatus === "En el origen";
+      if (activeTab === "camino") return matchesSearch && sh.currentStatus === "En camino";
+      if (activeTab === "destino") return matchesSearch && sh.currentStatus === "Llegó a su destino";
+      return matchesSearch;
+    });
+  }, [mergedShipments, search, activeTab]);
 
   const totalPages = Math.ceil(filteredShipments.length / pageSize) || 1;
   const paginatedShipments = filteredShipments.slice(

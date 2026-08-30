@@ -5,13 +5,14 @@ import { Truck, ShieldCheck, CheckCircle, Gauge, Package } from "lucide-react";
 import { FLEET_LIST } from "@/constants";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
+import { API_URL } from "@/config/api";
 
 export const FleetShowcase: React.FC = () => {
   const [fleetItems, setFleetItems] = useState(FLEET_LIST);
   const [selectedFleetId, setSelectedFleetId] = useState(FLEET_LIST[0].id);
 
   React.useEffect(() => {
-    fetch("http://localhost:4000/api/fleet")
+    fetch(`${API_URL}/fleet`)
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
