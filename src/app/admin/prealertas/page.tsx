@@ -15,7 +15,7 @@ export default function AdminPrealertasPage() {
     "Caracas, Venezuela",
     "Bogotá, Colombia",
   ]);
-  const pageSize = 15;
+  const pageSize = 5;
 
   const [warehouseGuideInput, setWarehouseGuideInput] = useState<{ [key: string]: string }>({});
   const [destinationInput, setDestinationInput] = useState<{ [key: string]: string }>({});
@@ -38,25 +38,26 @@ export default function AdminPrealertasPage() {
     refreshPrealertas();
 
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
-    fetch(`${API_URL}/routes`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        let routeList: any[] = [];
-        if (Array.isArray(data)) routeList = data;
-        else if (data && data.routes && Array.isArray(data.routes)) routeList = data.routes;
-
-        if (routeList.length > 0) {
-          const dests = Array.from(
-            new Set(routeList.map((r: any) => r.destCity).filter(Boolean))
-          ) as string[];
-          if (dests.length > 0) {
-            setAvailableDestinations(dests);
-          }
-        }
+    if (token) {
+      fetch(`${API_URL}/destinations/countries`, {
+        headers: { Authorization: `Bearer ${token}` },
       })
-      .catch(() => {});
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data)) {
+            const list: string[] = [];
+            data.forEach((c: any) => {
+              if (c.cities && c.cities.length > 0) {
+                c.cities.forEach((city: any) => list.push(`${city.name}, ${c.name}`));
+              } else {
+                list.push(c.name);
+              }
+            });
+            if (list.length > 0) setAvailableDestinations(list);
+          }
+        })
+        .catch(() => {});
+    }
   }, [refreshPrealertas]);
 
   const handleOpenEdit = (item: PrealertaItem) => {
@@ -67,14 +68,14 @@ export default function AdminPrealertasPage() {
     setEditDescription(item.description);
     setEditAmountPaid(item.amountPaid);
     setEditDestination(item.destination || availableDestinations[0] || "Caracas, Venezuela");
-    setEditStatus(item.status === "Recibido en Almacén" ? "Recibido en Almacén" : "Prealertado");
+    setEditStatus(item.status);
   };
 
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingItem) return;
-
     setEditSubmitting(true);
+
     try {
       await updatePrealerta(editingItem.id, {
         store: editStore,
@@ -85,7 +86,7 @@ export default function AdminPrealertasPage() {
         destination: editDestination,
         status: editStatus as any,
       });
-      await refreshPrealertas();
+
       setLinkedNotice(`Prealerta '${editTrackingNumber}' actualizada correctamente.`);
       setEditingItem(null);
       setTimeout(() => setLinkedNotice(null), 4000);
@@ -116,12 +117,15 @@ export default function AdminPrealertasPage() {
   };
 
   const filteredPrealertas = prealertas.filter((item) => {
+    const searchLower = (searchTracking || "").toLowerCase();
     const matchesSearch =
-      item.trackingNumber.toLowerCase().includes(searchTracking.toLowerCase()) ||
-      (item.providerWarehouseReceipt || "").toLowerCase().includes(searchTracking.toLowerCase()) ||
-      item.store.toLowerCase().includes(searchTracking.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchTracking.toLowerCase()) ||
-      (item.destination || "").toLowerCase().includes(searchTracking.toLowerCase());
+      item.trackingNumber.toLowerCase().includes(searchLower) ||
+      (item.providerWarehouseReceipt || "").toLowerCase().includes(searchLower) ||
+      item.store.toLowerCase().includes(searchLower) ||
+      item.description.toLowerCase().includes(searchLower) ||
+      (item.destination || "").toLowerCase().includes(searchLower) ||
+      (item.userName || "").toLowerCase().includes(searchLower) ||
+      (item.userSuite || "").toLowerCase().includes(searchLower);
 
     const isConfirmed = item.status === "Confirmado" || item.status === "Vinculado";
     const matchesStatus =
@@ -214,7 +218,7 @@ export default function AdminPrealertasPage() {
                 setSearchTracking(e.target.value);
                 setCurrentPage(1);
               }}
-              placeholder="Buscar por tracking, tienda o cliente..."
+              placeholder="Buscar por tracking, cliente, casillero, tienda..."
               className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-amber-500"
             />
           </div>
@@ -232,6 +236,7 @@ export default function AdminPrealertasPage() {
               <tr className="border-b border-slate-200 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                 <th className="py-3 px-4">Fecha de Registro</th>
                 <th className="py-3 px-4">Estado</th>
+                <th className="py-3 px-4">Cliente / Casillero</th>
                 <th className="py-3 px-4">Tienda</th>
                 <th className="py-3 px-4">Tracking Origen</th>
                 <th className="py-3 px-4">WR Proveedor</th>
@@ -244,7 +249,7 @@ export default function AdminPrealertasPage() {
             <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-800">
               {paginatedPrealertas.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-8 text-center text-slate-400">
+                  <td colSpan={10} className="py-8 text-center text-slate-400">
                     No se encontraron prealertas para el filtro seleccionado.
                   </td>
                 </tr>
@@ -265,6 +270,10 @@ export default function AdminPrealertasPage() {
                       >
                         {item.status === "Vinculado" ? "Confirmado" : item.status}
                       </span>
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className="font-bold text-slate-900 block">{item.userName || "Cliente BeeBox"}</span>
+                      <span className="text-[10px] font-mono font-bold text-slate-500">{item.userSuite || "CAS-OK-HUB"}</span>
                     </td>
                     <td className="py-4 px-4 font-bold text-slate-900">{item.store}</td>
                     <td className="py-4 px-4 font-mono font-bold text-slate-900">{item.trackingNumber}</td>
@@ -289,7 +298,9 @@ export default function AdminPrealertasPage() {
                         />
                       )}
                     </td>
-                    <td className="py-4 px-4 text-slate-600 max-w-xs truncate">{item.description}</td>
+                    <td className="py-4 px-4 text-slate-600 max-w-[160px] truncate" title={item.description}>
+                      {item.description}
+                    </td>
                     <td className="py-4 px-4">
                       {item.status === "Confirmado" || item.status === "Vinculado" ? (
                         <span className="font-bold text-slate-900 flex items-center gap-1">

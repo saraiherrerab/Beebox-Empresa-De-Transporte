@@ -26,6 +26,8 @@ export interface PrealertaItem {
   createdAt: string;
   status: "Prealertado" | "Recibido en Almacén" | "Vinculado" | "Confirmado";
   warehouseGuide?: string;
+  userName?: string;
+  userSuite?: string;
 }
 
 interface AuthContextType {
@@ -71,6 +73,8 @@ const MOCK_PREALERTAS: PrealertaItem[] = [
     createdAt: "2026-08-29",
     destination: "Caracas, Venezuela",
     status: "Prealertado",
+    userName: "Sarai Herrera",
+    userSuite: "CAS-77382-MIAMI",
   },
   {
     id: "pre_mock_2",
@@ -81,6 +85,8 @@ const MOCK_PREALERTAS: PrealertaItem[] = [
     createdAt: "2026-08-29",
     destination: "Maracaibo, Venezuela",
     status: "Recibido en Almacén",
+    userName: "Juan Pérez",
+    userSuite: "CAS-88293-MIAMI",
   },
   {
     id: "pre_mock_3",
@@ -92,6 +98,8 @@ const MOCK_PREALERTAS: PrealertaItem[] = [
     destination: "Caracas, Venezuela",
     status: "Confirmado",
     warehouseGuide: "BBX-89421",
+    userName: "Sarai Herrera",
+    userSuite: "CAS-77382-MIAMI",
   },
 ];
 
@@ -128,6 +136,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           destination: p.destination || "Caracas, Venezuela",
           status: p.status as any,
           warehouseGuide: p.warehouseGuide || undefined,
+          userName: p.user?.name || "Cliente BeeBox",
+          userSuite: p.user?.suiteCode || "CAS-OK-HUB",
         }));
         setPrealertas(formatted);
         return;
