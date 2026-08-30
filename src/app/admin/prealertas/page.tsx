@@ -224,11 +224,6 @@ export default function AdminPrealertasPage() {
           </div>
         </div>
 
-        {/* Section Header */}
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold text-slate-900">Prealertas ({filteredPrealertas.length})</h3>
-        </div>
-
         {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
