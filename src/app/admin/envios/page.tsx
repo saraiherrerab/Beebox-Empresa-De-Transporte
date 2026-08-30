@@ -26,6 +26,14 @@ const STANDARDIZED_STATUSES = [
   "Llegó a su destino",
 ];
 
+const normalizeStatus = (rawStatus: string): string => {
+  const s = (rawStatus || "").toLowerCase();
+  if (s.includes("origen") || s.includes("recibido")) return "En el origen";
+  if (s.includes("camino") || s.includes("tránsito") || s.includes("transito") || s.includes("aduana")) return "En camino";
+  if (s.includes("destino") || s.includes("entregado")) return "Llegó a su destino";
+  return "En el origen";
+};
+
 export default function AdminEnviosPage() {
   const { socket } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("todos");
@@ -44,19 +52,22 @@ export default function AdminEnviosPage() {
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
-          const mapped: ShipmentItem[] = data.map((item: any) => ({
-            id: item.trackingCode || item.id,
-            tracking: item.trackingCode,
-            providerWarehouseReceipt: item.providerWarehouseReceipt || item.prealerta?.providerWarehouseReceipt || undefined,
-            type: item.serviceType || "Aéreo Express",
-            weight: `${item.weightKg} kg`,
-            clientName: item.user?.name || item.recipientName || item.senderName,
-            suiteCode: item.user?.suiteCode || "CAS-TULSA",
-            route: `${item.senderCity} → ${item.recipientCity}`,
-            currentStatus: item.currentStatus || "En el origen",
-            lastActivity: item.estimatedDelivery || "Reciente",
-            activityDesc: `Estado actual: ${item.currentStatus || "En el origen"}`,
-          }));
+          const mapped: ShipmentItem[] = data.map((item: any) => {
+            const normalizedStatus = normalizeStatus(item.currentStatus);
+            return {
+              id: item.trackingCode || item.id,
+              tracking: item.trackingCode,
+              providerWarehouseReceipt: item.providerWarehouseReceipt || item.prealerta?.providerWarehouseReceipt || undefined,
+              type: item.serviceType || "Aéreo Express",
+              weight: `${item.weightKg} kg`,
+              clientName: item.user?.name || item.recipientName || item.senderName,
+              suiteCode: item.user?.suiteCode || "CAS-TULSA",
+              route: `${item.senderCity} → ${item.recipientCity}`,
+              currentStatus: normalizedStatus,
+              lastActivity: item.estimatedDelivery || "Reciente",
+              activityDesc: `Estado actual: ${normalizedStatus}`,
+            };
+          });
           setShipments(mapped);
         }
       })
@@ -119,7 +130,10 @@ export default function AdminEnviosPage() {
       sh.suiteCode.toLowerCase().includes(search.toLowerCase());
 
     if (activeTab === "todos") return matchesSearch;
-    return matchesSearch && sh.currentStatus.toLowerCase().includes(activeTab.toLowerCase());
+    if (activeTab === "origen") return matchesSearch && sh.currentStatus === "En el origen";
+    if (activeTab === "camino") return matchesSearch && sh.currentStatus === "En camino";
+    if (activeTab === "destino") return matchesSearch && sh.currentStatus === "Llegó a su destino";
+    return matchesSearch;
   });
 
   const totalPages = Math.ceil(filteredShipments.length / pageSize) || 1;
