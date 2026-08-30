@@ -79,7 +79,7 @@ export default function AdminOverviewPage() {
   const stats = [
     { label: "Clientes Registrados", value: metrics.totalClients.toLocaleString(), change: "Base de Datos Real", icon: Users },
     { label: "Prealertas Pendientes", value: metrics.pendingPrealertas.toString(), change: "Requieren confirmación", icon: BellRing },
-    { label: "Envíos Activos", value: metrics.activeShipments.toString(), change: "En tránsito/Aduana", icon: Package },
+    { label: "Envíos Activos", value: metrics.activeShipments.toString(), change: "En origen y en camino", icon: Package },
   ];
 
   return (
