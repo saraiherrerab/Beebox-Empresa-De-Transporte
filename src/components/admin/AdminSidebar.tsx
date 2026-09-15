@@ -48,6 +48,7 @@ export const AdminSidebar: React.FC = () => {
     {
       group: "OPERACIONES",
       items: [
+        { name: "Gestión de Pickups", href: "/admin/pickups", icon: Truck },
         { name: "Control de Envíos", href: "/admin/envios", icon: Package },
         { name: "Destinos de Envío", href: "/admin/rutas", icon: Route },
         { name: "Tarifas y Calculadora", href: "/admin/calculadora", icon: Calculator },

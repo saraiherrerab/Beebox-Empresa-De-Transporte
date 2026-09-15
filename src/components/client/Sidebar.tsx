@@ -8,6 +8,7 @@ import {
   BellRing,
   Package,
   Truck,
+  Boxes,
   Calculator,
   User,
   LogOut,
@@ -26,7 +27,8 @@ export const Sidebar: React.FC = () => {
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Notificaciones", href: "/dashboard/notificaciones", icon: BellRing },
     { name: "Prealertas", href: "/dashboard/prealertas", icon: Package },
-    { name: "Mis Paquetes", href: "/dashboard/paquetes", icon: Truck },
+    { name: "Solicitar Pickup", href: "/dashboard/pickup", icon: Truck },
+    { name: "Mis Paquetes", href: "/dashboard/paquetes", icon: Boxes },
     { name: "Calculadora", href: "/dashboard/calculadora", icon: Calculator },
     { name: "Mi Perfil", href: "/dashboard/perfil", icon: User },
   ];

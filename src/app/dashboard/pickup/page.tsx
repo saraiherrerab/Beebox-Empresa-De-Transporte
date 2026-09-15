@@ -1,34 +1,143 @@
 "use client";
 
-import React, { useState } from "react";
-import { Check, ArrowRight, ArrowLeft, Truck } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  Check,
+  ArrowRight,
+  ArrowLeft,
+  Truck,
+  Calendar,
+  Clock,
+  MapPin,
+  User,
+  Phone,
+  Package,
+  Laptop,
+  BatteryCharging,
+  Eye,
+  X,
+  AlertCircle,
+  Loader2,
+  Search,
+  Plus,
+} from "lucide-react";
 import { PickupWizardStep1 } from "@/components/client/PickupWizardStep1";
 import { PickupWizardStep2 } from "@/components/client/PickupWizardStep2";
 import { PickupWizardStep3 } from "@/components/client/PickupWizardStep3";
 import { PickupWizardStep4 } from "@/components/client/PickupWizardStep4";
 import { Button } from "@/components/ui/Button";
 import { API_URL } from "@/config/api";
+import { useAuth } from "@/context/AuthContext";
+
+interface ClientPickup {
+  id: string;
+  pickupCode: string;
+  senderName: string;
+  senderPhone: string;
+  senderAddress: string;
+  senderCity: string;
+  boxCount: number;
+  totalWeightKg: number;
+  containElectronics?: boolean;
+  containLithium?: boolean;
+  recipientName: string;
+  recipientPhone: string;
+  recipientAddress: string;
+  recipientCity: string;
+  pickupDate: string;
+  timeSlot: string;
+  status: string;
+  createdAt?: string;
+  vehicle?: {
+    name: string;
+  };
+}
 
 export default function SolicitarPickupPage() {
+  const { user } = useAuth();
+  const [activeMainTab, setActiveMainTab] = useState<"solicitar" | "historial">("solicitar");
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [generatedCode, setGeneratedCode] = useState("PK-9821-DOM");
   const [loading, setLoading] = useState(false);
 
-  // Form state
-  const [senderName, setSenderName] = useState("Juan Pérez");
-  const [senderPhone, setSenderPhone] = useState("+52 55 1234 5678");
-  const [senderAddress, setSenderAddress] = useState("Av. Insurgentes Sur 1234");
-  const [senderCity, setSenderCity] = useState("Ciudad de México");
+  // Client pickup history
+  const [myPickups, setMyPickups] = useState<ClientPickup[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>("TODOS");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedPickupModal, setSelectedPickupModal] = useState<ClientPickup | null>(null);
+
+  // Form state - Real user editable values
+  const [senderName, setSenderName] = useState(user?.name || "Juan Pérez");
+  const [senderPhone, setSenderPhone] = useState(user?.phone || "+1 (918) 555-0199");
+  const [senderAddress, setSenderAddress] = useState("Av. Insurgentes Sur 1234, Col. Del Valle");
+  const [senderCity, setSenderCity] = useState("Broken Arrow, OK");
   const [boxCount, setBoxCount] = useState(1);
+  const [cargoType, setCargoType] = useState("Mercancía General");
   const [totalWeightKg, setTotalWeightKg] = useState(1.5);
   const [containElectronics, setContainElectronics] = useState(false);
-  const [recipientName, setRecipientName] = useState("María López");
-  const [recipientPhone, setRecipientPhone] = useState("+52 55 9876 5432");
-  const [recipientAddress, setRecipientAddress] = useState("Calle Reforma 456");
-  const [recipientCity, setRecipientCity] = useState("Guadalajara");
+  const [containLithium, setContainLithium] = useState(false);
+  const [recipientName, setRecipientName] = useState("Carlos Salazar");
+  const [recipientPhone, setRecipientPhone] = useState("+58 412 555 1234");
+  const [recipientAddress, setRecipientAddress] = useState("Calle Reforma 456, Urb Las Mercedes");
+  const [recipientCity, setRecipientCity] = useState("Caracas, Venezuela");
   const [pickupDate, setPickupDate] = useState(new Date().toISOString().split("T")[0]);
   const [timeSlot, setTimeSlot] = useState("mañana");
+
+  // Fetch client pickups
+  const fetchMyPickups = useCallback(() => {
+    setHistoryLoading(true);
+    const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
+    const authHeaders: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
+    fetch(`${API_URL}/pickups`, { headers: authHeaders })
+      .then((res) => res.json())
+      .then((data) => {
+        let list: ClientPickup[] = [];
+        if (data && Array.isArray(data.pickups)) {
+          list = data.pickups;
+        } else if (Array.isArray(data)) {
+          list = data;
+        }
+
+        // Combinar con solicitudes locales
+        if (typeof window !== "undefined") {
+          try {
+            const localSaved = JSON.parse(localStorage.getItem("beebox_local_pickups") || "[]");
+            if (Array.isArray(localSaved) && localSaved.length > 0) {
+              for (const loc of localSaved) {
+                if (!list.some((p) => p.id === loc.id || p.pickupCode === loc.pickupCode)) {
+                  list.unshift(loc);
+                }
+              }
+            }
+          } catch {}
+        }
+
+        setMyPickups(list);
+      })
+      .catch(() => {
+        // Fallback local
+        if (typeof window !== "undefined") {
+          try {
+            const localSaved = JSON.parse(localStorage.getItem("beebox_local_pickups") || "[]");
+            setMyPickups(Array.isArray(localSaved) ? localSaved : []);
+          } catch {}
+        }
+      })
+      .finally(() => setHistoryLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetchMyPickups();
+  }, [fetchMyPickups]);
+
+  // Actualizar datos del usuario si cambia auth
+  useEffect(() => {
+    if (user?.name && senderName === "Juan Pérez") setSenderName(user.name);
+    if (user?.phone && senderPhone.includes("555-0199")) setSenderPhone(user.phone);
+  }, [user]);
 
   const steps = [
     { num: 1, label: "REMITENTE" },
@@ -38,8 +147,33 @@ export default function SolicitarPickupPage() {
   ];
 
   const handleFinalSubmit = async () => {
+    // Validaciones mínimas
+    if (!recipientName.trim() || !recipientAddress.trim()) {
+      alert("Por favor completa los datos obligatorios del destinatario (Nombre y Dirección en el Paso 3).");
+      setCurrentStep(3);
+      return;
+    }
+
     setLoading(true);
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
+    let code = `PK-${Math.floor(1000 + Math.random() * 9000)}-DOM`;
+
+    const payload = {
+      senderName: senderName.trim(),
+      senderPhone: senderPhone.trim(),
+      senderAddress: senderAddress.trim(),
+      senderCity: senderCity.trim() || "Broken Arrow, OK",
+      boxCount: Number(boxCount) || 1,
+      totalWeightKg: Number(totalWeightKg) || 1.5,
+      containElectronics: Boolean(containElectronics),
+      containLithium: Boolean(containLithium),
+      recipientName: recipientName.trim(),
+      recipientPhone: recipientPhone.trim(),
+      recipientAddress: recipientAddress.trim(),
+      recipientCity: recipientCity.trim() || "Caracas, Venezuela",
+      pickupDate: pickupDate || new Date().toISOString().split("T")[0],
+      timeSlot: timeSlot || "mañana",
+    };
 
     try {
       if (token) {
@@ -49,150 +183,597 @@ export default function SolicitarPickupPage() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            senderName,
-            senderPhone,
-            senderAddress,
-            senderCity,
-            boxCount,
-            totalWeightKg,
-            containElectronics,
-            recipientName,
-            recipientPhone,
-            recipientAddress,
-            recipientCity,
-            pickupDate,
-            timeSlot,
-          }),
+          body: JSON.stringify(payload),
         });
         const data = await res.json();
         if (res.ok && data.pickup) {
-          setGeneratedCode(data.pickup.pickupCode);
+          code = data.pickup.pickupCode;
         }
       }
     } catch {
-      // Fallback a código generado localmente si está offline
-      setGeneratedCode(`PK-${Math.floor(1000 + Math.random() * 9000)}-DOM`);
-    } finally {
-      setLoading(false);
-      setIsSubmitted(true);
+      // Fallback local
     }
+
+    setGeneratedCode(code);
+
+    // Guardar copia local reactiva
+    const newLocalItem: ClientPickup = {
+      id: `pk_${Date.now()}`,
+      pickupCode: code,
+      ...payload,
+      status: "PENDIENTE",
+      createdAt: new Date().toISOString(),
+    };
+
+    if (typeof window !== "undefined") {
+      try {
+        const existing = JSON.parse(localStorage.getItem("beebox_local_pickups") || "[]");
+        localStorage.setItem("beebox_local_pickups", JSON.stringify([newLocalItem, ...existing]));
+      } catch {}
+    }
+
+    setMyPickups((prev) => [newLocalItem, ...prev]);
+    setLoading(false);
+    setIsSubmitted(true);
   };
 
+  const handleResetForm = () => {
+    setIsSubmitted(false);
+    setCurrentStep(1);
+    setActiveMainTab("solicitar");
+  };
+
+  // Filtrado de solicitudes en historial
+  const filteredPickups = myPickups.filter((p) => {
+    const sTerm = searchTerm.toLowerCase();
+    const matches =
+      p.pickupCode.toLowerCase().includes(sTerm) ||
+      p.recipientName.toLowerCase().includes(sTerm) ||
+      p.senderAddress.toLowerCase().includes(sTerm) ||
+      p.recipientCity.toLowerCase().includes(sTerm);
+
+    const isPending = p.status === "PENDIENTE" || p.status === "pendiente";
+    const isConfirmed = p.status === "CONFIRMADO" || p.status === "EN RUTA";
+    const isCollected = p.status === "RECOLECTADO";
+
+    if (statusFilter === "PENDIENTES") return matches && isPending;
+    if (statusFilter === "CONFIRMADOS") return matches && isConfirmed;
+    if (statusFilter === "RECOLECTADOS") return matches && isCollected;
+    return matches;
+  });
+
+  const pendingCount = myPickups.filter((p) => p.status === "PENDIENTE" || p.status === "pendiente").length;
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-200">
-      {/* Title */}
-      <div>
-        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Solicitar Pickup a Domicilio</h1>
-        <p className="text-xs font-semibold text-slate-500 mt-1">
-          {currentStep === 1
-            ? "Paso 1: Registra la ubicación exacta de recogida del paquete."
-            : currentStep === 2
-            ? "Paso 2: Registra las dimensiones de tus cajas e inspección de electrónicos."
-            : currentStep === 3
-            ? "Paso 3: Información del destinatario final y teléfonos de contacto."
-            : "Paso 4: Selecciona la fecha y franja horaria de recolección."}
-        </p>
+    <div className="space-y-6 animate-in fade-in duration-200">
+      {/* Top Header Bar with Tabs */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Servicio de Pickup a Domicilio</h1>
+          <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+            RECOLECCIÓN EN TU DIRECCIÓN • REVISIÓN OPERATIVA Y ENVÍO INTERNACIONAL
+          </span>
+        </div>
+
+        {/* Tab Switcher */}
+        <div className="flex items-center gap-2 bg-slate-200/70 p-1.5 rounded-2xl w-fit">
+          <button
+            onClick={() => setActiveMainTab("solicitar")}
+            className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 ${
+              activeMainTab === "solicitar"
+                ? "bg-amber-500 text-slate-950 shadow-md"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Plus className="w-3.5 h-3.5" /> Nueva Solicitud
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveMainTab("historial");
+              fetchMyPickups();
+            }}
+            className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 ${
+              activeMainTab === "historial"
+                ? "bg-amber-500 text-slate-950 shadow-md"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Truck className="w-3.5 h-3.5" /> Mis Solicitudes ({myPickups.length})
+            {pendingCount > 0 && (
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+            )}
+          </button>
+        </div>
       </div>
 
-      {!isSubmitted ? (
-        <>
-          {/* Stepper Header Bar */}
-          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm max-w-4xl mx-auto">
-            <div className="flex items-center justify-between relative before:absolute before:left-8 before:right-8 before:top-4 before:h-0.5 before:bg-slate-200 before:z-0">
-              {steps.map((s) => {
-                const isCompleted = s.num < currentStep;
-                const isCurrent = s.num === currentStep;
+      {/* VIEW 1: HISTORIAL DE SOLICITUDES DEL CLIENTE */}
+      {activeMainTab === "historial" ? (
+        <div className="space-y-6 animate-in fade-in">
+          {/* Subheader & Filters */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-sm">
+            <div className="flex items-center gap-2 overflow-x-auto">
+              {[
+                { id: "TODOS", label: `TODAS (${myPickups.length})` },
+                { id: "PENDIENTES", label: `POR CONFIRMAR (${pendingCount})` },
+                { id: "CONFIRMADOS", label: "EN PROCESO" },
+                { id: "RECOLECTADOS", label: "RECOLECTADOS" },
+              ].map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setStatusFilter(f.id)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold uppercase transition-all shrink-0 ${
+                    statusFilter === f.id
+                      ? "bg-slate-900 text-white shadow"
+                      : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="relative w-full sm:w-72">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar por código, destinatario..."
+                className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-amber-500"
+              />
+            </div>
+          </div>
+
+          {/* Cards Grid */}
+          {historyLoading ? (
+            <div className="p-12 text-center text-slate-400 flex items-center justify-center gap-2 bg-white rounded-3xl border border-slate-200">
+              <Loader2 className="w-5 h-5 animate-spin text-amber-500" />
+              <span className="text-xs font-bold">Cargando tus solicitudes de pickup...</span>
+            </div>
+          ) : filteredPickups.length === 0 ? (
+            <div className="p-12 text-center bg-white rounded-3xl border border-slate-200 space-y-3">
+              <Truck className="w-12 h-12 text-slate-300 mx-auto" />
+              <h3 className="text-base font-bold text-slate-800">No tienes solicitudes de pickup en este filtro</h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Cuando solicitas una recolección a domicilio, se registra en estado pendiente hasta que el equipo operativo asigna la unidad móvil y genera el envío.
+              </p>
+              <Button
+                onClick={() => setActiveMainTab("solicitar")}
+                variant="amber"
+                className="rounded-2xl px-6 py-2.5 font-black text-xs uppercase"
+              >
+                <Plus className="w-4 h-4 mr-1" /> Solicitar Nuevo Pickup
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredPickups.map((p) => {
+                const isPending = p.status === "PENDIENTE" || p.status === "pendiente";
+                const isConfirmed = p.status === "CONFIRMADO" || p.status === "EN RUTA";
+                const isCollected = p.status === "RECOLECTADO";
 
                 return (
-                  <div key={s.num} className="relative z-10 flex flex-col items-center gap-2">
-                    <button
-                      onClick={() => setCurrentStep(s.num)}
-                      className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
-                        isCompleted
-                          ? "bg-emerald-500 text-white shadow-md"
-                          : isCurrent
-                          ? "bg-amber-500 text-slate-950 ring-4 ring-amber-100 font-black shadow-md scale-110"
-                          : "bg-white border-2 border-slate-300 text-slate-400"
-                      }`}
-                    >
-                      {isCompleted ? <Check className="w-4 h-4 stroke-[3]" /> : s.num}
-                    </button>
-                    <span
-                      className={`text-[10px] font-extrabold tracking-wider uppercase ${
-                        isCurrent ? "text-amber-600 font-bold" : isCompleted ? "text-slate-800" : "text-slate-400"
-                      }`}
-                    >
-                      {s.label}
-                    </span>
+                  <div
+                    key={p.id}
+                    className="p-5 rounded-3xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all space-y-4 flex flex-col justify-between"
+                  >
+                    <div className="space-y-3">
+                      {/* Card Header */}
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-xs font-black text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg">
+                          {p.pickupCode}
+                        </span>
+
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                            isPending
+                              ? "bg-amber-100 text-amber-900 border border-amber-300"
+                              : isConfirmed
+                              ? "bg-blue-100 text-blue-900 border border-blue-300"
+                              : isCollected
+                              ? "bg-emerald-100 text-emerald-900 border border-emerald-300"
+                              : "bg-slate-100 text-slate-700"
+                          }`}
+                        >
+                          ● {isPending ? "POR CONFIRMAR" : p.status}
+                        </span>
+                      </div>
+
+                      {/* Schedule info */}
+                      <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-1.5 text-xs">
+                        <div className="flex items-center justify-between text-slate-700 font-bold">
+                          <span className="flex items-center gap-1.5 text-slate-900">
+                            <Calendar className="w-3.5 h-3.5 text-amber-600" />
+                            {p.pickupDate}
+                          </span>
+                          <span className="flex items-center gap-1 uppercase text-amber-800 text-[10px] font-extrabold">
+                            <Clock className="w-3.5 h-3.5 text-amber-600" />
+                            {p.timeSlot}
+                          </span>
+                        </div>
+
+                        <div className="text-[11px] text-slate-600 flex items-start gap-1.5 pt-1 border-t border-slate-200/60">
+                          <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                          <span className="line-clamp-1">{p.senderAddress}</span>
+                        </div>
+                      </div>
+
+                      {/* Recipient & Cargo summary */}
+                      <div className="space-y-1 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">DESTINATARIO:</span>
+                          <span className="font-bold text-slate-800">{p.recipientName}</span>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">DESTINO:</span>
+                          <span className="text-slate-600 font-medium">{p.recipientCity}</span>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">BULTOS:</span>
+                          <span className="font-bold text-slate-800">{p.boxCount} {p.boxCount === 1 ? "Caja" : "Cajas"}</span>
+                        </div>
+                      </div>
+
+                      {/* Badges for electronics / lithium */}
+                      {(p.containElectronics || p.containLithium) && (
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {p.containElectronics && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-800 font-extrabold text-[9px] border border-blue-200">
+                              <Laptop className="w-3 h-3 text-blue-600" /> ELECTRÓNICOS
+                            </span>
+                          )}
+                          {p.containLithium && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 font-extrabold text-[9px] border border-amber-300">
+                              <BatteryCharging className="w-3 h-3 text-amber-600" /> BATERÍA LITIO (IATA)
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Card Actions */}
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                      <button
+                        onClick={() => setSelectedPickupModal(p)}
+                        className="text-xs font-bold text-amber-600 hover:text-amber-700 inline-flex items-center gap-1"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> Ver Detalle
+                      </button>
+
+                      {isConfirmed && (
+                        <span className="text-[10px] font-extrabold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg">
+                          Envío Generado
+                        </span>
+                      )}
+                    </div>
                   </div>
                 );
               })}
             </div>
-          </div>
-
-          {/* Step Content */}
-          {currentStep === 1 && <PickupWizardStep1 onNext={() => setCurrentStep(2)} />}
-          {currentStep === 2 && (
-            <PickupWizardStep2 onNext={() => setCurrentStep(3)} onBack={() => setCurrentStep(1)} />
           )}
-          {currentStep === 3 && (
-            <PickupWizardStep3 onNext={() => setCurrentStep(4)} onBack={() => setCurrentStep(2)} />
-          )}
-          {currentStep === 4 && (
-            <PickupWizardStep4 onNext={handleFinalSubmit} onBack={() => setCurrentStep(3)} />
-          )}
-
-          {/* Bottom Actions Bar */}
-          <div className="max-w-4xl mx-auto flex items-center justify-between pt-4 border-t border-slate-200">
-            <button
-              onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
-              disabled={currentStep === 1 || loading}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 disabled:opacity-40"
-            >
-              <ArrowLeft className="w-4 h-4" /> Atrás
-            </button>
-
-            {currentStep < 4 ? (
-              <Button
-                onClick={() => setCurrentStep(currentStep + 1)}
-                variant="amber"
-                className="rounded-2xl px-6 py-3 font-bold"
-              >
-                SIGUIENTE <ArrowRight className="w-4 h-4 ml-1" />
-              </Button>
-            ) : (
-              <Button
-                onClick={handleFinalSubmit}
-                disabled={loading}
-                variant="amber"
-                className="rounded-2xl px-8 py-3 font-bold shadow-lg shadow-amber-500/20"
-              >
-                {loading ? "PROCESANDO..." : "SOLICITAR PICKUP AHORA"} <Check className="w-4 h-4 ml-1 stroke-[3]" />
-              </Button>
-            )}
-          </div>
-        </>
+        </div>
       ) : (
-        <div className="max-w-4xl mx-auto bg-white rounded-3xl p-12 border border-slate-200 text-center space-y-4 shadow-sm animate-in zoom-in-95 duration-300">
-          <div className="w-20 h-20 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center">
-            <Truck className="w-10 h-10 stroke-[2.5]" />
-          </div>
-          <h3 className="text-2xl font-black text-slate-900">¡Recolección Programada Exitosamente!</h3>
-          <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-            Tu orden de pickup <span className="font-mono font-bold text-amber-600">{generatedCode}</span> ha sido asignada al chofer de ruta local. Te contactaremos 30 minutos antes de llegar.
-          </p>
-          <div className="pt-4">
-            <Button
-              onClick={() => {
-                setIsSubmitted(false);
-                setCurrentStep(1);
-              }}
-              variant="amber"
-              className="rounded-2xl px-6"
-            >
-              Solicitar Otro Pickup
-            </Button>
+        /* VIEW 2: STEPPER DE NUEVA SOLICITUD */
+        <div className="space-y-8 animate-in fade-in">
+          {!isSubmitted ? (
+            <>
+              {/* Stepper Header Bar */}
+              <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm max-w-4xl mx-auto">
+                <div className="flex items-center justify-between relative before:absolute before:left-8 before:right-8 before:top-4 before:h-0.5 before:bg-slate-200 before:z-0">
+                  {steps.map((s) => {
+                    const isCompleted = s.num < currentStep;
+                    const isCurrent = s.num === currentStep;
+
+                    return (
+                      <div key={s.num} className="relative z-10 flex flex-col items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => s.num < currentStep && setCurrentStep(s.num)}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-extrabold transition-all ${
+                            isCompleted
+                              ? "bg-amber-500 text-slate-950 shadow-md ring-4 ring-amber-500/20 cursor-pointer"
+                              : isCurrent
+                              ? "bg-slate-900 text-white shadow-md ring-4 ring-slate-900/20"
+                              : "bg-white border-2 border-slate-200 text-slate-400"
+                          }`}
+                        >
+                          {isCompleted ? <Check className="w-4 h-4 stroke-[3]" /> : s.num}
+                        </button>
+                        <span
+                          className={`text-[10px] font-extrabold tracking-wider uppercase ${
+                            isCurrent ? "text-amber-600 font-bold" : isCompleted ? "text-slate-800" : "text-slate-400"
+                          }`}
+                        >
+                          {s.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Step Content with real bidirectional state wiring */}
+              {currentStep === 1 && (
+                <PickupWizardStep1
+                  onNext={() => setCurrentStep(2)}
+                  senderName={senderName}
+                  senderPhone={senderPhone}
+                  senderAddress={senderAddress}
+                  senderCity={senderCity}
+                  onUpdateData={(data) => {
+                    setSenderName(data.senderName);
+                    setSenderPhone(data.senderPhone);
+                    setSenderAddress(data.senderAddress);
+                    setSenderCity(data.senderCity);
+                  }}
+                />
+              )}
+
+              {currentStep === 2 && (
+                <PickupWizardStep2
+                  onNext={() => setCurrentStep(3)}
+                  onBack={() => setCurrentStep(1)}
+                  initialBoxCount={boxCount}
+                  initialContainElectronics={containElectronics}
+                  initialContainLithium={containLithium}
+                  onUpdateData={(data) => {
+                    setBoxCount(data.boxCount);
+                    setCargoType(data.cargoType);
+                    setContainElectronics(data.containElectronics);
+                    setContainLithium(data.containLithium);
+                  }}
+                />
+              )}
+
+              {currentStep === 3 && (
+                <PickupWizardStep3
+                  onNext={() => setCurrentStep(4)}
+                  onBack={() => setCurrentStep(2)}
+                  recipientName={recipientName}
+                  recipientPhone={recipientPhone}
+                  recipientAddress={recipientAddress}
+                  recipientCity={recipientCity}
+                  onUpdateData={(data) => {
+                    setRecipientName(data.recipientName);
+                    setRecipientPhone(data.recipientPhone);
+                    setRecipientAddress(data.recipientAddress);
+                    setRecipientCity(data.recipientCity);
+                  }}
+                />
+              )}
+
+              {currentStep === 4 && (
+                <PickupWizardStep4
+                  onNext={handleFinalSubmit}
+                  onBack={() => setCurrentStep(3)}
+                  pickupDate={pickupDate}
+                  timeSlot={timeSlot}
+                  onUpdateData={(data) => {
+                    setPickupDate(data.pickupDate);
+                    setTimeSlot(data.timeSlot);
+                  }}
+                />
+              )}
+
+              {/* Bottom Actions Bar */}
+              <div className="max-w-4xl mx-auto flex items-center justify-between pt-4 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
+                  disabled={currentStep === 1 || loading}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 disabled:opacity-40 cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Atrás
+                </button>
+
+                {currentStep < 4 ? (
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      if (currentStep === 1 && (!senderName.trim() || !senderAddress.trim())) {
+                        alert("Por favor completa el nombre de remitente y la dirección de recogida.");
+                        return;
+                      }
+                      if (currentStep === 3 && (!recipientName.trim() || !recipientAddress.trim())) {
+                        alert("Por favor completa el nombre y dirección del destinatario.");
+                        return;
+                      }
+                      setCurrentStep(currentStep + 1);
+                    }}
+                    variant="amber"
+                    className="rounded-2xl px-6 py-3 font-bold"
+                  >
+                    SIGUIENTE <ArrowRight className="w-4 h-4 ml-1" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={handleFinalSubmit}
+                    disabled={loading}
+                    variant="amber"
+                    className="rounded-2xl px-8 py-3 font-bold shadow-lg shadow-amber-500/20"
+                  >
+                    {loading ? (
+                      <span className="flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" /> Registrando Solicitud...
+                      </span>
+                    ) : (
+                      "CONFIRMAR Y SOLICITAR RECOLECCIÓN"
+                    )}
+                  </Button>
+                )}
+              </div>
+            </>
+          ) : (
+            /* Success confirmation screen */
+            <div className="bg-white rounded-3xl p-8 sm:p-12 border border-slate-200 shadow-xl max-w-2xl mx-auto text-center space-y-6">
+              <div className="w-16 h-16 bg-emerald-500/10 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                <Check className="w-8 h-8 stroke-[3]" />
+              </div>
+
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
+                  SOLICITUD REGISTRADA EXITOSAMENTE
+                </span>
+                <h2 className="text-2xl font-black text-slate-900 mt-3">¡Tu Solicitud de Pickup está en Marcha!</h2>
+                <p className="text-xs text-slate-500 mt-2 max-w-md mx-auto">
+                  Tu solicitud ha sido enviada al equipo operativo. Un chofer de flota será asignado para la fecha programada.
+                </p>
+              </div>
+
+              {/* Card with summary */}
+              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 text-left space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">CÓDIGO DE PICKUP:</span>
+                  <span className="font-mono text-xs font-black text-slate-900">{generatedCode}</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold block">FECHA PROGRAMADA:</span>
+                    <span className="font-bold text-slate-800">{pickupDate} ({timeSlot})</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold block">ESTADO:</span>
+                    <span className="font-bold text-amber-700">● PENDIENTE DE REVISIÓN</span>
+                  </div>
+                </div>
+
+                <div className="pt-1 text-xs">
+                  <span className="text-[10px] text-slate-400 font-bold block">DESTINATARIO:</span>
+                  <span className="font-bold text-slate-800">{recipientName} ({recipientCity})</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <Button
+                  onClick={() => {
+                    setActiveMainTab("historial");
+                    setIsSubmitted(false);
+                    setCurrentStep(1);
+                    fetchMyPickups();
+                  }}
+                  variant="amber"
+                  className="w-full sm:w-auto rounded-2xl px-6 py-3 font-bold"
+                >
+                  <Truck className="w-4 h-4 mr-2" /> Ver Mis Solicitudes de Pickup
+                </Button>
+
+                <Button
+                  onClick={handleResetForm}
+                  variant="outline"
+                  className="w-full sm:w-auto rounded-2xl px-6 py-3 font-bold text-slate-700"
+                >
+                  Solicitar Otro Pickup
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* MODAL DETALLES DE SOLICITUD DE PICKUP */}
+      {selectedPickupModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
+                  <Truck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">Detalle de Solicitud de Pickup</h3>
+                  <span className="text-[10px] font-bold text-slate-400 font-mono">
+                    {selectedPickupModal.pickupCode}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setSelectedPickupModal(null)}
+                className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4 text-xs">
+              {/* Status banner */}
+              <div className={`p-3 rounded-xl border font-bold flex items-center gap-2 ${
+                selectedPickupModal.status === "PENDIENTE" || selectedPickupModal.status === "pendiente"
+                  ? "bg-amber-50 border-amber-200 text-amber-900"
+                  : selectedPickupModal.status === "CONFIRMADO"
+                  ? "bg-blue-50 border-blue-200 text-blue-900"
+                  : "bg-emerald-50 border-emerald-200 text-emerald-900"
+              }`}>
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>
+                  {selectedPickupModal.status === "PENDIENTE" || selectedPickupModal.status === "pendiente"
+                    ? "En espera de confirmación por el personal operativo para asignar chofer y ruta."
+                    : selectedPickupModal.status === "CONFIRMADO"
+                    ? "Pickup confirmado. Unidad de flota en proceso de recolección hacia tu domicilio."
+                    : "Paquete recolectado con éxito e ingresado en el almacén de despacho."}
+                </span>
+              </div>
+
+              {/* Data Grid */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
+                <span className="text-[10px] font-black uppercase text-slate-500 block border-b pb-1">
+                  PUNTO DE RECOGIDA
+                </span>
+                <div>
+                  <span className="text-[10px] text-slate-400 font-bold block">REMITENTE:</span>
+                  <span className="font-bold text-slate-900">{selectedPickupModal.senderName} ({selectedPickupModal.senderPhone})</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 font-bold block">DIRECCIÓN:</span>
+                  <span className="font-medium text-slate-700">{selectedPickupModal.senderAddress}, {selectedPickupModal.senderCity}</span>
+                </div>
+                <div className="flex items-center justify-between pt-1 text-[11px]">
+                  <span className="text-slate-500">Fecha: <strong>{selectedPickupModal.pickupDate}</strong></span>
+                  <span className="text-amber-800 uppercase font-bold">Franja: <strong>{selectedPickupModal.timeSlot}</strong></span>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
+                <span className="text-[10px] font-black uppercase text-slate-500 block border-b pb-1">
+                  DESTINO FINAL
+                </span>
+                <div>
+                  <span className="text-[10px] text-slate-400 font-bold block">DESTINATARIO:</span>
+                  <span className="font-bold text-slate-900">{selectedPickupModal.recipientName} ({selectedPickupModal.recipientPhone})</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 font-bold block">DIRECCIÓN DE ENTREGA:</span>
+                  <span className="font-medium text-slate-700">{selectedPickupModal.recipientAddress} ({selectedPickupModal.recipientCity})</span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-100 flex items-center justify-between text-[11px] font-bold text-slate-800">
+                <span>Carga: {selectedPickupModal.boxCount} Bultos ({selectedPickupModal.totalWeightKg} kg est.)</span>
+                {selectedPickupModal.containLithium && (
+                  <span className="text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded text-[10px]">
+                    Batería Litio IATA
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50 text-right">
+              <Button
+                onClick={() => setSelectedPickupModal(null)}
+                variant="outline"
+                className="rounded-xl px-5 py-2 text-xs font-bold"
+              >
+                Cerrar
+              </Button>
+            </div>
           </div>
         </div>
       )}

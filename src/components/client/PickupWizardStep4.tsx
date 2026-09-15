@@ -1,99 +1,146 @@
 "use client";
 
-import React, { useState } from "react";
-import { ChevronLeft, ChevronRight, Sun, Sunset, Info } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Sun, Sunset, Info, Calendar as CalendarIcon, Clock } from "lucide-react";
 
-export const PickupWizardStep4: React.FC<{ onNext: () => void; onBack: () => void }> = ({
+interface PickupWizardStep4Props {
+  onNext: () => void;
+  onBack: () => void;
+  pickupDate: string;
+  timeSlot: string;
+  onUpdateData: (data: { pickupDate: string; timeSlot: string }) => void;
+}
+
+export const PickupWizardStep4: React.FC<PickupWizardStep4Props> = ({
   onNext,
   onBack,
+  pickupDate: initialPickupDate,
+  timeSlot: initialTimeSlot,
+  onUpdateData,
 }) => {
-  const [selectedDay, setSelectedDay] = useState(11);
-  const [selectedSlot, setSelectedSlot] = useState("tarde");
+  const today = new Date().toISOString().split("T")[0];
+  const [selectedDate, setSelectedDate] = useState(initialPickupDate || today);
+  const [selectedSlot, setSelectedSlot] = useState(initialTimeSlot || "mañana");
+
+  const notifyChange = (date = selectedDate, slot = selectedSlot) => {
+    onUpdateData({ pickupDate: date, timeSlot: slot });
+  };
+
+  const handleDateChange = (newDate: string) => {
+    setSelectedDate(newDate);
+    notifyChange(newDate, selectedSlot);
+  };
+
+  const handleSlotChange = (newSlot: string) => {
+    setSelectedSlot(newSlot);
+    notifyChange(selectedDate, newSlot);
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
-        <h3 className="text-lg font-bold text-slate-900">Selecciona tu horario de recogida</h3>
+        <div>
+          <h3 className="text-lg font-black text-slate-900 tracking-tight">
+            4. Fecha y Franja Horaria de Recolección
+          </h3>
+          <p className="text-xs text-slate-500 mt-1">
+            Selecciona el día y horario en el que nuestro chofer de flota acudirá a retirar los paquetes.
+          </p>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-          {/* Mini Calendar View (Image 2) */}
+          {/* Date Selector */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                OCTUBRE 2026
-              </span>
-              <div className="flex items-center gap-1">
-                <button className="p-1 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-900">
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button className="p-1 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-900">
-                  <ChevronRight className="w-4 h-4" />
-                </button>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+              <CalendarIcon className="w-4 h-4 text-amber-500" /> Fecha de Recolección Programada *
+            </span>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                Selecciona la fecha en calendario:
+              </label>
+              <input
+                type="date"
+                min={today}
+                value={selectedDate}
+                onChange={(e) => handleDateChange(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-xs font-bold font-mono text-slate-900 focus:border-amber-500 focus:outline-none shadow-sm cursor-pointer"
+              />
+
+              <div className="pt-2 flex items-center justify-between text-xs font-bold text-slate-700">
+                <span className="text-slate-400">Día Seleccionado:</span>
+                <span className="px-3 py-1 rounded-lg bg-amber-100 text-amber-950 font-mono">
+                  {selectedDate}
+                </span>
               </div>
-            </div>
-
-            <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-bold text-slate-400">
-              <span>L</span>
-              <span>M</span>
-              <span>X</span>
-              <span>J</span>
-              <span>V</span>
-              <span className="text-red-400">S</span>
-              <span className="text-red-400">D</span>
-            </div>
-
-            <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((day) => (
-                <button
-                  key={day}
-                  onClick={() => setSelectedDay(day)}
-                  className={`py-2.5 rounded-xl font-bold transition-all ${
-                    selectedDay === day
-                      ? "bg-amber-500 text-slate-950 shadow-md scale-105"
-                      : "text-slate-700 hover:bg-slate-100"
-                  }`}
-                >
-                  {day}
-                </button>
-              ))}
             </div>
           </div>
 
-          {/* Time Slot Cards (Image 2) */}
+          {/* Time Slot Cards */}
           <div className="space-y-4">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-              FRANJAS HORARIAS
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+              <Clock className="w-4 h-4 text-amber-500" /> Franja Horaria de Llegada *
             </span>
 
             {/* Morning Slot */}
             <div
-              onClick={() => setSelectedSlot("manana")}
-              className={`p-4 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${
-                selectedSlot === "manana"
+              onClick={() => handleSlotChange("mañana")}
+              className={`p-4 rounded-2xl border-2 cursor-pointer flex items-center justify-between transition-all ${
+                selectedSlot === "mañana" || selectedSlot === "manana"
                   ? "border-amber-500 bg-amber-50/50 shadow-md ring-2 ring-amber-500/20"
                   : "border-slate-200 hover:border-slate-300 bg-white"
               }`}
             >
-              <span className="text-xs font-bold text-slate-900">Mañana (09:00 – 12:00)</span>
-              <Sun className="w-5 h-5 text-amber-500" />
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-amber-100 text-amber-700">
+                  <Sun className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-slate-900 block">Mañana (09:00 – 13:00)</span>
+                  <span className="text-[10px] text-slate-500">Ruta de recolección matutina</span>
+                </div>
+              </div>
+
+              <input
+                type="radio"
+                name="timeSlotGroup"
+                checked={selectedSlot === "mañana" || selectedSlot === "manana"}
+                onChange={() => handleSlotChange("mañana")}
+                className="text-amber-500 focus:ring-amber-500"
+              />
             </div>
 
             {/* Afternoon Slot */}
             <div
-              onClick={() => setSelectedSlot("tarde")}
-              className={`p-4 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${
+              onClick={() => handleSlotChange("tarde")}
+              className={`p-4 rounded-2xl border-2 cursor-pointer flex items-center justify-between transition-all ${
                 selectedSlot === "tarde"
                   ? "border-amber-500 bg-amber-50/50 shadow-md ring-2 ring-amber-500/20"
                   : "border-slate-200 hover:border-slate-300 bg-white"
               }`}
             >
-              <span className="text-xs font-bold text-slate-900">Tarde (14:00 – 18:00)</span>
-              <Sunset className="w-5 h-5 text-amber-500" />
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-amber-100 text-amber-700">
+                  <Sunset className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-slate-900 block">Tarde (14:00 – 18:00)</span>
+                  <span className="text-[10px] text-slate-500">Ruta de recolección vespertina</span>
+                </div>
+              </div>
+
+              <input
+                type="radio"
+                name="timeSlotGroup"
+                checked={selectedSlot === "tarde"}
+                onChange={() => handleSlotChange("tarde")}
+                className="text-amber-500 focus:ring-amber-500"
+              />
             </div>
 
-            <p className="text-[11px] text-slate-400 flex items-start gap-1.5 pt-2">
-              <Info className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-              El transportista te contactará 30 minutos antes de llegar a la dirección de recogida.
+            <p className="text-[11px] text-slate-500 flex items-start gap-1.5 pt-1">
+              <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              El chofer de la unidad asignada te contactará vía telefónica antes de llegar a la dirección indicada.
             </p>
           </div>
         </div>

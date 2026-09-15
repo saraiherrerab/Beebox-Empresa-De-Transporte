@@ -1,121 +1,244 @@
 "use client";
 
-import React, { useState } from "react";
-import { Home, Building2, Plus, Info, MessageSquareCode } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Home, Building2, Plus, Info, MapPin, User, Phone } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
-export const PickupWizardStep1: React.FC<{ onNext: () => void }> = ({ onNext }) => {
+interface PickupWizardStep1Props {
+  onNext: () => void;
+  senderName: string;
+  senderPhone: string;
+  senderAddress: string;
+  senderCity: string;
+  onUpdateData: (data: {
+    senderName: string;
+    senderPhone: string;
+    senderAddress: string;
+    senderCity: string;
+  }) => void;
+}
+
+export const PickupWizardStep1: React.FC<PickupWizardStep1Props> = ({
+  onNext,
+  senderName: initialSenderName,
+  senderPhone: initialSenderPhone,
+  senderAddress: initialSenderAddress,
+  senderCity: initialSenderCity,
+  onUpdateData,
+}) => {
   const { user } = useAuth();
-  const [selectedAddressId, setSelectedAddressId] = useState("addr-1");
-  const [driverNotes, setDriverNotes] = useState("");
+  const [selectedAddressMode, setSelectedAddressMode] = useState<"preset" | "custom">("custom");
+  const [senderName, setSenderName] = useState(initialSenderName || user?.name || "");
+  const [senderPhone, setSenderPhone] = useState(initialSenderPhone || user?.phone || "");
+  const [senderAddress, setSenderAddress] = useState(initialSenderAddress || "");
+  const [senderCity, setSenderCity] = useState(initialSenderCity || "Broken Arrow, OK");
+
+  const notifyChange = (
+    name = senderName,
+    phone = senderPhone,
+    addr = senderAddress,
+    city = senderCity
+  ) => {
+    onUpdateData({
+      senderName: name,
+      senderPhone: phone,
+      senderAddress: addr,
+      senderCity: city,
+    });
+  };
+
+  const handleSelectPreset = (addr: string, city: string) => {
+    setSelectedAddressMode("preset");
+    setSenderAddress(addr);
+    setSenderCity(city);
+    notifyChange(senderName, senderPhone, addr, city);
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
       {/* Left 2 Cols: Form */}
       <div className="lg:col-span-2 space-y-6">
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
-          <h3 className="text-lg font-bold text-slate-900">Selecciona la Dirección de Recogida</h3>
+          <div>
+            <h3 className="text-lg font-black text-slate-900 tracking-tight">
+              1. Datos del Remitente y Lugar de Recolección
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              Ingresa los datos de contacto y la ubicación exacta donde nuestro chofer retirará los paquetes.
+            </p>
+          </div>
 
+          {/* Preset Address Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Address Card 1 */}
             <div
-              onClick={() => setSelectedAddressId("addr-1")}
-              className={`p-5 rounded-2xl border cursor-pointer transition-all ${
-                selectedAddressId === "addr-1"
+              onClick={() => handleSelectPreset("Av. Insurgentes Sur 1234, Col. Del Valle", "Broken Arrow, OK")}
+              className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                selectedAddressMode === "preset" && senderAddress.includes("Insurgentes")
                   ? "border-amber-500 bg-amber-50/50 shadow-md ring-2 ring-amber-500/20"
                   : "border-slate-200 hover:border-slate-300"
               }`}
             >
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-1.5">
                 <span className="text-xs font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
-                  <Home className="w-4 h-4 text-amber-500" /> CASA (PREDETERMINADA)
+                  <Home className="w-4 h-4 text-amber-500" /> Domicilio / Casa
                 </span>
                 <input
                   type="radio"
-                  name="address"
-                  checked={selectedAddressId === "addr-1"}
-                  onChange={() => setSelectedAddressId("addr-1")}
+                  name="addrPreset"
+                  checked={selectedAddressMode === "preset" && senderAddress.includes("Insurgentes")}
+                  onChange={() => handleSelectPreset("Av. Insurgentes Sur 1234, Col. Del Valle", "Broken Arrow, OK")}
                   className="text-amber-500 focus:ring-amber-500"
                 />
               </div>
-              <p className="text-xs text-slate-500">Av. Insurgentes Sur 1234, CDMX, 03210</p>
+              <p className="text-xs text-slate-600 font-medium">Av. Insurgentes Sur 1234, Col. Del Valle</p>
+              <span className="text-[10px] text-slate-400 font-semibold">Broken Arrow, OK</span>
             </div>
 
-            {/* Address Card 2 */}
             <div
-              onClick={() => setSelectedAddressId("addr-2")}
-              className={`p-5 rounded-2xl border cursor-pointer transition-all ${
-                selectedAddressId === "addr-2"
+              onClick={() => handleSelectPreset("1405 Elm St, Suite 300", "Tulsa, OK")}
+              className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                selectedAddressMode === "preset" && senderAddress.includes("Elm St")
                   ? "border-amber-500 bg-amber-50/50 shadow-md ring-2 ring-amber-500/20"
                   : "border-slate-200 hover:border-slate-300"
               }`}
             >
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-1.5">
                 <span className="text-xs font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
-                  <Building2 className="w-4 h-4 text-amber-500" /> OFICINA NORTE
+                  <Building2 className="w-4 h-4 text-amber-500" /> Oficina / Negocio
                 </span>
                 <input
                   type="radio"
-                  name="address"
-                  checked={selectedAddressId === "addr-2"}
-                  onChange={() => setSelectedAddressId("addr-2")}
+                  name="addrPreset"
+                  checked={selectedAddressMode === "preset" && senderAddress.includes("Elm St")}
+                  onChange={() => handleSelectPreset("1405 Elm St, Suite 300", "Tulsa, OK")}
                   className="text-amber-500 focus:ring-amber-500"
                 />
               </div>
-              <p className="text-xs text-slate-500">Reforma 500, Piso 12, CDMX, 06600</p>
+              <p className="text-xs text-slate-600 font-medium">1405 Elm St, Suite 300</p>
+              <span className="text-[10px] text-slate-400 font-semibold">Tulsa, OK</span>
             </div>
           </div>
 
-          {/* Dotted button */}
-          <button className="w-full py-4 border-2 border-dashed border-slate-300 hover:border-amber-500 rounded-2xl text-xs font-bold text-slate-600 hover:text-amber-600 flex items-center justify-center gap-2 transition-colors">
-            <Plus className="w-4 h-4" /> Usar una dirección nueva
-          </button>
+          <div className="pt-2 border-t border-slate-100 space-y-4">
+            <span className="text-xs font-black text-slate-800 uppercase tracking-wider block">
+              Detalles Específicos de Recogida
+            </span>
 
-          {/* Driver Notes Textarea */}
-          <div className="space-y-2 pt-2">
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-              Notas para el Conductor
-            </label>
-            <textarea
-              rows={3}
-              value={driverNotes}
-              onChange={(e) => setDriverNotes(e.target.value)}
-              placeholder="Ej: Portón café, llamar al llegar..."
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-900 placeholder-slate-400 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-            />
+            {/* Remitente y Teléfono */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Nombre de Quien Entrega (Remitente) *
+                </label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    value={senderName}
+                    onChange={(e) => {
+                      setSenderName(e.target.value);
+                      notifyChange(e.target.value, senderPhone, senderAddress, senderCity);
+                    }}
+                    placeholder="Ej. Juan Pérez"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900 focus:border-amber-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Teléfono de Contacto (Chofer) *
+                </label>
+                <div className="relative">
+                  <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="tel"
+                    required
+                    value={senderPhone}
+                    onChange={(e) => {
+                      setSenderPhone(e.target.value);
+                      notifyChange(senderName, e.target.value, senderAddress, senderCity);
+                    }}
+                    placeholder="Ej. +1 (918) 555-0199"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900 focus:border-amber-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Dirección y Ciudad */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Dirección Completa de Recogida *
+                </label>
+                <div className="relative">
+                  <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                  <textarea
+                    rows={2}
+                    required
+                    value={senderAddress}
+                    onChange={(e) => {
+                      setSelectedAddressMode("custom");
+                      setSenderAddress(e.target.value);
+                      notifyChange(senderName, senderPhone, e.target.value, senderCity);
+                    }}
+                    placeholder="Calle, número exterior/interior, colonia o referencia..."
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 focus:border-amber-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Ciudad / Estado *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={senderCity}
+                  onChange={(e) => {
+                    setSenderCity(e.target.value);
+                    notifyChange(senderName, senderPhone, senderAddress, e.target.value);
+                  }}
+                  placeholder="Ej. Broken Arrow, OK"
+                  className="w-full px-3.5 py-3 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900 focus:border-amber-500 focus:outline-none"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Right Col: Helper Guide & Support */}
+      {/* Right Col: Helper Guide */}
       <div className="space-y-6">
         <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
           <div className="flex items-center gap-2 text-xs font-bold text-slate-900 uppercase">
-            <Info className="w-4 h-4 text-amber-500" /> Guía de Envío
+            <Info className="w-4 h-4 text-amber-500" /> Recolección en Domicilio
           </div>
           <div className="space-y-3 text-xs text-slate-600">
             <div>
-              <h4 className="font-bold text-slate-800">Embalaje Seguro</h4>
-              <p className="text-[11px] text-slate-500">Usa cajas de doble corrugado para mercancía pesada o frágil.</p>
+              <h4 className="font-bold text-slate-800">Unidad de Flota Asignada</h4>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Nuestras unidades móviles y choferes cubrirán la ruta según la franja horaria que elijas en el paso 4.
+              </p>
             </div>
             <div>
-              <h4 className="font-bold text-slate-800">Documentación</h4>
-              <p className="text-[11px] text-slate-500">Recuerda subir tu factura para agilizar el proceso de aduana.</p>
-            </div>
-            <div>
-              <h4 className="font-bold text-slate-800">Prohibidos</h4>
-              <p className="text-[11px] text-slate-500">No enviamos inflamables, baterías sueltas ni perecederos sin frío.</p>
+              <h4 className="font-bold text-slate-800">Confirmación Previa</h4>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                El chofer se comunicará al teléfono indicado 30 minutos antes de arribar al punto de recogida.
+              </p>
             </div>
           </div>
         </div>
 
-        {/* 24/7 Dark Help Card (Image 4) */}
-        <div className="rounded-3xl bg-slate-900 text-white p-6 shadow-xl space-y-4">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">AYUDA 24/7</span>
-          <h4 className="text-sm font-bold leading-snug">¿Tienes dudas sobre las dimensiones o el tipo de carga?</h4>
-          <button className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 transition-colors uppercase">
-            CHATEA CON NOSOTROS
-          </button>
+        <div className="rounded-3xl bg-slate-900 text-white p-6 shadow-xl space-y-2">
+          <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">BEEBOX EXPRESS</span>
+          <h4 className="text-sm font-bold leading-snug">¿Necesitas coordinar un horario especial para tu recogida?</h4>
+          <p className="text-[11px] text-slate-400">
+            Puedes indicarlo en las notas o contactar a soporte para rutas corporativas directas.
+          </p>
         </div>
       </div>
     </div>
