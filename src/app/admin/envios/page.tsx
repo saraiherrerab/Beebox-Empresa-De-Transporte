@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Search, MapPin, Loader2, Package, CheckCircle2, RefreshCw, ChevronLeft, ChevronRight, Truck } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { API_URL } from "@/config/api";
@@ -17,17 +18,19 @@ const STANDARDIZED_STATUSES = [
 
 const normalizeStatus = (rawStatus: string): string => {
   const s = (rawStatus || "").toLowerCase();
-  if (s.includes("pick") || s.includes("recoleccion") || s.includes("recolección") || s.includes("domicilio")) return "Pick up en proceso";
-  if (s.includes("origen") || s.includes("recibido")) return "En el origen";
+  if (s.includes("origen") || s.includes("recibido") || s.includes("completado")) return "En el origen";
   if (s.includes("camino") || s.includes("tránsito") || s.includes("transito") || s.includes("aduana")) return "En camino";
   if (s.includes("destino") || s.includes("entregado")) return "Llegó a su destino";
+  if (s.includes("pick") || s.includes("recoleccion") || s.includes("recolección") || s.includes("domicilio") || s.includes("proceso")) return "Pick up en proceso";
   return "En el origen";
 };
 
-export default function AdminEnviosPage() {
+function AdminEnviosContent() {
+  const searchParams = useSearchParams();
+  const urlSearch = searchParams.get("search") || "";
   const { socket, prealertas, refreshPrealertas } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("todos");
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(urlSearch);
   const [dbShipments, setDbShipments] = useState<ShipmentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [noticeMsg, setNoticeMsg] = useState<string | null>(null);
@@ -35,6 +38,12 @@ export default function AdminEnviosPage() {
   const [selectedShipment, setSelectedShipment] = useState<ShipmentItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const pageSize = 15;
+
+  useEffect(() => {
+    if (urlSearch) {
+      setSearch(urlSearch);
+    }
+  }, [urlSearch]);
 
   const fetchShipments = useCallback(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
@@ -150,6 +159,9 @@ export default function AdminEnviosPage() {
           if (!alreadyExists) {
             const dims = pk.dimensions || pk.verifiedDimensions || (pk.boxCount ? `${pk.boxCount} caja(s) (30x20x15 cm)` : "30x20x15 cm");
             const notes = pk.inspectionNotes || "Empaque original verificado conforme";
+            const isComp = pk.status === "COMPLETADO" || pk.status === "EN_ORIGEN" || pk.status === "RECOLECTADO";
+            const resolvedStatus = normalizeStatus(pk.status || "Pick up en proceso");
+
             mapped.unshift({
               id: code,
               tracking: code,
@@ -159,10 +171,10 @@ export default function AdminEnviosPage() {
               inspectionNotes: notes,
               clientName: pk.user?.name || pk.senderName || "Cliente BeeBox",
               suiteCode: pk.user?.suiteCode || "CAS-OK-HUB",
-              route: `${pk.senderCity || "Domicilio"} → ${pk.recipientCity || "Caracas, Venezuela"}`,
-              currentStatus: normalizeStatus(pk.status || "Pick up en proceso"),
+              route: `${pk.senderCity || "Broken Arrow, OK"} → ${pk.recipientCity || "Caracas, Venezuela"}`,
+              currentStatus: resolvedStatus,
               lastActivity: pk.pickupDate || "Reciente",
-              activityDesc: `Estado actual: Pick up en proceso`,
+              activityDesc: `Estado actual: ${resolvedStatus}`,
               hasPickup: true,
               senderName: pk.senderName,
               senderAddress: pk.senderAddress,
@@ -174,10 +186,12 @@ export default function AdminEnviosPage() {
               timeSlot: pk.timeSlot,
               events: [
                 {
-                  status: "Pick up en proceso",
-                  title: "Solicitud de Pickup Registrada y Auditada",
-                  description: `Recolección en domicilio solicitada para el día ${pk.pickupDate} (${pk.timeSlot}). Peso: ${pk.totalWeightKg || 1.0} kg. Medidas auditadas: ${dims}. Inspección: ${notes}`,
-                  location: `${pk.senderAddress}, ${pk.senderCity}`,
+                  status: resolvedStatus,
+                  title: isComp ? "Paquete Recolectado e Ingresado en Almacén" : "Solicitud de Pickup Registrada y Auditada",
+                  description: isComp
+                    ? `El paquete fue recolectado en domicilio e ingresado al almacén de origen para su posterior despacho internacional. Peso: ${pk.totalWeightKg || 1.0} kg. Medidas auditadas: ${dims}. Inspección: ${notes}`
+                    : `Recolección en domicilio solicitada para el día ${pk.pickupDate} (${pk.timeSlot}). Peso: ${pk.totalWeightKg || 1.0} kg. Medidas auditadas: ${dims}. Inspección: ${notes}`,
+                  location: isComp ? "Almacén Central (Broken Arrow, OK)" : `${pk.senderAddress}, ${pk.senderCity}`,
                   timestamp: pk.createdAt,
                 },
               ],
@@ -302,6 +316,21 @@ export default function AdminEnviosPage() {
 
     return list;
   }, [dbShipments, prealertas]);
+
+  // Si se busca un código de envío específico por URL (ej. desde Pickups), autoseleccionar y abrir el modal
+  useEffect(() => {
+    if (urlSearch && mergedShipments.length > 0) {
+      const match = mergedShipments.find(
+        (sh) =>
+          sh.tracking.toLowerCase() === urlSearch.toLowerCase() ||
+          sh.id.toLowerCase() === urlSearch.toLowerCase()
+      );
+      if (match) {
+        setSelectedShipment(match);
+        setIsModalOpen(true);
+      }
+    }
+  }, [urlSearch, mergedShipments]);
 
   const filteredShipments = useMemo(() => {
     const searchLower = (search || "").toLowerCase();
@@ -527,5 +556,20 @@ export default function AdminEnviosPage() {
         onUpdateStatus={handleUpdateStatus}
       />
     </div>
+  );
+}
+
+export default function AdminEnviosPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-12 text-center text-slate-400 flex items-center justify-center gap-2">
+          <Loader2 className="w-5 h-5 animate-spin text-amber-500" />
+          <span className="text-xs font-bold">Cargando control de envíos...</span>
+        </div>
+      }
+    >
+      <AdminEnviosContent />
+    </Suspense>
   );
 }

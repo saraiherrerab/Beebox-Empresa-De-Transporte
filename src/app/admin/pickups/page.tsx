@@ -107,7 +107,7 @@ const DEFAULT_MOCK_PICKUPS: ApiPickup[] = [
     containLithium: true,
     pickupDate: "2026-10-19",
     timeSlot: "tarde",
-    status: "CONFIRMADO",
+    status: "EN_PROCESO",
     user: {
       name: "Andrea Salazar",
       suiteCode: "CAS-OK-3982",
@@ -122,7 +122,50 @@ const DEFAULT_MOCK_PICKUPS: ApiPickup[] = [
       category: "Van Ligera",
     },
   },
+  {
+    id: "pk_mock_3",
+    pickupCode: "PK-7730-DOM",
+    senderName: "Roberto Gómez",
+    senderPhone: "+1 (918) 555-7832",
+    senderAddress: "8920 S Memorial Dr",
+    senderCity: "Broken Arrow, OK",
+    boxCount: 3,
+    totalWeightKg: 5.2,
+    containElectronics: false,
+    containLithium: false,
+    pickupDate: "2026-10-17",
+    timeSlot: "mañana",
+    status: "COMPLETADO",
+    user: {
+      name: "Roberto Gómez",
+      suiteCode: "CAS-OK-5512",
+    },
+    recipientName: "Elena Gómez",
+    recipientPhone: "+58 416 888 2345",
+    recipientAddress: "Av Francisco de Miranda, Chacao",
+    recipientCity: "Caracas, Venezuela",
+    vehicle: {
+      id: "v_2",
+      name: "Camioneta Nissan Reparto #01",
+      category: "Pickup Urbana",
+    },
+  },
 ];
+
+export const isPorConfirmar = (status: string) => {
+  const s = (status || "").toUpperCase();
+  return s === "PENDIENTE" || s === "POR_CONFIRMAR" || s === "POR CONFIRMAR";
+};
+
+export const isEnProceso = (status: string) => {
+  const s = (status || "").toUpperCase();
+  return s === "EN_PROCESO" || s === "EN PROCESO" || s === "CONFIRMADO" || s === "EN RUTA";
+};
+
+export const isEnOrigen = (status: string) => {
+  const s = (status || "").toUpperCase();
+  return s === "EN_ORIGEN" || s === "EN ORIGEN" || s === "COMPLETADO" || s === "RECOLECTADO" || s === "RECIBIDO_ALMACEN";
+};
 
 export default function AdminPickupsPage() {
   const [search, setSearch] = useState("");
@@ -132,7 +175,7 @@ export default function AdminPickupsPage() {
   const [selectedPickup, setSelectedPickup] = useState<ApiPickup | null>(null);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
   const [customGuide, setCustomGuide] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("TODOS");
+  const [statusFilter, setStatusFilter] = useState<string>("POR_CONFIRMAR");
   const [validatedNotice, setValidatedNotice] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -298,7 +341,7 @@ export default function AdminPickupsPage() {
     setSubmitting(false);
   };
 
-  // Confirmar pickup y generar Shipment oficial en "Pick up en proceso"
+  // Asignar vehículo a pickup por confirmar y mover a "En proceso"
   const handleConfirmPickup = async () => {
     if (!selectedPickup) return;
     setSubmitting(true);
@@ -313,7 +356,7 @@ export default function AdminPickupsPage() {
 
     const updatedPickup: ApiPickup = {
       ...selectedPickup,
-      status: "CONFIRMADO",
+      status: "EN_PROCESO",
       pickupCode: customGuide || selectedPickup.pickupCode,
       totalWeightKg: verifiedWeight,
       boxCount: verifiedBoxes,
@@ -330,7 +373,7 @@ export default function AdminPickupsPage() {
         method: "PATCH",
         headers: authHeaders,
         body: JSON.stringify({
-          status: "CONFIRMADO",
+          status: "EN_PROCESO",
           vehicleId: selectedVehicleId || assignedVehicle?.id || undefined,
           warehouseGuide: customGuide || selectedPickup.pickupCode,
           verifiedWeight,
@@ -347,6 +390,7 @@ export default function AdminPickupsPage() {
       prev.map((p) => (p.id === selectedPickup.id ? updatedPickup : p))
     );
     setSelectedPickup(updatedPickup);
+    setStatusFilter("EN_PROCESO");
 
     // Actualizar almacenamiento local
     if (typeof window !== "undefined") {
@@ -361,13 +405,13 @@ export default function AdminPickupsPage() {
     }
 
     setValidatedNotice(
-      `¡Solicitud ${updatedPickup.pickupCode} confirmada y auditada con éxito! Peso: ${verifiedWeight} kg (${finalDimensions}). Se generó el envío en estado "Pick up en proceso".`
+      `¡Vehículo ${assignedVehicle?.name || "asignado"} vinculado a la solicitud ${updatedPickup.pickupCode}! Se movió a "En proceso" para su búsqueda en calle.`
     );
-    setTimeout(() => setValidatedNotice(null), 5000);
+    setTimeout(() => setValidatedNotice(null), 6000);
     setSubmitting(false);
   };
 
-  // Marcar como recolectado e ingresar en almacén
+  // Marcar como recibido en origen, completar pickup y formalizar envío
   const handleMarkCollected = async () => {
     if (!selectedPickup) return;
     setSubmitting(true);
@@ -377,11 +421,11 @@ export default function AdminPickupsPage() {
       : { "Content-Type": "application/json" };
 
     const finalDimensions = `${verifiedLength}x${verifiedWidth}x${verifiedHeight} cm`;
-    const fullNotes = inspectionNotes.trim() || "Empaque original verificado conforme";
+    const fullNotes = inspectionNotes.trim() || "Empaque original verificado conforme en almacén";
 
     const updatedPickup: ApiPickup = {
       ...selectedPickup,
-      status: "RECOLECTADO",
+      status: "COMPLETADO",
       totalWeightKg: verifiedWeight,
       boxCount: verifiedBoxes,
       dimensions: finalDimensions,
@@ -396,7 +440,7 @@ export default function AdminPickupsPage() {
         method: "PATCH",
         headers: authHeaders,
         body: JSON.stringify({
-          status: "RECOLECTADO",
+          status: "COMPLETADO",
           verifiedWeight,
           verifiedBoxes,
           verifiedDimensions: finalDimensions,
@@ -411,6 +455,7 @@ export default function AdminPickupsPage() {
       prev.map((p) => (p.id === selectedPickup.id ? updatedPickup : p))
     );
     setSelectedPickup(updatedPickup);
+    setStatusFilter("EN_ORIGEN");
 
     if (typeof window !== "undefined") {
       try {
@@ -424,9 +469,9 @@ export default function AdminPickupsPage() {
     }
 
     setValidatedNotice(
-      `Paquete ${selectedPickup.pickupCode} marcado como recolectado. Medidas auditadas: ${finalDimensions}, ${verifiedWeight} kg. Su estatus avanzó a "En el origen".`
+      `¡Paquete ${selectedPickup.pickupCode} recibido en el almacén de origen! El pickup ha sido completado y ahora es un envío oficial.`
     );
-    setTimeout(() => setValidatedNotice(null), 5000);
+    setTimeout(() => setValidatedNotice(null), 8000);
     setSubmitting(false);
   };
 
@@ -464,17 +509,15 @@ export default function AdminPickupsPage() {
       p.senderAddress.toLowerCase().includes(searchLower) ||
       (p.user?.suiteCode || "").toLowerCase().includes(searchLower);
 
-    const isPending = p.status === "PENDIENTE" || p.status === "pendiente";
-    const isConfirmed = p.status === "CONFIRMADO" || p.status === "EN RUTA";
-    const isCollected = p.status === "RECOLECTADO";
-
-    if (statusFilter === "PENDIENTES") return matchesSearch && isPending;
-    if (statusFilter === "CONFIRMADOS") return matchesSearch && isConfirmed;
-    if (statusFilter === "RECOLECTADOS") return matchesSearch && isCollected;
-    return matchesSearch;
+    if (statusFilter === "POR_CONFIRMAR") return matchesSearch && isPorConfirmar(p.status);
+    if (statusFilter === "EN_PROCESO") return matchesSearch && isEnProceso(p.status);
+    if (statusFilter === "EN_ORIGEN") return matchesSearch && isEnOrigen(p.status);
+    return matchesSearch && isPorConfirmar(p.status);
   });
 
-  const pendingCount = pickups.filter((p) => p.status === "PENDIENTE" || p.status === "pendiente").length;
+  const porConfirmarCount = pickups.filter((p) => isPorConfirmar(p.status)).length;
+  const enProcesoCount = pickups.filter((p) => isEnProceso(p.status)).length;
+  const enOrigenCount = pickups.filter((p) => isEnOrigen(p.status)).length;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200 text-slate-900 bg-slate-50 p-4 sm:p-6 min-h-screen rounded-3xl">
@@ -483,7 +526,7 @@ export default function AdminPickupsPage() {
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">Gestión Operativa de Pickups</h1>
           <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
-            RECOLECCIONES A DOMICILIO • ASIGNACIÓN DE FLOTA Y CREACIÓN DE ENVÍO
+            RECOLECCIONES A DOMICILIO • ASIGNACIÓN DE FLOTA Y RECEPCIÓN EN ORIGEN
           </span>
         </div>
 
@@ -500,37 +543,64 @@ export default function AdminPickupsPage() {
           </div>
 
           <span className="px-3.5 py-2 rounded-2xl bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow-sm flex items-center gap-1.5">
-            <Truck className="w-3.5 h-3.5" /> {pendingCount} PENDIENTES
+            <Truck className="w-3.5 h-3.5" /> {porConfirmarCount} POR CONFIRMAR
           </span>
         </div>
       </div>
 
-      {/* Tabs Filter Bar */}
+      {/* Tabs Filter Bar: EXACTLY 3 TABS, NO 'TODOS' */}
       <div className="flex items-center gap-2 bg-slate-200/70 p-1.5 rounded-2xl overflow-x-auto w-fit">
         {[
-          { id: "TODOS", label: "TODOS LOS PICKUPS" },
-          { id: "PENDIENTES", label: "POR CONFIRMAR (PENDIENTES)" },
-          { id: "CONFIRMADOS", label: "CONFIRMADOS (EN PROCESO)" },
-          { id: "RECOLECTADOS", label: "RECOLECTADOS EN ALMACÉN" },
+          { id: "POR_CONFIRMAR", label: "POR CONFIRMAR", count: porConfirmarCount },
+          { id: "EN_PROCESO", label: "EN PROCESO", count: enProcesoCount },
+          { id: "EN_ORIGEN", label: "EN ORIGEN (COMPLETADOS)", count: enOrigenCount },
         ].map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setStatusFilter(tab.id)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold uppercase transition-all shrink-0 ${
+            onClick={() => {
+              setStatusFilter(tab.id);
+              const firstInTab = pickups.find((p) => {
+                if (tab.id === "POR_CONFIRMAR") return isPorConfirmar(p.status);
+                if (tab.id === "EN_PROCESO") return isEnProceso(p.status);
+                if (tab.id === "EN_ORIGEN") return isEnOrigen(p.status);
+                return true;
+              });
+              if (firstInTab) setSelectedPickup(firstInTab);
+            }}
+            className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all shrink-0 flex items-center gap-2 ${
               statusFilter === tab.id
-                ? "bg-amber-500 text-slate-950 font-black shadow-md"
+                ? "bg-amber-500 text-slate-950 shadow-md"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            {tab.label}
+            <span>{tab.label}</span>
+            <span
+              className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-black ${
+                statusFilter === tab.id
+                  ? "bg-slate-950/15 text-slate-950"
+                  : "bg-slate-300 text-slate-700"
+              }`}
+            >
+              {tab.count}
+            </span>
           </button>
         ))}
       </div>
 
       {validatedNotice && (
-        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 flex items-center gap-2 animate-in slide-in-from-top-2">
-          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-          {validatedNotice}
+        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 flex items-center justify-between gap-3 animate-in slide-in-from-top-2">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            <span>{validatedNotice}</span>
+          </div>
+          {selectedPickup && isEnOrigen(selectedPickup.status) && (
+            <Link
+              href={`/admin/envios?search=${selectedPickup.pickupCode}`}
+              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-1.5 transition-colors shrink-0 shadow-sm"
+            >
+              <ArrowRight className="w-3.5 h-3.5" /> Ir a Control de Envíos
+            </Link>
+          )}
         </div>
       )}
 
@@ -543,9 +613,19 @@ export default function AdminPickupsPage() {
       ) : filteredPickups.length === 0 ? (
         <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-sm space-y-3">
           <Truck className="w-12 h-12 text-slate-300 mx-auto" />
-          <h3 className="text-base font-bold text-slate-800">No hay solicitudes de recolección en este filtro</h3>
+          <h3 className="text-base font-bold text-slate-800">
+            {statusFilter === "POR_CONFIRMAR"
+              ? "No hay solicitudes pendientes por confirmar"
+              : statusFilter === "EN_PROCESO"
+              ? "No hay pickups actualmente en proceso de búsqueda"
+              : "No hay pickups completados en origen"}
+          </h3>
           <p className="text-xs text-slate-500 max-w-md mx-auto">
-            Las solicitudes de pickup programadas por los clientes a través de su portal aparecerán reflejadas aquí en tiempo real para ser asignadas y confirmadas.
+            {statusFilter === "POR_CONFIRMAR"
+              ? "Las nuevas solicitudes creadas por clientes aparecerán aquí para asignar vehículo e iniciar la recolección."
+              : statusFilter === "EN_PROCESO"
+              ? "Los pickups asignados a choferes que aún no han sido entregados al almacén se gestionan aquí."
+              : "Los paquetes que ya fueron retirados en domicilio y recibidos en el almacén de origen se formalizan como envíos."}
           </p>
         </div>
       ) : (
@@ -553,9 +633,9 @@ export default function AdminPickupsPage() {
           {/* Left Column: Request Cards (5 Cols) */}
           <div className="lg:col-span-5 space-y-4">
             {filteredPickups.map((p) => {
-              const isPending = p.status === "PENDIENTE" || p.status === "pendiente";
-              const isConfirmed = p.status === "CONFIRMADO" || p.status === "EN RUTA";
-              const isCollected = p.status === "RECOLECTADO";
+              const isPending = isPorConfirmar(p.status);
+              const isConfirmed = isEnProceso(p.status);
+              const isCollected = isEnOrigen(p.status);
               const isSelected = selectedPickup?.id === p.id;
 
               return (
@@ -639,7 +719,7 @@ export default function AdminPickupsPage() {
                           : "bg-slate-100 text-slate-700"
                       }`}
                     >
-                      ● {isPending ? "POR CONFIRMAR" : p.status}
+                      ● {isPending ? "POR CONFIRMAR" : isConfirmed ? "EN PROCESO" : isCollected ? "EN ORIGEN" : p.status}
                     </span>
                   </div>
                 </div>
@@ -671,31 +751,31 @@ export default function AdminPickupsPage() {
 
               {/* Status Banner */}
               <div
-                className={`p-4 rounded-2xl border flex items-center justify-between text-xs ${
-                  selectedPickup.status === "PENDIENTE" || selectedPickup.status === "pendiente"
+                className={`p-4 rounded-2xl border flex items-center justify-between gap-3 text-xs ${
+                  isPorConfirmar(selectedPickup.status)
                     ? "bg-amber-50 border-amber-200 text-amber-900"
-                    : selectedPickup.status === "CONFIRMADO"
+                    : isEnProceso(selectedPickup.status)
                     ? "bg-blue-50 border-blue-200 text-blue-900"
                     : "bg-emerald-50 border-emerald-200 text-emerald-900"
                 }`}
               >
                 <div className="flex items-center gap-2 font-bold">
-                  <AlertCircle className="w-4 h-4 text-current" />
+                  <AlertCircle className="w-4 h-4 text-current shrink-0" />
                   <span>
-                    {selectedPickup.status === "PENDIENTE" || selectedPickup.status === "pendiente"
-                      ? "Solicitud generada por el cliente. Requiere confirmación operativa para crear el envío."
-                      : selectedPickup.status === "CONFIRMADO"
-                      ? "Pickup confirmado. El envío está activo con estatus 'Pick up en proceso'."
-                      : "Paquete recolectado con éxito en domicilio e ingresado al almacén de origen."}
+                    {isPorConfirmar(selectedPickup.status)
+                      ? "Solicitud generada por el cliente. Asigna un vehículo de la flota e inicia la recolección."
+                      : isEnProceso(selectedPickup.status)
+                      ? `Pickup en proceso. ${selectedPickup.vehicle?.name ? `Unidad asignada: ${selectedPickup.vehicle.name}.` : "Vehículo asignado en ruta."} Cuando la unidad entregue el paquete en almacén, marca 'Recibido en Origen'.`
+                      : "¡Paquete recibido en almacén de origen! El pickup finalizó exitosamente y ahora es un envío oficial."}
                   </span>
                 </div>
 
-                {selectedPickup.status === "CONFIRMADO" && (
+                {isEnOrigen(selectedPickup.status) && (
                   <Link
                     href={`/admin/envios?search=${selectedPickup.pickupCode}`}
-                    className="px-3 py-1 rounded-xl bg-blue-600 text-white font-bold text-[11px] hover:bg-blue-700 transition-colors shrink-0"
+                    className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-1.5 transition-colors shrink-0 shadow-sm"
                   >
-                    Ver en Control de Envíos
+                    <ArrowRight className="w-3.5 h-3.5" /> Ir a Control de Envíos
                   </Link>
                 )}
               </div>
@@ -1002,8 +1082,8 @@ export default function AdminPickupsPage() {
                     <select
                       value={selectedVehicleId}
                       onChange={(e) => setSelectedVehicleId(e.target.value)}
-                      disabled={selectedPickup.status === "RECOLECTADO"}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-bold text-slate-800 focus:outline-none focus:border-amber-500 shadow-sm"
+                      disabled={isEnOrigen(selectedPickup.status)}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-bold text-slate-800 focus:outline-none focus:border-amber-500 shadow-sm disabled:bg-slate-100 disabled:text-slate-500"
                     >
                       <option value="">Seleccionar unidad de transporte...</option>
                       {fleetVehicles.map((v) => (
@@ -1023,9 +1103,9 @@ export default function AdminPickupsPage() {
                       type="text"
                       value={customGuide}
                       onChange={(e) => setCustomGuide(e.target.value)}
-                      disabled={selectedPickup.status !== "PENDIENTE" && selectedPickup.status !== "pendiente"}
+                      disabled={!isPorConfirmar(selectedPickup.status)}
                       placeholder="PK-XXXXX-DOM"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-amber-500 shadow-sm uppercase"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-amber-500 shadow-sm uppercase disabled:bg-slate-100 disabled:text-slate-500"
                     />
                   </div>
                 </div>
@@ -1054,7 +1134,7 @@ export default function AdminPickupsPage() {
                 </button>
 
                 {/* Botón según estado */}
-                {selectedPickup.status === "PENDIENTE" || selectedPickup.status === "pendiente" ? (
+                {isPorConfirmar(selectedPickup.status) ? (
                   <button
                     onClick={handleConfirmPickup}
                     disabled={submitting}
@@ -1064,12 +1144,12 @@ export default function AdminPickupsPage() {
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <>
-                        <Check className="w-4 h-4 stroke-[3]" />
-                        Confirmar Pickup y Crear Envío
+                        <Truck className="w-4 h-4 stroke-[2.5]" />
+                        Asignar Vehículo e Iniciar Recolección
                       </>
                     )}
                   </button>
-                ) : selectedPickup.status === "CONFIRMADO" || selectedPickup.status === "EN RUTA" ? (
+                ) : isEnProceso(selectedPickup.status) ? (
                   <button
                     onClick={handleMarkCollected}
                     disabled={submitting}
@@ -1080,13 +1160,21 @@ export default function AdminPickupsPage() {
                     ) : (
                       <>
                         <Package className="w-4 h-4 stroke-[2.5]" />
-                        Marcar Recolectado e Ingresar en Almacén
+                        Marcar Recibido en Origen (Completar Pickup)
                       </>
                     )}
                   </button>
                 ) : (
-                  <div className="ml-auto text-xs font-bold text-emerald-600 flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4" /> Recolección completada en bodega.
+                  <div className="ml-auto flex items-center gap-3">
+                    <div className="text-xs font-bold text-emerald-600 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4" /> Recolección completada en bodega.
+                    </div>
+                    <Link
+                      href={`/admin/envios?search=${selectedPickup.pickupCode}`}
+                      className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all"
+                    >
+                      <ArrowRight className="w-4 h-4 stroke-[2.5]" /> Ver en Control de Envíos
+                    </Link>
                   </div>
                 )}
               </div>

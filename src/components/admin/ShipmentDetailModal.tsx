@@ -70,7 +70,7 @@ const ALL_NODES = [
     id: "origen",
     statusMatch: "En el origen",
     label: "En el origen",
-    shortTitle: "2. Almacén Origen",
+    shortTitle: "2. Recibido en Origen",
     description: "Recibido e ingresado en almacén",
     icon: Building2,
   },
@@ -78,7 +78,7 @@ const ALL_NODES = [
     id: "camino",
     statusMatch: "En camino",
     label: "En camino",
-    shortTitle: "3. En Tránsito",
+    shortTitle: "3. En Camino",
     description: "Vuelo / Ruta internacional",
     icon: Plane,
   },
@@ -122,17 +122,70 @@ export const ShipmentDetailModal: React.FC<ShipmentDetailModalProps> = ({
 
   const currentIdx = getStatusIndex(shipment.currentStatus);
 
+  const isEnOrigen = shipment.currentStatus === "En el origen";
+  const isPickUpEnProceso = shipment.currentStatus === "Pick up en proceso";
+  const isEnCamino = shipment.currentStatus === "En camino";
+  const isDestino = shipment.currentStatus === "Llegó a su destino";
+
+  // Determinar si cada nodo está completado (verde), activo/siguiente (amarillo), o pendiente (gris)
+  const getNodeState = (nodeId: string, index: number) => {
+    if (nodeId === "pickup" && !hasPickup) {
+      return { disabled: true, completed: false, active: false, label: "INHABILITADO" };
+    }
+
+    if (isDestino) {
+      return { disabled: false, completed: true, active: false, label: "COMPLETADO" };
+    }
+
+    if (isEnOrigen) {
+      if (nodeId === "pickup") {
+        return { disabled: false, completed: true, active: false, label: "RECOLECTADO" };
+      }
+      if (nodeId === "origen") {
+        return { disabled: false, completed: true, active: false, label: "RECIBIDO EN ORIGEN" };
+      }
+      if (nodeId === "camino") {
+        return { disabled: false, completed: false, active: true, label: "SIGUIENTE ESTADO" };
+      }
+      return { disabled: false, completed: false, active: false, label: "PENDIENTE" };
+    }
+
+    if (isEnCamino) {
+      if (nodeId === "pickup" || nodeId === "origen") {
+        return { disabled: false, completed: true, active: false, label: "COMPLETADO" };
+      }
+      if (nodeId === "camino") {
+        return { disabled: false, completed: false, active: true, label: "EN TRÁNSITO" };
+      }
+      return { disabled: false, completed: false, active: false, label: "PENDIENTE" };
+    }
+
+    if (isPickUpEnProceso) {
+      if (nodeId === "pickup") {
+        return { disabled: false, completed: false, active: true, label: "EN PROCESO" };
+      }
+      return { disabled: false, completed: false, active: false, label: "PENDIENTE" };
+    }
+
+    // Default fallback
+    return {
+      disabled: false,
+      completed: currentIdx > index,
+      active: currentIdx === index,
+      label: currentIdx > index ? "COMPLETADO" : currentIdx === index ? "ACTIVO" : "PENDIENTE",
+    };
+  };
+
   // Cálculo de porcentaje de la barra de progreso
   const calculateProgressPercent = () => {
     if (hasPickup) {
-      if (currentIdx === 0) return 12;
-      if (currentIdx === 1) return 40;
-      if (currentIdx === 2) return 72;
+      if (isPickUpEnProceso) return 15;
+      if (isEnOrigen) return 72; // Alcanza y conecta con el siguiente estado En camino
+      if (isEnCamino) return 75;
       return 100;
     } else {
-      // Sin pickup: la barra va de Origen (idx 1) a Destino (idx 3)
-      if (currentIdx <= 1) return 0;
-      if (currentIdx === 2) return 50;
+      if (isEnOrigen) return 55; // Conecta con En camino
+      if (isEnCamino) return 60;
       return 100;
     }
   };
@@ -174,14 +227,14 @@ export const ShipmentDetailModal: React.FC<ShipmentDetailModalProps> = ({
                 shipment.currentStatus === "Pick up en proceso"
                   ? "bg-amber-50 text-amber-800 border-amber-300"
                   : shipment.currentStatus === "En el origen"
-                  ? "bg-blue-50 text-blue-800 border-blue-300"
+                  ? "bg-emerald-50 text-emerald-800 border-emerald-300"
                   : shipment.currentStatus === "En camino"
-                  ? "bg-indigo-50 text-indigo-800 border-indigo-300"
+                  ? "bg-amber-50 text-amber-800 border-amber-300"
                   : "bg-emerald-50 text-emerald-800 border-emerald-300"
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-current animate-pulse" />
-              {shipment.currentStatus}
+              {shipment.currentStatus === "En el origen" ? "Recibido en Origen" : shipment.currentStatus}
             </div>
 
             <button
@@ -227,15 +280,13 @@ export const ShipmentDetailModal: React.FC<ShipmentDetailModalProps> = ({
 
               {/* Barra Activa Conectora */}
               {hasPickup ? (
-                // Barra de progreso desde el nodo 0 (Pick up) hasta Destino
                 <div
-                  className="absolute top-11 left-8 h-1.5 bg-gradient-to-r from-amber-500 via-amber-400 to-emerald-400 rounded-full transition-all duration-700 ease-out"
+                  className="absolute top-11 left-8 h-1.5 bg-gradient-to-r from-emerald-500 via-emerald-400 to-amber-400 rounded-full transition-all duration-700 ease-out"
                   style={{ width: `calc(${progressPercent}% * 0.85)` }}
                 />
               ) : (
-                // Barra de progreso desde el nodo 1 (Origen) hasta Destino
                 <div
-                  className="absolute top-11 left-[37%] h-1.5 bg-gradient-to-r from-blue-500 to-emerald-400 rounded-full transition-all duration-700 ease-out"
+                  className="absolute top-11 left-[37%] h-1.5 bg-gradient-to-r from-emerald-500 via-emerald-400 to-amber-400 rounded-full transition-all duration-700 ease-out"
                   style={{ width: `calc(${progressPercent}% * 0.58)` }}
                 />
               )}
@@ -244,39 +295,30 @@ export const ShipmentDetailModal: React.FC<ShipmentDetailModalProps> = ({
               <div className="grid grid-cols-4 gap-2 relative z-10">
                 {ALL_NODES.map((node, index) => {
                   const Icon = node.icon;
-
-                  // Caso especial: El nodo es Pickup y el envío NO tuvo pickup
-                  const isPickupDisabled = node.id === "pickup" && !hasPickup;
-
-                  // Estado del nodo: completado, activo o pendiente
-                  const isCompleted = hasPickup
-                    ? currentIdx > index
-                    : index > 0 && currentIdx > index;
-
-                  const isActive = !isPickupDisabled && currentIdx === index;
+                  const state = getNodeState(node.id, index);
 
                   return (
                     <div
                       key={node.id}
                       className={`flex flex-col items-center text-center transition-all duration-300 ${
-                        isPickupDisabled ? "opacity-45" : "opacity-100"
+                        state.disabled ? "opacity-45" : "opacity-100"
                       }`}
                     >
                       {/* Node Circle */}
                       <div
                         className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 ${
-                          isPickupDisabled
+                          state.disabled
                             ? "bg-slate-800/80 border-2 border-dashed border-slate-700 text-slate-500"
-                            : isCompleted
+                            : state.completed
                             ? "bg-emerald-500 text-slate-950 font-black shadow-lg shadow-emerald-500/30 scale-105"
-                            : isActive
+                            : state.active
                             ? "bg-amber-500 text-slate-950 font-black ring-4 ring-amber-500/30 shadow-xl shadow-amber-500/40 scale-110 animate-pulse"
                             : "bg-slate-800 border-2 border-slate-700 text-slate-400"
                         }`}
                       >
-                        {isPickupDisabled ? (
+                        {state.disabled ? (
                           <Ban className="w-5 h-5 text-slate-500" />
-                        ) : isCompleted ? (
+                        ) : state.completed ? (
                           <CheckCircle2 className="w-6 h-6 stroke-[2.5]" />
                         ) : (
                           <Icon className="w-6 h-6 stroke-[2.2]" />
@@ -287,12 +329,12 @@ export const ShipmentDetailModal: React.FC<ShipmentDetailModalProps> = ({
                       <div className="mt-3 space-y-1 w-full px-1">
                         <span
                           className={`text-[11px] font-extrabold uppercase tracking-tight block ${
-                            isPickupDisabled
+                            state.disabled
                               ? "text-slate-500 line-through"
-                              : isActive
+                              : state.active
                               ? "text-amber-400 font-black"
-                              : isCompleted
-                              ? "text-emerald-400"
+                              : state.completed
+                              ? "text-emerald-400 font-bold"
                               : "text-slate-400"
                           }`}
                         >
@@ -300,24 +342,24 @@ export const ShipmentDetailModal: React.FC<ShipmentDetailModalProps> = ({
                         </span>
 
                         <p className="text-[10px] text-slate-400 font-medium hidden sm:block leading-tight">
-                          {isPickupDisabled
+                          {state.disabled
                             ? "No solicitado / Oficina"
                             : node.description}
                         </p>
 
                         {/* Badge de Estado del Nodo */}
                         <div className="pt-1">
-                          {isPickupDisabled ? (
+                          {state.disabled ? (
                             <span className="inline-block px-1.5 py-0.5 rounded bg-slate-800 text-[9px] font-bold text-slate-500">
                               INHABILITADO
                             </span>
-                          ) : isCompleted ? (
-                            <span className="inline-block px-1.5 py-0.5 rounded bg-emerald-500/20 text-[9px] font-extrabold text-emerald-300">
-                              COMPLETADO
+                          ) : state.completed ? (
+                            <span className="inline-block px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-[9px] font-extrabold text-emerald-300">
+                              {state.label}
                             </span>
-                          ) : isActive ? (
-                            <span className="inline-block px-1.5 py-0.5 rounded bg-amber-500 text-[9px] font-black text-slate-950 shadow-sm">
-                              EN PROCESO
+                          ) : state.active ? (
+                            <span className="inline-block px-2 py-0.5 rounded bg-amber-500 text-[9px] font-black text-slate-950 shadow-sm">
+                              {state.label}
                             </span>
                           ) : (
                             <span className="inline-block px-1.5 py-0.5 rounded bg-slate-800/80 text-[9px] font-semibold text-slate-500">
