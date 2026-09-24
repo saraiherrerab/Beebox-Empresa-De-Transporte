@@ -39,6 +39,9 @@ interface ApiPickup {
     size?: string;
     contentDescription?: string;
     declaredValue?: number | "";
+    containElectronics?: boolean;
+    electronicsDetails?: string;
+    electronicsDeclaredValue?: number | "";
   }[];
   dimensions?: string;
   verifiedDimensions?: string;
@@ -884,14 +887,31 @@ export default function AdminPickupsPage() {
                       {selectedPickup.boxes && selectedPickup.boxes.length > 0 ? (
                         <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                           {selectedPickup.boxes.map((b, idx) => (
-                            <div key={b.id || idx} className="p-2 rounded-xl bg-white border border-slate-200 space-y-0.5">
+                            <div key={b.id || idx} className="p-2 rounded-xl bg-white border border-slate-200 space-y-1">
                               <div className="flex items-center justify-between font-bold text-[11px] text-slate-900">
-                                <span>Caja #{idx + 1} ({b.size || "Mediano"})</span>
+                                <span className="flex items-center gap-1.5">
+                                  Caja #{idx + 1} ({b.size || "Mediano"})
+                                  {b.containElectronics && (
+                                    <span className="text-[9px] font-extrabold text-blue-700 bg-blue-100/80 px-1.5 py-0.2 rounded border border-blue-200 inline-flex items-center gap-0.5">
+                                      <Laptop className="w-2.5 h-2.5 text-blue-600" /> Electrónicos
+                                    </span>
+                                  )}
+                                </span>
                                 <span className="font-mono text-amber-800">${b.declaredValue || 0} USD</span>
                               </div>
                               <p className="text-[10px] text-slate-600 leading-tight">
                                 {b.contentDescription || "Sin descripción"}
                               </p>
+                              {b.containElectronics && (
+                                <div className="p-1 rounded bg-blue-50/80 border border-blue-200 text-blue-950 text-[10px] flex items-center justify-between">
+                                  <span className="truncate pr-1">{b.electronicsDetails || "Equipos"}</span>
+                                  {b.electronicsDeclaredValue && (
+                                    <span className="font-mono font-bold text-blue-800 shrink-0">
+                                      ${b.electronicsDeclaredValue} USD
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>

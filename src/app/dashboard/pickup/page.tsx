@@ -85,6 +85,9 @@ export default function SolicitarPickupPage() {
       size: "Mediano",
       contentDescription: "",
       declaredValue: "",
+      containElectronics: false,
+      electronicsDetails: "",
+      electronicsDeclaredValue: "",
     },
   ]);
   const [totalWeightKg, setTotalWeightKg] = useState(1.5);
@@ -176,18 +179,17 @@ export default function SolicitarPickupPage() {
         setCurrentStep(2);
         return;
       }
-    }
-
-    if (containElectronics) {
-      if (!electronicsDetails.trim()) {
-        alert("Por favor indica la marca, modelo y cantidad de los equipos electrónicos (Paso 2).");
-        setCurrentStep(2);
-        return;
-      }
-      if (electronicsDeclaredValue === "" || Number(electronicsDeclaredValue) <= 0) {
-        alert("Por favor indica el monto declarado de los equipos electrónicos (Paso 2).");
-        setCurrentStep(2);
-        return;
+      if (b.containElectronics) {
+        if (!b.electronicsDetails || !b.electronicsDetails.trim()) {
+          alert(`Por favor indica la marca, modelo y cantidad de los equipos electrónicos en la Caja #${i + 1} (Paso 2).`);
+          setCurrentStep(2);
+          return;
+        }
+        if (b.electronicsDeclaredValue === "" || Number(b.electronicsDeclaredValue) <= 0) {
+          alert(`Por favor indica el monto declarado de los equipos electrónicos en la Caja #${i + 1} (Paso 2).`);
+          setCurrentStep(2);
+          return;
+        }
       }
     }
 
@@ -887,14 +889,34 @@ export default function SolicitarPickupPage() {
                   </span>
                   <div className="space-y-2">
                     {selectedPickupModal.boxes.map((b, idx) => (
-                      <div key={b.id || idx} className="p-2.5 rounded-xl bg-white border border-slate-200 space-y-1">
+                      <div key={b.id || idx} className="p-3 rounded-xl bg-white border border-slate-200 space-y-1.5">
                         <div className="flex items-center justify-between text-slate-900 font-black">
-                          <span>Caja #{idx + 1} ({b.size})</span>
-                          <span className="text-amber-800 font-mono">${b.declaredValue || 0} USD</span>
+                          <span className="flex items-center gap-1.5">
+                            Caja #{idx + 1} ({b.size || "Mediano"})
+                            {b.containElectronics && (
+                              <span className="text-[9px] font-extrabold text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded-full border border-blue-200 inline-flex items-center gap-1">
+                                <Laptop className="w-2.5 h-2.5 text-blue-600" /> Con Electrónicos
+                              </span>
+                            )}
+                          </span>
+                          <span className="text-amber-800 font-mono text-xs">${b.declaredValue || 0} USD</span>
                         </div>
                         <p className="text-slate-600 text-[11px] font-medium leading-tight">
                           {b.contentDescription || "Sin descripción"}
                         </p>
+                        {b.containElectronics && (
+                          <div className="mt-1 p-2 rounded-lg bg-blue-50/80 border border-blue-200 text-blue-950 text-[11px] flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                            <span className="font-semibold flex items-center gap-1">
+                              <Laptop className="w-3 h-3 text-blue-600 shrink-0" />
+                              {b.electronicsDetails || "Equipos electrónicos"}
+                            </span>
+                            {b.electronicsDeclaredValue && (
+                              <span className="font-mono font-bold text-blue-800 shrink-0">
+                                Valor Eq.: ${b.electronicsDeclaredValue} USD
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
