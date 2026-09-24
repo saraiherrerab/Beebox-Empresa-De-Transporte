@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { User, Phone, MapPin, Globe, BookmarkCheck, Plus, Check, Sparkles } from "lucide-react";
+import { User, Phone, MapPin, Globe, BookmarkCheck, Plus, Check, Sparkles, Info } from "lucide-react";
 import { API_URL } from "@/config/api";
 
 export interface SavedRecipient {
@@ -46,7 +46,7 @@ export const PickupWizardStep3: React.FC<PickupWizardStep3Props> = ({
   const [primaryPhone, setPrimaryPhone] = useState(initialRecipientPhone || "");
   const [secondaryPhone, setSecondaryPhone] = useState(initialRecipientPhone2 || "");
   const [address, setAddress] = useState(initialRecipientAddress || "");
-  const [city, setCity] = useState(initialRecipientCity || "Caracas, Venezuela");
+  const [city, setCity] = useState(initialRecipientCity || "");
 
   const [savedRecipients, setSavedRecipients] = useState<SavedRecipient[]>([]);
   const [selectedRecipientId, setSelectedRecipientId] = useState<string>("custom");
@@ -58,37 +58,11 @@ export const PickupWizardStep3: React.FC<PickupWizardStep3Props> = ({
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
-          localList = JSON.parse(stored);
+          const parsed = JSON.parse(stored);
+          localList = Array.isArray(parsed) ? parsed : [];
         }
       } catch (err) {
         console.error("Error loading recipients from localStorage:", err);
-      }
-    }
-
-    // Default suggestions if none saved yet
-    if (localList.length === 0) {
-      localList = [
-        {
-          id: "rec_default_1",
-          name: "Carlos Salazar",
-          phone: "+58 412 555 1234",
-          phone2: "+58 414 777 8899",
-          address: "Calle Reforma 456, Urb Las Mercedes",
-          city: "Caracas, Venezuela",
-        },
-        {
-          id: "rec_default_2",
-          name: "María Fernández",
-          phone: "+58 424 999 1122",
-          phone2: "+58 416 333 4455",
-          address: "Av. 4 Bella Vista con Calle 72, Edif. Panamericano",
-          city: "Maracaibo, Venezuela",
-        },
-      ];
-      if (typeof window !== "undefined") {
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(localList));
-        } catch {}
       }
     }
 
@@ -215,7 +189,7 @@ export const PickupWizardStep3: React.FC<PickupWizardStep3Props> = ({
         </div>
 
         {/* SELECTOR DE DESTINATARIOS FRECUENTES GUARDADOS */}
-        {savedRecipients.length > 0 && (
+        {savedRecipients.length > 0 ? (
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
@@ -276,6 +250,13 @@ export const PickupWizardStep3: React.FC<PickupWizardStep3Props> = ({
                 );
               })}
             </div>
+          </div>
+        ) : (
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-center gap-2.5">
+            <Info className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>
+              Ingresa los datos de tu destinatario a continuación. Al continuar se guardarán automáticamente en tu libreta para futuros envíos.
+            </span>
           </div>
         )}
 

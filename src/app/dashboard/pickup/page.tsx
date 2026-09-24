@@ -74,10 +74,10 @@ export default function SolicitarPickupPage() {
   const [selectedPickupModal, setSelectedPickupModal] = useState<ClientPickup | null>(null);
 
   // Form state - Real user editable values
-  const [senderName, setSenderName] = useState(user?.name || "Juan Pérez");
-  const [senderPhone, setSenderPhone] = useState(user?.phone || "+1 (918) 555-0199");
-  const [senderAddress, setSenderAddress] = useState("Av. Insurgentes Sur 1234, Col. Del Valle");
-  const [senderCity, setSenderCity] = useState("Broken Arrow, OK");
+  const [senderName, setSenderName] = useState(user?.name || "");
+  const [senderPhone, setSenderPhone] = useState(user?.phone || "");
+  const [senderAddress, setSenderAddress] = useState("");
+  const [senderCity, setSenderCity] = useState("");
   const [boxCount, setBoxCount] = useState(1);
   const [boxes, setBoxes] = useState<BoxItem[]>([
     {
@@ -93,11 +93,11 @@ export default function SolicitarPickupPage() {
   const [electronicsDeclaredValue, setElectronicsDeclaredValue] = useState<number | "">("");
   const [containLithium, setContainLithium] = useState(false);
   const [notes, setNotes] = useState("");
-  const [recipientName, setRecipientName] = useState("Carlos Salazar");
-  const [recipientPhone, setRecipientPhone] = useState("+58 412 555 1234");
-  const [recipientPhone2, setRecipientPhone2] = useState("+58 414 777 8899");
-  const [recipientAddress, setRecipientAddress] = useState("Calle Reforma 456, Urb Las Mercedes");
-  const [recipientCity, setRecipientCity] = useState("Caracas, Venezuela");
+  const [recipientName, setRecipientName] = useState("");
+  const [recipientPhone, setRecipientPhone] = useState("");
+  const [recipientPhone2, setRecipientPhone2] = useState("");
+  const [recipientAddress, setRecipientAddress] = useState("");
+  const [recipientCity, setRecipientCity] = useState("");
   const [pickupDate, setPickupDate] = useState(new Date().toISOString().split("T")[0]);
   const [timeSlot, setTimeSlot] = useState("mañana");
 
@@ -149,10 +149,10 @@ export default function SolicitarPickupPage() {
     fetchMyPickups();
   }, [fetchMyPickups]);
 
-  // Actualizar datos del usuario si cambia auth
+  // Actualizar datos del usuario si cambia auth y no hay datos escritos
   useEffect(() => {
-    if (user?.name && senderName === "Juan Pérez") setSenderName(user.name);
-    if (user?.phone && senderPhone.includes("555-0199")) setSenderPhone(user.phone);
+    if (user?.name && !senderName) setSenderName(user.name);
+    if (user?.phone && !senderPhone) setSenderPhone(user.phone);
   }, [user]);
 
   const steps = [

@@ -1,8 +1,17 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Home, Building2, Plus, Info, MapPin, User, Phone } from "lucide-react";
+import { Home, Building2, Plus, Info, MapPin, User, Phone, Bookmark, Check, Sparkles } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+
+export interface SavedAddress {
+  id: string;
+  label: string;
+  address: string;
+  city: string;
+  contactName?: string;
+  contactPhone?: string;
+}
 
 interface PickupWizardStep1Props {
   onNext: () => void;
@@ -18,6 +27,8 @@ interface PickupWizardStep1Props {
   }) => void;
 }
 
+const STORAGE_KEY_ADDRESSES = "beebox_saved_addresses";
+
 export const PickupWizardStep1: React.FC<PickupWizardStep1Props> = ({
   onNext,
   senderName: initialSenderName,
@@ -27,11 +38,42 @@ export const PickupWizardStep1: React.FC<PickupWizardStep1Props> = ({
   onUpdateData,
 }) => {
   const { user } = useAuth();
-  const [selectedAddressMode, setSelectedAddressMode] = useState<"preset" | "custom">("custom");
+  const [selectedAddressMode, setSelectedAddressMode] = useState<string>("custom");
   const [senderName, setSenderName] = useState(initialSenderName || user?.name || "");
   const [senderPhone, setSenderPhone] = useState(initialSenderPhone || user?.phone || "");
   const [senderAddress, setSenderAddress] = useState(initialSenderAddress || "");
-  const [senderCity, setSenderCity] = useState(initialSenderCity || "Broken Arrow, OK");
+  const [senderCity, setSenderCity] = useState(initialSenderCity || "");
+  const [saveAddressForFuture, setSaveAddressForFuture] = useState(false);
+  const [addressLabel, setAddressLabel] = useState("Casa / Domicilio");
+
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+
+  // Cargar direcciones guardadas reales del usuario
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY_ADDRESSES);
+        if (stored) {
+          const list: SavedAddress[] = JSON.parse(stored);
+          setSavedAddresses(Array.isArray(list) ? list : []);
+        }
+      } catch (err) {
+        console.error("Error al cargar direcciones guardadas:", err);
+      }
+    }
+  }, []);
+
+  // Si cambia el usuario autenticado y los campos están vacíos, completarlos con su perfil real
+  useEffect(() => {
+    if (user?.name && !senderName) {
+      setSenderName(user.name);
+      notifyChange(user.name, senderPhone, senderAddress, senderCity);
+    }
+    if (user?.phone && !senderPhone) {
+      setSenderPhone(user.phone);
+      notifyChange(senderName, user.phone, senderAddress, senderCity);
+    }
+  }, [user]);
 
   const notifyChange = (
     name = senderName,
@@ -47,11 +89,43 @@ export const PickupWizardStep1: React.FC<PickupWizardStep1Props> = ({
     });
   };
 
-  const handleSelectPreset = (addr: string, city: string) => {
-    setSelectedAddressMode("preset");
-    setSenderAddress(addr);
-    setSenderCity(city);
-    notifyChange(senderName, senderPhone, addr, city);
+  const handleSelectSavedAddress = (addrItem: SavedAddress | "custom") => {
+    if (addrItem === "custom") {
+      setSelectedAddressMode("custom");
+      return;
+    }
+    setSelectedAddressMode(addrItem.id);
+    setSenderAddress(addrItem.address);
+    setSenderCity(addrItem.city);
+    if (addrItem.contactName && !senderName) setSenderName(addrItem.contactName);
+    if (addrItem.contactPhone && !senderPhone) setSenderPhone(addrItem.contactPhone);
+    notifyChange(
+      addrItem.contactName || senderName,
+      addrItem.contactPhone || senderPhone,
+      addrItem.address,
+      addrItem.city
+    );
+  };
+
+  const handleSaveCurrentAddress = () => {
+    if (!senderAddress.trim() || !senderCity.trim()) return;
+
+    const newAddr: SavedAddress = {
+      id: `addr_${Date.now()}`,
+      label: addressLabel.trim() || "Dirección",
+      address: senderAddress.trim(),
+      city: senderCity.trim(),
+      contactName: senderName.trim(),
+      contactPhone: senderPhone.trim(),
+    };
+
+    const updated = [newAddr, ...savedAddresses];
+    setSavedAddresses(updated);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(STORAGE_KEY_ADDRESSES, JSON.stringify(updated));
+      } catch {}
+    }
   };
 
   return (
@@ -68,56 +142,87 @@ export const PickupWizardStep1: React.FC<PickupWizardStep1Props> = ({
             </p>
           </div>
 
-          {/* Preset Address Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div
-              onClick={() => handleSelectPreset("Av. Insurgentes Sur 1234, Col. Del Valle", "Broken Arrow, OK")}
-              className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                selectedAddressMode === "preset" && senderAddress.includes("Insurgentes")
-                  ? "border-amber-500 bg-amber-50/50 shadow-md ring-2 ring-amber-500/20"
-                  : "border-slate-200 hover:border-slate-300"
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
-                  <Home className="w-4 h-4 text-amber-500" /> Domicilio / Casa
+          {/* Selector de Direcciones Guardadas (Solo si existen direcciones reales) */}
+          {savedAddresses.length > 0 ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-600" />
+                  Direcciones Frecuentes Guardadas
                 </span>
-                <input
-                  type="radio"
-                  name="addrPreset"
-                  checked={selectedAddressMode === "preset" && senderAddress.includes("Insurgentes")}
-                  onChange={() => handleSelectPreset("Av. Insurgentes Sur 1234, Col. Del Valle", "Broken Arrow, OK")}
-                  className="text-amber-500 focus:ring-amber-500"
-                />
+                <span className="text-[10px] font-bold text-slate-400">
+                  Selecciona una para autocompletar
+                </span>
               </div>
-              <p className="text-xs text-slate-600 font-medium">Av. Insurgentes Sur 1234, Col. Del Valle</p>
-              <span className="text-[10px] text-slate-400 font-semibold">Broken Arrow, OK</span>
-            </div>
 
-            <div
-              onClick={() => handleSelectPreset("1405 Elm St, Suite 300", "Tulsa, OK")}
-              className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                selectedAddressMode === "preset" && senderAddress.includes("Elm St")
-                  ? "border-amber-500 bg-amber-50/50 shadow-md ring-2 ring-amber-500/20"
-                  : "border-slate-200 hover:border-slate-300"
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
-                  <Building2 className="w-4 h-4 text-amber-500" /> Oficina / Negocio
-                </span>
-                <input
-                  type="radio"
-                  name="addrPreset"
-                  checked={selectedAddressMode === "preset" && senderAddress.includes("Elm St")}
-                  onChange={() => handleSelectPreset("1405 Elm St, Suite 300", "Tulsa, OK")}
-                  className="text-amber-500 focus:ring-amber-500"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div
+                  onClick={() => handleSelectSavedAddress("custom")}
+                  className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between ${
+                    selectedAddressMode === "custom"
+                      ? "border-amber-500 bg-amber-50/50 shadow-sm ring-1 ring-amber-500/20"
+                      : "border-slate-200 hover:border-slate-300 bg-white"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center">
+                      <Plus className="w-4 h-4 text-slate-600" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-black text-slate-900 block leading-tight">
+                        Nueva Dirección
+                      </span>
+                      <span className="text-[10px] text-slate-500">Ingresar manualmente</span>
+                    </div>
+                  </div>
+                  <input
+                    type="radio"
+                    name="addrOption"
+                    checked={selectedAddressMode === "custom"}
+                    onChange={() => handleSelectSavedAddress("custom")}
+                    className="text-amber-500 focus:ring-amber-500"
+                  />
+                </div>
+
+                {savedAddresses.map((addr) => {
+                  const isSelected = selectedAddressMode === addr.id;
+                  return (
+                    <div
+                      key={addr.id}
+                      onClick={() => handleSelectSavedAddress(addr)}
+                      className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between ${
+                        isSelected
+                          ? "border-amber-500 bg-amber-50/50 shadow-sm ring-1 ring-amber-500/20"
+                          : "border-slate-200 hover:border-slate-300 bg-white"
+                      }`}
+                    >
+                      <div className="overflow-hidden pr-2">
+                        <span className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5 truncate">
+                          <Home className="w-3.5 h-3.5 text-amber-500 shrink-0" /> {addr.label}
+                        </span>
+                        <p className="text-[11px] text-slate-600 truncate mt-0.5">{addr.address}</p>
+                        <span className="text-[10px] text-slate-400 font-semibold">{addr.city}</span>
+                      </div>
+                      <input
+                        type="radio"
+                        name="addrOption"
+                        checked={isSelected}
+                        onChange={() => handleSelectSavedAddress(addr)}
+                        className="text-amber-500 focus:ring-amber-500 shrink-0"
+                      />
+                    </div>
+                  );
+                })}
               </div>
-              <p className="text-xs text-slate-600 font-medium">1405 Elm St, Suite 300</p>
-              <span className="text-[10px] text-slate-400 font-semibold">Tulsa, OK</span>
             </div>
-          </div>
+          ) : (
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-center gap-2.5">
+              <Info className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>
+                Ingresa la dirección donde retiraremos tus cajas. Podrás guardarla al final para futuras solicitudes.
+              </span>
+            </div>
+          )}
 
           <div className="pt-2 border-t border-slate-100 space-y-4">
             <span className="text-xs font-black text-slate-800 uppercase tracking-wider block">
@@ -140,7 +245,7 @@ export const PickupWizardStep1: React.FC<PickupWizardStep1Props> = ({
                       setSenderName(e.target.value);
                       notifyChange(e.target.value, senderPhone, senderAddress, senderCity);
                     }}
-                    placeholder="Ej. Juan Pérez"
+                    placeholder="Tu nombre completo o razón social"
                     className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900 focus:border-amber-500 focus:outline-none"
                   />
                 </div>
@@ -184,7 +289,7 @@ export const PickupWizardStep1: React.FC<PickupWizardStep1Props> = ({
                       setSenderAddress(e.target.value);
                       notifyChange(senderName, senderPhone, e.target.value, senderCity);
                     }}
-                    placeholder="Calle, número exterior/interior, colonia o referencia..."
+                    placeholder="Calle, número de casa/edificio, piso, sector o referencias de llegada..."
                     className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 focus:border-amber-500 focus:outline-none"
                   />
                 </div>
@@ -207,6 +312,37 @@ export const PickupWizardStep1: React.FC<PickupWizardStep1Props> = ({
                 />
               </div>
             </div>
+
+            {/* Opción para guardar la dirección */}
+            {selectedAddressMode === "custom" && senderAddress.trim() && (
+              <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200 space-y-3 animate-in fade-in">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-900">
+                  <input
+                    type="checkbox"
+                    checked={saveAddressForFuture}
+                    onChange={(e) => {
+                      setSaveAddressForFuture(e.target.checked);
+                      if (e.target.checked) handleSaveCurrentAddress();
+                    }}
+                    className="w-4 h-4 rounded text-amber-500 focus:ring-amber-500"
+                  />
+                  <span>Guardar esta dirección en mi libreta para próximas recolecciones</span>
+                </label>
+
+                {saveAddressForFuture && (
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className="text-[10px] font-bold uppercase text-slate-500 shrink-0">Etiqueta:</span>
+                    <input
+                      type="text"
+                      value={addressLabel}
+                      onChange={(e) => setAddressLabel(e.target.value)}
+                      placeholder="Ej. Casa, Oficina, Almacén..."
+                      className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -227,7 +363,7 @@ export const PickupWizardStep1: React.FC<PickupWizardStep1Props> = ({
             <div>
               <h4 className="font-bold text-slate-800">Confirmación Previa</h4>
               <p className="text-[11px] text-slate-500 leading-relaxed">
-                El chofer se comunicará al teléfono indicado 30 minutos antes de arribar al punto de recogida.
+                El chofer se comunicará al teléfono indicado antes de arribar al punto de recogida.
               </p>
             </div>
           </div>
@@ -237,7 +373,7 @@ export const PickupWizardStep1: React.FC<PickupWizardStep1Props> = ({
           <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">BEEBOX EXPRESS</span>
           <h4 className="text-sm font-bold leading-snug">¿Necesitas coordinar un horario especial para tu recogida?</h4>
           <p className="text-[11px] text-slate-400">
-            Puedes indicarlo en las notas o contactar a soporte para rutas corporativas directas.
+            Puedes indicarlo en las notas del chofer en el paso 2 o contactar a soporte para rutas corporativas.
           </p>
         </div>
       </div>

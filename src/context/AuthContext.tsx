@@ -322,7 +322,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: "usr_123",
         name: userRole === "super_admin" ? "Super Admin Principal" : userRole === "admin" ? "Admin Principal" : email.split("@")[0],
         email,
-        phone: "+52 55 9876 5432",
+        phone: "",
         suiteCode: "CAS-88293-TULSA",
         role: userRole,
       });

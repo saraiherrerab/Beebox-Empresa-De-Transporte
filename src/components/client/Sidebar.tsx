@@ -15,6 +15,8 @@ import {
   ShieldAlert,
   Sparkles,
   ArrowRight,
+  Store,
+  BookUser,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -28,7 +30,9 @@ export const Sidebar: React.FC = () => {
     { name: "Notificaciones", href: "/dashboard/notificaciones", icon: BellRing },
     { name: "Prealertas", href: "/dashboard/prealertas", icon: Package },
     { name: "Solicitar Pickup", href: "/dashboard/pickup", icon: Truck },
+    { name: "Retiros en Sucursal", href: "/dashboard/retiros", icon: Store },
     { name: "Mis Paquetes", href: "/dashboard/paquetes", icon: Boxes },
+    { name: "Mis Destinatarios", href: "/dashboard/destinatarios", icon: BookUser },
     { name: "Calculadora", href: "/dashboard/calculadora", icon: Calculator },
     { name: "Mi Perfil", href: "/dashboard/perfil", icon: User },
   ];
