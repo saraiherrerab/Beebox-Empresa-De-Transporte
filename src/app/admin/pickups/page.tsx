@@ -34,13 +34,22 @@ interface ApiPickup {
   senderCity: string;
   boxCount: number;
   totalWeightKg: number;
+  boxes?: {
+    id?: string;
+    size?: string;
+    contentDescription?: string;
+    declaredValue?: number | "";
+  }[];
   dimensions?: string;
   verifiedDimensions?: string;
   inspectionNotes?: string;
   containElectronics?: boolean;
+  electronicsDetails?: string;
+  electronicsDeclaredValue?: number | "";
   containLithium?: boolean;
   recipientName?: string;
   recipientPhone?: string;
+  recipientPhone2?: string;
   recipientAddress?: string;
   recipientCity?: string;
   pickupDate: string;
@@ -80,6 +89,10 @@ const DEFAULT_MOCK_PICKUPS: ApiPickup[] = [
     senderCity: "Broken Arrow, OK",
     boxCount: 2,
     totalWeightKg: 3.5,
+    boxes: [
+      { id: "b1", size: "Mediano", contentDescription: "Ropa variada y calzado deportivo", declaredValue: 120 },
+      { id: "b2", size: "Pequeño", contentDescription: "Cosméticos y accesorios personales", declaredValue: 80 },
+    ],
     containElectronics: false,
     containLithium: false,
     pickupDate: "2026-10-18",
@@ -91,6 +104,7 @@ const DEFAULT_MOCK_PICKUPS: ApiPickup[] = [
     },
     recipientName: "María López",
     recipientPhone: "+58 412 555 1234",
+    recipientPhone2: "+58 414 777 8899",
     recipientAddress: "Calle Reforma 456, Urb Las Mercedes",
     recipientCity: "Caracas, Venezuela",
   },
@@ -103,7 +117,12 @@ const DEFAULT_MOCK_PICKUPS: ApiPickup[] = [
     senderCity: "Tulsa, OK",
     boxCount: 1,
     totalWeightKg: 1.8,
+    boxes: [
+      { id: "b1", size: "Mediano", contentDescription: "Artículos de papelería y oficina", declaredValue: 90 },
+    ],
     containElectronics: true,
+    electronicsDetails: "1 Laptop Lenovo ThinkPad T14",
+    electronicsDeclaredValue: 750,
     containLithium: true,
     pickupDate: "2026-10-19",
     timeSlot: "tarde",
@@ -114,6 +133,7 @@ const DEFAULT_MOCK_PICKUPS: ApiPickup[] = [
     },
     recipientName: "Carlos Salazar",
     recipientPhone: "+58 414 777 8899",
+    recipientPhone2: "+58 416 333 4455",
     recipientAddress: "Av 4 Bella Vista con Calle 72",
     recipientCity: "Maracaibo, Venezuela",
     vehicle: {
@@ -152,17 +172,17 @@ const DEFAULT_MOCK_PICKUPS: ApiPickup[] = [
   },
 ];
 
-export const isPorConfirmar = (status: string) => {
+const isPorConfirmar = (status: string) => {
   const s = (status || "").toUpperCase();
   return s === "PENDIENTE" || s === "POR_CONFIRMAR" || s === "POR CONFIRMAR";
 };
 
-export const isEnProceso = (status: string) => {
+const isEnProceso = (status: string) => {
   const s = (status || "").toUpperCase();
   return s === "EN_PROCESO" || s === "EN PROCESO" || s === "CONFIRMADO" || s === "EN RUTA";
 };
 
-export const isEnOrigen = (status: string) => {
+const isEnOrigen = (status: string) => {
   const s = (status || "").toUpperCase();
   return s === "EN_ORIGEN" || s === "EN ORIGEN" || s === "COMPLETADO" || s === "RECOLECTADO" || s === "RECIBIDO_ALMACEN";
 };
@@ -821,38 +841,88 @@ export default function AdminPickupsPage() {
                     <Package className="w-3.5 h-3.5 text-amber-600" /> DETALLES DEL PAQUETE Y DESTINO
                   </span>
 
-                  <div className="space-y-2 text-xs">
+                  <div className="space-y-2.5 text-xs">
                     <div>
                       <span className="text-[10px] font-bold text-slate-400 block">DESTINATARIO FINAL</span>
                       <span className="font-bold text-slate-900">{selectedPickup.recipientName || selectedPickup.senderName}</span>
                     </div>
 
                     <div>
-                      <span className="text-[10px] font-bold text-slate-400 block">DESTINO</span>
+                      <span className="text-[10px] font-bold text-slate-400 block">TELÉFONOS DE CONTACTO (DESTINATARIO)</span>
+                      <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                        <span className="font-bold text-slate-800 flex items-center gap-1 font-mono bg-white px-2 py-0.5 rounded border border-slate-200">
+                          <Phone className="w-3 h-3 text-amber-600" /> {selectedPickup.recipientPhone || "No especificado"}
+                        </span>
+                        {selectedPickup.recipientPhone2 && !selectedPickup.recipientPhone?.includes(selectedPickup.recipientPhone2) && (
+                          <span className="font-bold text-slate-800 flex items-center gap-1 font-mono bg-white px-2 py-0.5 rounded border border-slate-200">
+                            <Phone className="w-3 h-3 text-slate-500" /> {selectedPickup.recipientPhone2}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 block">DIRECCIÓN DE ENTREGA EN DESTINO</span>
                       <p className="font-medium text-slate-700 leading-tight">
                         {selectedPickup.recipientAddress || "Dirección registrada"} ({selectedPickup.recipientCity || "Caracas, Venezuela"})
                       </p>
                     </div>
 
-                    <div className="flex items-center justify-between pt-1">
-                      <div>
-                        <span className="text-[10px] font-bold text-slate-400 block">VOLUMEN</span>
-                        <span className="font-bold text-slate-800">{selectedPickup.boxCount} Cajas</span>
+                    {/* Desglose Individual de Cajas / Bultos */}
+                    <div className="pt-2 border-t border-slate-200/80 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">
+                          DESGLOSE DE CARGA ({selectedPickup.boxes?.length || selectedPickup.boxCount} BULTOS)
+                        </span>
+                        {selectedPickup.boxes && selectedPickup.boxes.length > 0 && (
+                          <span className="text-[10px] font-mono font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                            Total: ${selectedPickup.boxes.reduce((acc, b) => acc + (typeof b.declaredValue === "number" ? b.declaredValue : 0), 0)} USD
+                          </span>
+                        )}
                       </div>
-                      <div className="text-right">
-                        <span className="text-[10px] font-bold text-slate-400 block">PESO ESTIMADO</span>
-                        <span className="font-bold font-mono text-slate-800">{selectedPickup.totalWeightKg} kg</span>
-                      </div>
+
+                      {selectedPickup.boxes && selectedPickup.boxes.length > 0 ? (
+                        <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                          {selectedPickup.boxes.map((b, idx) => (
+                            <div key={b.id || idx} className="p-2 rounded-xl bg-white border border-slate-200 space-y-0.5">
+                              <div className="flex items-center justify-between font-bold text-[11px] text-slate-900">
+                                <span>Caja #{idx + 1} ({b.size || "Mediano"})</span>
+                                <span className="font-mono text-amber-800">${b.declaredValue || 0} USD</span>
+                              </div>
+                              <p className="text-[10px] text-slate-600 leading-tight">
+                                {b.contentDescription || "Sin descripción"}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between text-slate-700">
+                          <span>Volumen: {selectedPickup.boxCount} Cajas</span>
+                          <span className="font-mono">{selectedPickup.totalWeightKg} kg estimado</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Declaración Separada de Carga Peligrosa / Especial */}
-                    <div className="pt-2 border-t border-slate-200/80 grid grid-cols-2 gap-2 text-[11px]">
+                    <div className="pt-2 border-t border-slate-200/80 space-y-2">
                       <div>
                         <span className="text-[10px] font-bold text-slate-400 block uppercase">1. Dispositivos Electrónicos</span>
                         {selectedPickup.containElectronics ? (
-                          <span className="inline-flex items-center gap-1 font-bold text-blue-800 bg-blue-50 px-2 py-0.5 rounded-md text-[10px]">
-                            <Laptop className="w-3 h-3 text-blue-600" /> SÍ contiene
-                          </span>
+                          <div className="mt-1 p-2 rounded-xl bg-blue-50 border border-blue-200 text-blue-950 space-y-0.5 text-[11px]">
+                            <div className="flex items-center justify-between font-bold text-blue-900">
+                              <span className="flex items-center gap-1">
+                                <Laptop className="w-3.5 h-3.5 text-blue-600" /> SÍ contiene equipos
+                              </span>
+                              {selectedPickup.electronicsDeclaredValue && (
+                                <span className="font-mono">${selectedPickup.electronicsDeclaredValue} USD</span>
+                              )}
+                            </div>
+                            {selectedPickup.electronicsDetails && (
+                              <p className="text-[10px] font-medium text-blue-900">
+                                {selectedPickup.electronicsDetails}
+                              </p>
+                            )}
+                          </div>
                         ) : (
                           <span className="font-medium text-slate-500 text-[10px]">NO contiene</span>
                         )}
@@ -861,14 +931,20 @@ export default function AdminPickupsPage() {
                       <div>
                         <span className="text-[10px] font-bold text-slate-400 block uppercase">2. Baterías de Litio</span>
                         {selectedPickup.containLithium ? (
-                          <span className="inline-flex items-center gap-1 font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-md text-[10px]">
-                            <BatteryCharging className="w-3 h-3 text-amber-600" /> SÍ (Norma IATA)
+                          <span className="inline-flex items-center gap-1 font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-md text-[10px] mt-1">
+                            <BatteryCharging className="w-3 h-3 text-amber-600" /> SÍ (Norma IATA UN3481)
                           </span>
                         ) : (
                           <span className="font-medium text-slate-500 text-[10px]">NO contiene</span>
                         )}
                       </div>
                     </div>
+
+                    {selectedPickup.inspectionNotes && (
+                      <div className="p-2 rounded bg-amber-50 text-[10px] text-amber-900">
+                        <strong>Notas del Chofer:</strong> {selectedPickup.inspectionNotes}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

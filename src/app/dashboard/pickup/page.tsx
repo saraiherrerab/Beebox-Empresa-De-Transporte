@@ -22,7 +22,7 @@ import {
   Plus,
 } from "lucide-react";
 import { PickupWizardStep1 } from "@/components/client/PickupWizardStep1";
-import { PickupWizardStep2 } from "@/components/client/PickupWizardStep2";
+import { PickupWizardStep2, BoxItem } from "@/components/client/PickupWizardStep2";
 import { PickupWizardStep3 } from "@/components/client/PickupWizardStep3";
 import { PickupWizardStep4 } from "@/components/client/PickupWizardStep4";
 import { Button } from "@/components/ui/Button";
@@ -38,10 +38,15 @@ interface ClientPickup {
   senderCity: string;
   boxCount: number;
   totalWeightKg: number;
+  boxes?: BoxItem[];
   containElectronics?: boolean;
+  electronicsDetails?: string;
+  electronicsDeclaredValue?: number | "";
   containLithium?: boolean;
+  notes?: string;
   recipientName: string;
   recipientPhone: string;
+  recipientPhone2?: string;
   recipientAddress: string;
   recipientCity: string;
   pickupDate: string;
@@ -74,12 +79,23 @@ export default function SolicitarPickupPage() {
   const [senderAddress, setSenderAddress] = useState("Av. Insurgentes Sur 1234, Col. Del Valle");
   const [senderCity, setSenderCity] = useState("Broken Arrow, OK");
   const [boxCount, setBoxCount] = useState(1);
-  const [cargoType, setCargoType] = useState("Mercancía General");
+  const [boxes, setBoxes] = useState<BoxItem[]>([
+    {
+      id: "box_1",
+      size: "Mediano",
+      contentDescription: "",
+      declaredValue: "",
+    },
+  ]);
   const [totalWeightKg, setTotalWeightKg] = useState(1.5);
   const [containElectronics, setContainElectronics] = useState(false);
+  const [electronicsDetails, setElectronicsDetails] = useState("");
+  const [electronicsDeclaredValue, setElectronicsDeclaredValue] = useState<number | "">("");
   const [containLithium, setContainLithium] = useState(false);
+  const [notes, setNotes] = useState("");
   const [recipientName, setRecipientName] = useState("Carlos Salazar");
   const [recipientPhone, setRecipientPhone] = useState("+58 412 555 1234");
+  const [recipientPhone2, setRecipientPhone2] = useState("+58 414 777 8899");
   const [recipientAddress, setRecipientAddress] = useState("Calle Reforma 456, Urb Las Mercedes");
   const [recipientCity, setRecipientCity] = useState("Caracas, Venezuela");
   const [pickupDate, setPickupDate] = useState(new Date().toISOString().split("T")[0]);
@@ -147,9 +163,42 @@ export default function SolicitarPickupPage() {
   ];
 
   const handleFinalSubmit = async () => {
-    // Validaciones mínimas
-    if (!recipientName.trim() || !recipientAddress.trim()) {
-      alert("Por favor completa los datos obligatorios del destinatario (Nombre y Dirección en el Paso 3).");
+    // Validaciones de cajas individuales
+    for (let i = 0; i < boxes.length; i++) {
+      const b = boxes[i];
+      if (!b.contentDescription.trim()) {
+        alert(`Por favor describe el contenido de la Caja #${i + 1} (Paso 2).`);
+        setCurrentStep(2);
+        return;
+      }
+      if (b.declaredValue === "" || Number(b.declaredValue) <= 0) {
+        alert(`Por favor indica el monto declarado de la Caja #${i + 1} (Paso 2).`);
+        setCurrentStep(2);
+        return;
+      }
+    }
+
+    if (containElectronics) {
+      if (!electronicsDetails.trim()) {
+        alert("Por favor indica la marca, modelo y cantidad de los equipos electrónicos (Paso 2).");
+        setCurrentStep(2);
+        return;
+      }
+      if (electronicsDeclaredValue === "" || Number(electronicsDeclaredValue) <= 0) {
+        alert("Por favor indica el monto declarado de los equipos electrónicos (Paso 2).");
+        setCurrentStep(2);
+        return;
+      }
+    }
+
+    // Validaciones de destinatario
+    if (
+      !recipientName.trim() ||
+      !recipientAddress.trim() ||
+      !recipientPhone.trim() ||
+      !recipientPhone2.trim()
+    ) {
+      alert("Por favor completa los 2 teléfonos, nombre y dirección del destinatario (Paso 3).");
       setCurrentStep(3);
       return;
     }
@@ -158,17 +207,26 @@ export default function SolicitarPickupPage() {
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
     let code = `PK-${Math.floor(1000 + Math.random() * 9000)}-DOM`;
 
+    const combinedRecipientPhone = recipientPhone2.trim()
+      ? `${recipientPhone.trim()} / ${recipientPhone2.trim()}`
+      : recipientPhone.trim();
+
     const payload = {
       senderName: senderName.trim(),
       senderPhone: senderPhone.trim(),
       senderAddress: senderAddress.trim(),
       senderCity: senderCity.trim() || "Broken Arrow, OK",
-      boxCount: Number(boxCount) || 1,
+      boxCount: Number(boxCount) || boxes.length || 1,
+      boxes: boxes,
       totalWeightKg: Number(totalWeightKg) || 1.5,
       containElectronics: Boolean(containElectronics),
+      electronicsDetails: containElectronics ? electronicsDetails.trim() : "",
+      electronicsDeclaredValue: containElectronics ? electronicsDeclaredValue : "",
       containLithium: Boolean(containLithium),
+      notes: notes.trim(),
       recipientName: recipientName.trim(),
-      recipientPhone: recipientPhone.trim(),
+      recipientPhone: combinedRecipientPhone,
+      recipientPhone2: recipientPhone2.trim(),
       recipientAddress: recipientAddress.trim(),
       recipientCity: recipientCity.trim() || "Caracas, Venezuela",
       pickupDate: pickupDate || new Date().toISOString().split("T")[0],
@@ -517,13 +575,20 @@ export default function SolicitarPickupPage() {
                   onNext={() => setCurrentStep(3)}
                   onBack={() => setCurrentStep(1)}
                   initialBoxCount={boxCount}
+                  initialBoxes={boxes}
                   initialContainElectronics={containElectronics}
+                  initialElectronicsDetails={electronicsDetails}
+                  initialElectronicsDeclaredValue={electronicsDeclaredValue}
                   initialContainLithium={containLithium}
+                  initialNotes={notes}
                   onUpdateData={(data) => {
                     setBoxCount(data.boxCount);
-                    setCargoType(data.cargoType);
+                    setBoxes(data.boxes);
                     setContainElectronics(data.containElectronics);
+                    setElectronicsDetails(data.electronicsDetails);
+                    setElectronicsDeclaredValue(data.electronicsDeclaredValue);
                     setContainLithium(data.containLithium);
+                    setNotes(data.notes);
                   }}
                 />
               )}
@@ -534,11 +599,13 @@ export default function SolicitarPickupPage() {
                   onBack={() => setCurrentStep(2)}
                   recipientName={recipientName}
                   recipientPhone={recipientPhone}
+                  recipientPhone2={recipientPhone2}
                   recipientAddress={recipientAddress}
                   recipientCity={recipientCity}
                   onUpdateData={(data) => {
                     setRecipientName(data.recipientName);
                     setRecipientPhone(data.recipientPhone);
+                    setRecipientPhone2(data.recipientPhone2);
                     setRecipientAddress(data.recipientAddress);
                     setRecipientCity(data.recipientCity);
                   }}
@@ -577,8 +644,31 @@ export default function SolicitarPickupPage() {
                         alert("Por favor completa el nombre de remitente y la dirección de recogida.");
                         return;
                       }
-                      if (currentStep === 3 && (!recipientName.trim() || !recipientAddress.trim())) {
-                        alert("Por favor completa el nombre y dirección del destinatario.");
+                      if (currentStep === 2) {
+                        for (let i = 0; i < boxes.length; i++) {
+                          const b = boxes[i];
+                          if (!b.contentDescription.trim()) {
+                            alert(`Por favor describe el contenido de la Caja #${i + 1}.`);
+                            return;
+                          }
+                          if (b.declaredValue === "" || Number(b.declaredValue) <= 0) {
+                            alert(`Por favor ingresa un monto declarado válido para la Caja #${i + 1}.`);
+                            return;
+                          }
+                        }
+                        if (containElectronics) {
+                          if (!electronicsDetails.trim()) {
+                            alert("Por favor indica la marca, modelo y cantidad de los equipos electrónicos.");
+                            return;
+                          }
+                          if (electronicsDeclaredValue === "" || Number(electronicsDeclaredValue) <= 0) {
+                            alert("Por favor indica el monto declarado de los equipos electrónicos.");
+                            return;
+                          }
+                        }
+                      }
+                      if (currentStep === 3 && (!recipientName.trim() || !recipientAddress.trim() || !recipientPhone.trim() || !recipientPhone2.trim())) {
+                        alert("Por favor completa el nombre, ambos teléfonos y la dirección del destinatario.");
                         return;
                       }
                       setCurrentStep(currentStep + 1);
@@ -642,9 +732,32 @@ export default function SolicitarPickupPage() {
                   </div>
                 </div>
 
-                <div className="pt-1 text-xs">
-                  <span className="text-[10px] text-slate-400 font-bold block">DESTINATARIO:</span>
-                  <span className="font-bold text-slate-800">{recipientName} ({recipientCity})</span>
+                <div className="pt-1 text-xs space-y-1">
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold block">DESTINATARIO:</span>
+                    <span className="font-bold text-slate-800">{recipientName} ({recipientCity})</span>
+                    <span className="text-[11px] text-slate-500 block">
+                      Tel: {recipientPhone} {recipientPhone2 ? `• ${recipientPhone2}` : ""}
+                    </span>
+                  </div>
+                  <div className="pt-2 border-t border-slate-200/80">
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase">
+                      BULTOS REGISTRADOS ({boxes.length}):
+                    </span>
+                    <div className="space-y-1 mt-1">
+                      {boxes.map((b, idx) => (
+                        <div key={b.id || idx} className="text-[11px] text-slate-700 flex justify-between bg-white px-2 py-1 rounded border border-slate-200">
+                          <span><strong>Caja #{idx + 1}</strong> ({b.size}): {b.contentDescription || "General"}</span>
+                          <span className="font-mono font-bold text-amber-800">${b.declaredValue || 0} USD</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {containElectronics && (
+                    <div className="p-2 rounded bg-blue-50 border border-blue-200 text-blue-900 text-[11px] mt-1">
+                      <strong>Equipos:</strong> {electronicsDetails} (Declarado: ${electronicsDeclaredValue || 0} USD)
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -678,9 +791,9 @@ export default function SolicitarPickupPage() {
       {/* MODAL DETALLES DE SOLICITUD DE PICKUP */}
       {selectedPickupModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-200">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50 sticky top-0 z-10 bg-white">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
                   <Truck className="w-5 h-5" />
@@ -695,7 +808,7 @@ export default function SolicitarPickupPage() {
 
               <button
                 onClick={() => setSelectedPickupModal(null)}
-                className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors"
+                className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -746,7 +859,16 @@ export default function SolicitarPickupPage() {
                 </span>
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold block">DESTINATARIO:</span>
-                  <span className="font-bold text-slate-900">{selectedPickupModal.recipientName} ({selectedPickupModal.recipientPhone})</span>
+                  <span className="font-bold text-slate-900">{selectedPickupModal.recipientName}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 font-bold block">TELÉFONOS DE CONTACTO:</span>
+                  <span className="font-medium text-slate-800 font-mono">
+                    {selectedPickupModal.recipientPhone}
+                    {selectedPickupModal.recipientPhone2 && !selectedPickupModal.recipientPhone.includes(selectedPickupModal.recipientPhone2)
+                      ? ` / ${selectedPickupModal.recipientPhone2}`
+                      : ""}
+                  </span>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold block">DIRECCIÓN DE ENTREGA:</span>
@@ -754,22 +876,78 @@ export default function SolicitarPickupPage() {
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-100 flex items-center justify-between text-[11px] font-bold text-slate-800">
-                <span>Carga: {selectedPickupModal.boxCount} Bultos ({selectedPickupModal.totalWeightKg} kg est.)</span>
-                {selectedPickupModal.containLithium && (
-                  <span className="text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded text-[10px]">
-                    Batería Litio IATA
+              {/* Detalle Individual de Cajas / Bultos */}
+              {selectedPickupModal.boxes && selectedPickupModal.boxes.length > 0 ? (
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
+                  <span className="text-[10px] font-black uppercase text-slate-500 block border-b pb-1 flex items-center justify-between">
+                    <span>DETALLE POR CAJA ({selectedPickupModal.boxes.length} BULTOS)</span>
+                    <span className="font-mono text-amber-800 font-bold">
+                      Total: ${selectedPickupModal.boxes.reduce((acc, b) => acc + (typeof b.declaredValue === "number" ? b.declaredValue : 0), 0)} USD
+                    </span>
                   </span>
-                )}
-              </div>
+                  <div className="space-y-2">
+                    {selectedPickupModal.boxes.map((b, idx) => (
+                      <div key={b.id || idx} className="p-2.5 rounded-xl bg-white border border-slate-200 space-y-1">
+                        <div className="flex items-center justify-between text-slate-900 font-black">
+                          <span>Caja #{idx + 1} ({b.size})</span>
+                          <span className="text-amber-800 font-mono">${b.declaredValue || 0} USD</span>
+                        </div>
+                        <p className="text-slate-600 text-[11px] font-medium leading-tight">
+                          {b.contentDescription || "Sin descripción"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-slate-100 flex items-center justify-between text-[11px] font-bold text-slate-800">
+                  <span>Carga: {selectedPickupModal.boxCount} Bultos ({selectedPickupModal.totalWeightKg} kg est.)</span>
+                </div>
+              )}
+
+              {/* Equipos Electrónicos */}
+              {selectedPickupModal.containElectronics && (
+                <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-950 space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-[11px] text-blue-900">
+                    <Laptop className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Equipos Electrónicos Declarados</span>
+                  </div>
+                  <p className="text-xs font-semibold">
+                    {selectedPickupModal.electronicsDetails || "Equipos electrónicos"}
+                  </p>
+                  {selectedPickupModal.electronicsDeclaredValue && (
+                    <span className="text-[10px] font-mono font-bold text-blue-800 block">
+                      Valor Declarado: ${selectedPickupModal.electronicsDeclaredValue} USD
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Batería Litio */}
+              {selectedPickupModal.containLithium && (
+                <div className="p-2.5 rounded-xl bg-amber-100/80 border border-amber-300 text-amber-950 text-[11px] font-bold flex items-center gap-2">
+                  <BatteryCharging className="w-4 h-4 text-amber-700 shrink-0" />
+                  <span>Contiene Baterías de Litio (Norma IATA UN3481/UN3480)</span>
+                </div>
+              )}
+
+              {/* Observaciones chofer */}
+              {selectedPickupModal.notes && (
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">
+                    Instrucciones para el Chofer:
+                  </span>
+                  <p className="text-slate-700 italic">{selectedPickupModal.notes}</p>
+                </div>
+              )}
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 border-t border-slate-100 bg-slate-50 text-right">
+            <div className="p-4 border-t border-slate-100 bg-slate-50 text-right sticky bottom-0 z-10 bg-slate-50">
               <Button
                 onClick={() => setSelectedPickupModal(null)}
                 variant="outline"
-                className="rounded-xl px-5 py-2 text-xs font-bold"
+                className="rounded-xl px-5 py-2 text-xs font-bold cursor-pointer"
               >
                 Cerrar
               </Button>
