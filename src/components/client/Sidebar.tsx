@@ -15,7 +15,6 @@ import {
   ShieldAlert,
   Sparkles,
   ArrowRight,
-  Store,
   BookUser,
   MapPin,
 } from "lucide-react";
@@ -31,7 +30,6 @@ export const Sidebar: React.FC = () => {
     { name: "Notificaciones", href: "/dashboard/notificaciones", icon: BellRing },
     { name: "Prealertas", href: "/dashboard/prealertas", icon: Package },
     { name: "Solicitar Pickup", href: "/dashboard/pickup", icon: Truck },
-    { name: "Retiros en Sucursal", href: "/dashboard/retiros", icon: Store },
     { name: "Mis Paquetes", href: "/dashboard/paquetes", icon: Boxes },
     { name: "Mis Destinatarios", href: "/dashboard/destinatarios", icon: BookUser },
     { name: "Mis Direcciones", href: "/dashboard/direcciones", icon: MapPin },
