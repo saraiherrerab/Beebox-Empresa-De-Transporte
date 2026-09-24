@@ -116,7 +116,7 @@ export default function ProfilePage() {
               </Link>
 
               <Link
-                href="/dashboard/destinatarios"
+                href="/dashboard/direcciones"
                 className="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-amber-500 hover:bg-amber-50/40 transition-all flex items-center justify-between group"
               >
                 <div className="flex items-center gap-3">

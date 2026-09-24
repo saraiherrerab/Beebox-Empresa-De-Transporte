@@ -17,6 +17,7 @@ import {
   ArrowRight,
   Store,
   BookUser,
+  MapPin,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -33,6 +34,7 @@ export const Sidebar: React.FC = () => {
     { name: "Retiros en Sucursal", href: "/dashboard/retiros", icon: Store },
     { name: "Mis Paquetes", href: "/dashboard/paquetes", icon: Boxes },
     { name: "Mis Destinatarios", href: "/dashboard/destinatarios", icon: BookUser },
+    { name: "Mis Direcciones", href: "/dashboard/direcciones", icon: MapPin },
     { name: "Calculadora", href: "/dashboard/calculadora", icon: Calculator },
     { name: "Mi Perfil", href: "/dashboard/perfil", icon: User },
   ];
