@@ -20,6 +20,8 @@ import {
   LogOut,
   Calculator,
   Shield,
+  Warehouse,
+  FileSpreadsheet,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -49,6 +51,8 @@ export const AdminSidebar: React.FC = () => {
       group: "OPERACIONES",
       items: [
         { name: "Gestión de Pickups", href: "/admin/pickups", icon: Truck },
+        { name: "Recepción / Warehouses", href: "/admin/warehouses", icon: Warehouse },
+        { name: "Guías de Salida", href: "/admin/guias-salida", icon: FileSpreadsheet },
         { name: "Control de Envíos", href: "/admin/envios", icon: Package },
         { name: "Destinos de Envío", href: "/admin/rutas", icon: Route },
         { name: "Tarifas y Calculadora", href: "/admin/calculadora", icon: Calculator },
