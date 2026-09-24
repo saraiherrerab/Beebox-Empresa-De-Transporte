@@ -6,7 +6,6 @@ import {
   FileSpreadsheet,
   Plus,
   Search,
-  Warehouse,
   Package,
   Layers,
   CheckCircle2,
@@ -181,9 +180,10 @@ export default function GuiasSalidaAdminPage() {
     const authHeaders: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
     try {
-      const [resGuias, resWh] = await Promise.allSettled([
+      const [resGuias, resShipments, resPickups] = await Promise.allSettled([
         fetch(`${API_URL}/guias-salida`, { headers: authHeaders }).then((r) => r.json()),
-        fetch(`${API_URL}/warehouses`, { headers: authHeaders }).then((r) => r.json()),
+        fetch(`${API_URL}/shipments`, { headers: authHeaders }).then((r) => r.json()),
+        fetch(`${API_URL}/pickups`, { headers: authHeaders }).then((r) => r.json()),
       ]);
 
       if (resGuias.status === "fulfilled" && Array.isArray(resGuias.value?.guias)) {
@@ -200,14 +200,69 @@ export default function GuiasSalidaAdminPage() {
         }
       }
 
-      if (resWh.status === "fulfilled" && Array.isArray(resWh.value?.warehouses)) {
-        setAllWarehouses(resWh.value.warehouses);
+      let enviosList: WarehouseItem[] = [];
+      if (resShipments.status === "fulfilled" && Array.isArray(resShipments.value)) {
+        enviosList = resShipments.value.map((s: any) => ({
+          id: s.trackingCode || s.id,
+          warehouseCode: s.trackingCode || s.id,
+          clientName: s.senderName || s.user?.name || "Cliente BeeBox",
+          clientSuite: s.user?.suiteCode || "CAS-OK",
+          recipientName: s.recipientName || "Destinatario",
+          recipientPhone: s.recipientPhone || "",
+          recipientAddress: s.recipientAddress || "",
+          destination: s.recipientCity || "Caracas, Venezuela",
+          serviceType: (s.serviceType as any) || "Aéreo Express",
+          pieces: s.boxCount || 1,
+          weightKg: s.weightKg || 2.0,
+          declaredValue: s.declaredValue || 150,
+          contentDescription: s.description || "Mercancía general",
+          containElectronics: Boolean(s.containElectronics),
+          status: "DISPONIBLE" as const,
+          assignedGuiaCode: null,
+          createdAt: s.createdAt || new Date().toISOString(),
+        }));
+      }
+
+      // Combinar con pickups en origen si existen
+      if (resPickups.status === "fulfilled") {
+        const pList = Array.isArray(resPickups.value?.pickups)
+          ? resPickups.value.pickups
+          : Array.isArray(resPickups.value)
+          ? resPickups.value
+          : [];
+        for (const pk of pList) {
+          const code = pk.pickupCode || pk.id;
+          if (!enviosList.some((e) => e.warehouseCode === code)) {
+            enviosList.push({
+              id: code,
+              warehouseCode: code,
+              clientName: pk.senderName || "Cliente Pickup",
+              recipientName: pk.recipientName || "Destinatario",
+              recipientPhone: pk.recipientPhone || "",
+              recipientAddress: pk.recipientAddress || "",
+              destination: pk.recipientCity || "Caracas, Venezuela",
+              serviceType: "Aéreo Express",
+              pieces: pk.boxCount || 1,
+              weightKg: pk.totalWeightKg || 2.5,
+              declaredValue: pk.declaredValue || 180,
+              contentDescription: pk.notes || "Carga de recolección en origen",
+              containElectronics: Boolean(pk.containElectronics),
+              status: "DISPONIBLE",
+              assignedGuiaCode: null,
+              createdAt: pk.createdAt || new Date().toISOString(),
+            });
+          }
+        }
+      }
+
+      if (enviosList.length > 0) {
+        setAllWarehouses(enviosList);
       } else {
-        // Fallback local warehouses
+        // Fallback local
         if (typeof window !== "undefined") {
           try {
             const localSavedWh = JSON.parse(localStorage.getItem("beebox_warehouses") || "[]");
-            setAllWarehouses(Array.isArray(localSavedWh) ? localSavedWh : []);
+            setAllWarehouses(Array.isArray(localSavedWh) && localSavedWh.length > 0 ? localSavedWh : []);
           } catch {}
         }
       }
@@ -496,13 +551,13 @@ export default function GuiasSalidaAdminPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Link href="/admin/warehouses">
+          <Link href="/admin/envios">
             <Button
               variant="outline"
               className="rounded-2xl border-slate-200 text-xs font-extrabold flex items-center gap-2 text-slate-700 hover:bg-slate-50 cursor-pointer"
             >
-              <Warehouse className="w-4 h-4 text-amber-600" />
-              Ver Inventario Warehouses
+              <Package className="w-4 h-4 text-amber-600" />
+              Ver Control de Envíos
             </Button>
           </Link>
 
