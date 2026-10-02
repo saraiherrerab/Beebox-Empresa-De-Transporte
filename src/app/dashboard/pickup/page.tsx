@@ -28,6 +28,7 @@ import { PickupWizardStep4 } from "@/components/client/PickupWizardStep4";
 import { Button } from "@/components/ui/Button";
 import { API_URL } from "@/config/api";
 import { useAuth } from "@/context/AuthContext";
+import { createSavedRecipient } from "@/lib/addressBook";
 
 interface ClientPickup {
   id: string;
@@ -113,38 +114,11 @@ export default function SolicitarPickupPage() {
     fetch(`${API_URL}/pickups`, { headers: authHeaders })
       .then((res) => res.json())
       .then((data) => {
-        let list: ClientPickup[] = [];
-        if (data && Array.isArray(data.pickups)) {
-          list = data.pickups;
-        } else if (Array.isArray(data)) {
-          list = data;
-        }
-
-        // Combinar con solicitudes locales
-        if (typeof window !== "undefined") {
-          try {
-            const localSaved = JSON.parse(localStorage.getItem("beebox_local_pickups") || "[]");
-            if (Array.isArray(localSaved) && localSaved.length > 0) {
-              for (const loc of localSaved) {
-                if (!list.some((p) => p.id === loc.id || p.pickupCode === loc.pickupCode)) {
-                  list.unshift(loc);
-                }
-              }
-            }
-          } catch {}
-        }
-
-        setMyPickups(list);
+        if (data && Array.isArray(data.pickups)) setMyPickups(data.pickups);
+        else if (Array.isArray(data)) setMyPickups(data);
+        else setMyPickups([]);
       })
-      .catch(() => {
-        // Fallback local
-        if (typeof window !== "undefined") {
-          try {
-            const localSaved = JSON.parse(localStorage.getItem("beebox_local_pickups") || "[]");
-            setMyPickups(Array.isArray(localSaved) ? localSaved : []);
-          } catch {}
-        }
-      })
+      .catch(() => setMyPickups([]))
       .finally(() => setHistoryLoading(false));
   }, []);
 
@@ -207,7 +181,6 @@ export default function SolicitarPickupPage() {
 
     setLoading(true);
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
-    let code = `PK-${Math.floor(1000 + Math.random() * 9000)}-DOM`;
 
     const combinedRecipientPhone = recipientPhone2.trim()
       ? `${recipientPhone.trim()} / ${recipientPhone2.trim()}`
@@ -236,45 +209,38 @@ export default function SolicitarPickupPage() {
     };
 
     try {
-      if (token) {
-        const res = await fetch(`${API_URL}/pickups`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        });
-        const data = await res.json();
-        if (res.ok && data.pickup) {
-          code = data.pickup.pickupCode;
-        }
+      if (!token) throw new Error("Tu sesión expiró. Inicia sesión nuevamente.");
+
+      const res = await fetch(`${API_URL}/pickups`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.pickup) {
+        throw new Error(data.message || "No se pudo registrar la recolección.");
       }
-    } catch {
-      // Fallback local
+
+      setGeneratedCode(data.pickup.pickupCode);
+      setMyPickups((prev) => [data.pickup, ...prev]);
+      setIsSubmitted(true);
+
+      // Guarda el destinatario en la libreta; el backend evita duplicados por nombre y teléfono
+      createSavedRecipient({
+        name: recipientName.trim(),
+        phone: recipientPhone.trim(),
+        phone2: recipientPhone2.trim(),
+        address: recipientAddress.trim(),
+        city: recipientCity.trim(),
+      }).catch((err) => console.error("No se pudo guardar el destinatario en la libreta:", err));
+    } catch (err: any) {
+      alert(err.message || "No se pudo registrar la recolección. Intenta de nuevo.");
+    } finally {
+      setLoading(false);
     }
-
-    setGeneratedCode(code);
-
-    // Guardar copia local reactiva
-    const newLocalItem: ClientPickup = {
-      id: `pk_${Date.now()}`,
-      pickupCode: code,
-      ...payload,
-      status: "PENDIENTE",
-      createdAt: new Date().toISOString(),
-    };
-
-    if (typeof window !== "undefined") {
-      try {
-        const existing = JSON.parse(localStorage.getItem("beebox_local_pickups") || "[]");
-        localStorage.setItem("beebox_local_pickups", JSON.stringify([newLocalItem, ...existing]));
-      } catch {}
-    }
-
-    setMyPickups((prev) => [newLocalItem, ...prev]);
-    setLoading(false);
-    setIsSubmitted(true);
   };
 
   const handleResetForm = () => {

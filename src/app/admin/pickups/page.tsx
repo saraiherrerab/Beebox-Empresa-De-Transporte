@@ -231,23 +231,6 @@ export default function AdminPickupsPage() {
             : [];
         }
 
-        // Combinar con solicitudes locales y priorizar pendientes
-        if (typeof window !== "undefined") {
-          try {
-            const localSaved = JSON.parse(localStorage.getItem("beebox_local_pickups") || "[]");
-            if (Array.isArray(localSaved) && localSaved.length > 0) {
-              for (const loc of localSaved) {
-                const existingIdx = list.findIndex((p) => p.id === loc.id || p.pickupCode === loc.pickupCode);
-                if (existingIdx >= 0) {
-                  list[existingIdx] = { ...list[existingIdx], ...loc };
-                } else {
-                  list.unshift(loc);
-                }
-              }
-            }
-          } catch {}
-        }
-
         // Si la lista está vacía, usar mocks para demostración operativa
         if (list.length === 0) {
           list = DEFAULT_MOCK_PICKUPS;
@@ -343,20 +326,6 @@ export default function AdminPickupsPage() {
     );
     setSelectedPickup(updatedPickup);
 
-    // Actualizar almacenamiento local beebox_local_pickups
-    if (typeof window !== "undefined") {
-      try {
-        const localSaved = JSON.parse(localStorage.getItem("beebox_local_pickups") || "[]");
-        const updatedLocal = localSaved.map((p: any) =>
-          p.id === selectedPickup.id || p.pickupCode === selectedPickup.pickupCode
-            ? { ...p, ...updatedPickup }
-            : p
-        );
-        localStorage.setItem("beebox_local_pickups", JSON.stringify(updatedLocal));
-        window.dispatchEvent(new Event("storage"));
-      } catch {}
-    }
-
     setValidatedNotice(
       `¡Medidas y auditoría técnica de ${updatedPickup.pickupCode} actualizadas exitosamente! Peso: ${verifiedWeight} kg (${finalDimensions}).`
     );
@@ -415,18 +384,6 @@ export default function AdminPickupsPage() {
     setSelectedPickup(updatedPickup);
     setStatusFilter("EN_PROCESO");
 
-    // Actualizar almacenamiento local
-    if (typeof window !== "undefined") {
-      try {
-        const localSaved = JSON.parse(localStorage.getItem("beebox_local_pickups") || "[]");
-        const updatedLocal = localSaved.map((p: any) =>
-          p.id === selectedPickup.id || p.pickupCode === selectedPickup.pickupCode ? updatedPickup : p
-        );
-        localStorage.setItem("beebox_local_pickups", JSON.stringify(updatedLocal));
-        window.dispatchEvent(new Event("storage"));
-      } catch {}
-    }
-
     setValidatedNotice(
       `¡Vehículo ${assignedVehicle?.name || "asignado"} vinculado a la solicitud ${updatedPickup.pickupCode}! Se movió a "En proceso" para su búsqueda en calle.`
     );
@@ -479,17 +436,6 @@ export default function AdminPickupsPage() {
     );
     setSelectedPickup(updatedPickup);
     setStatusFilter("EN_ORIGEN");
-
-    if (typeof window !== "undefined") {
-      try {
-        const localSaved = JSON.parse(localStorage.getItem("beebox_local_pickups") || "[]");
-        const updatedLocal = localSaved.map((p: any) =>
-          p.id === selectedPickup.id || p.pickupCode === selectedPickup.pickupCode ? updatedPickup : p
-        );
-        localStorage.setItem("beebox_local_pickups", JSON.stringify(updatedLocal));
-        window.dispatchEvent(new Event("storage"));
-      } catch {}
-    }
 
     setValidatedNotice(
       `¡Paquete ${selectedPickup.pickupCode} recibido en el almacén de origen! El pickup ha sido completado y ahora es un envío oficial.`

@@ -103,6 +103,18 @@ const MOCK_PREALERTAS: PrealertaItem[] = [
   },
 ];
 
+// Datos de usuario cacheados en el navegador; no deben sobrevivir a un cambio de sesión
+const USER_SCOPED_STORAGE_KEYS = [
+  "beebox_saved_addresses",
+  "beebox_saved_recipients",
+  "beebox_local_pickups",
+];
+
+const clearUserScopedStorage = () => {
+  if (typeof window === "undefined") return;
+  USER_SCOPED_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [role, setRole] = useState<"client" | "admin" | "super_admin">("client");
@@ -305,6 +317,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       const data = await res.json();
       if (res.ok && data.token) {
+        clearUserScopedStorage();
         localStorage.setItem("beebox_token", data.token);
         setUser(data.user);
         setRole(data.user.role || "client");
@@ -339,6 +352,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       const data = await res.json();
       if (res.ok && data.token) {
+        clearUserScopedStorage();
         localStorage.setItem("beebox_token", data.token);
         setUser(data.user);
         setRole(data.user.role || "client");
@@ -358,6 +372,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     if (typeof window !== "undefined") {
       localStorage.removeItem("beebox_token");
+      clearUserScopedStorage();
     }
     setUser(null);
     setRole("client");

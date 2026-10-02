@@ -67,23 +67,6 @@ function AdminEnviosContent() {
               : []
             : [];
 
-        // Combinar con pickups locales y verificados
-        if (typeof window !== "undefined") {
-          try {
-            const localSaved = JSON.parse(localStorage.getItem("beebox_local_pickups") || "[]");
-            if (Array.isArray(localSaved) && localSaved.length > 0) {
-              for (const loc of localSaved) {
-                const idx = pickupsData.findIndex((p: any) => p.id === loc.id || p.pickupCode === loc.pickupCode);
-                if (idx >= 0) {
-                  pickupsData[idx] = { ...pickupsData[idx], ...loc };
-                } else {
-                  pickupsData.unshift(loc);
-                }
-              }
-            }
-          } catch {}
-        }
-
         const mapped: ShipmentItem[] = shipmentsData.map((item: any) => {
           const normalizedStatus = normalizeStatus(item.currentStatus);
           const hasPickup = Boolean(item.hasPickup || normalizedStatus === "Pick up en proceso" || item.pickup);
