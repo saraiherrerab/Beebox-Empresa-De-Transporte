@@ -85,67 +85,6 @@ const DESTINOS = [
   "Lechería / Puerto La Cruz, Venezuela",
 ];
 
-const INITIAL_GUIAS: GuiaSalidaItem[] = [
-  {
-    id: "gs_101",
-    guiaCode: "GS-2026-001",
-    description: "Despacho Aéreo Consolidado - Destino Caracas Maiquetía",
-    destination: "Caracas, Venezuela",
-    departureDate: new Date().toISOString().split("T")[0],
-    serviceType: "Aéreo",
-    carrier: "Laser Cargo - Vuelo LC-402",
-    status: "EN_PREPARACION",
-    warehousesCount: 2,
-    warehouses: [
-      {
-        id: "wh_sample_1",
-        warehouseCode: "WR-89190",
-        clientName: "Carlos Zambrano",
-        clientSuite: "BBX-1090",
-        recipientName: "Sofía Zambrano",
-        recipientPhone: "+58 414 112 3456",
-        recipientAddress: "Av. Libertador, Edif. La Línea, PH",
-        destination: "Caracas, Venezuela",
-        serviceType: "Aéreo Express",
-        pieces: 2,
-        weightKg: 5.4,
-        declaredValue: 320,
-        contentDescription: "Calzado deportivo y ropa casual",
-        containElectronics: false,
-        status: "EN_GUIA_SALIDA",
-        assignedGuiaCode: "GS-2026-001",
-        createdAt: new Date(Date.now() - 3600000 * 48).toISOString(),
-      },
-      {
-        id: "wh_sample_2",
-        warehouseCode: "WR-89191",
-        clientName: "Daniela Morales",
-        clientSuite: "BBX-2144",
-        recipientName: "Alejandro Morales",
-        recipientPhone: "+58 412 990 7654",
-        recipientAddress: "Altamira Sur, Res. Avila Sol, Apt 4-B",
-        destination: "Caracas, Venezuela",
-        serviceType: "Aéreo Express",
-        pieces: 1,
-        weightKg: 3.1,
-        declaredValue: 580,
-        contentDescription: "Consola PlayStation 5 y mando dual",
-        containElectronics: true,
-        electronicsDetails: "1 Consola PlayStation 5 Digital",
-        status: "EN_GUIA_SALIDA",
-        assignedGuiaCode: "GS-2026-001",
-        createdAt: new Date(Date.now() - 3600000 * 36).toISOString(),
-      },
-    ],
-    totalPieces: 3,
-    totalWeightKg: 8.5,
-    totalDeclaredValue: 900,
-    notes: "Salida coordinada con precintos de seguridad aeroportuaria.",
-    createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
 export default function GuiasSalidaAdminPage() {
   const [guias, setGuias] = useState<GuiaSalidaItem[]>([]);
   const [allWarehouses, setAllWarehouses] = useState<WarehouseItem[]>([]);
@@ -186,19 +125,9 @@ export default function GuiasSalidaAdminPage() {
         fetch(`${API_URL}/pickups`, { headers: authHeaders }).then((r) => r.json()),
       ]);
 
-      if (resGuias.status === "fulfilled" && Array.isArray(resGuias.value?.guias)) {
-        setGuias(resGuias.value.guias);
-      } else {
-        // Fallback local guías
-        if (typeof window !== "undefined") {
-          try {
-            const localSaved = JSON.parse(localStorage.getItem("beebox_guias_salida") || "null");
-            setGuias(Array.isArray(localSaved) && localSaved.length > 0 ? localSaved : INITIAL_GUIAS);
-          } catch {
-            setGuias(INITIAL_GUIAS);
-          }
-        }
-      }
+      const guiasList: GuiaSalidaItem[] =
+        resGuias.status === "fulfilled" && Array.isArray(resGuias.value?.guias) ? resGuias.value.guias : [];
+      setGuias(guiasList);
 
       let enviosList: WarehouseItem[] = [];
       if (resShipments.status === "fulfilled" && Array.isArray(resShipments.value)) {
@@ -255,19 +184,20 @@ export default function GuiasSalidaAdminPage() {
         }
       }
 
-      if (enviosList.length > 0) {
-        setAllWarehouses(enviosList);
-      } else {
-        // Fallback local
-        if (typeof window !== "undefined") {
-          try {
-            const localSavedWh = JSON.parse(localStorage.getItem("beebox_warehouses") || "[]");
-            setAllWarehouses(Array.isArray(localSavedWh) && localSavedWh.length > 0 ? localSavedWh : []);
-          } catch {}
-        }
+      // Un warehouse está asignado si aparece en alguna guía guardada en el backend
+      const assignedGuiaByCode = new Map<string, string>();
+      for (const guia of guiasList) {
+        for (const w of guia.warehouses) assignedGuiaByCode.set(w.warehouseCode, guia.guiaCode);
       }
+      setAllWarehouses(
+        enviosList.map((w) => {
+          const assignedGuiaCode = assignedGuiaByCode.get(w.warehouseCode);
+          return assignedGuiaCode ? { ...w, status: "EN_GUIA_SALIDA" as const, assignedGuiaCode } : w;
+        })
+      );
     } catch {
-      setGuias(INITIAL_GUIAS);
+      setGuias([]);
+      setAllWarehouses([]);
     } finally {
       setLoading(false);
     }
@@ -276,15 +206,6 @@ export default function GuiasSalidaAdminPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-
-  const saveGuiasLocally = (newList: GuiaSalidaItem[]) => {
-    setGuias(newList);
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem("beebox_guias_salida", JSON.stringify(newList));
-      } catch {}
-    }
-  };
 
   const handleOpenCreateModal = () => {
     const nextCode = `GS-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
@@ -387,7 +308,7 @@ export default function GuiasSalidaAdminPage() {
       : { "Content-Type": "application/json" };
 
     try {
-      await fetch(`${API_URL}/guias-salida`, {
+      const res = await fetch(`${API_URL}/guias-salida`, {
         method: "POST",
         headers: authHeaders,
         body: JSON.stringify({
@@ -395,35 +316,19 @@ export default function GuiasSalidaAdminPage() {
           warehouseIds: selectedWarehouseIds,
         }),
       });
-    } catch {}
+      const data = await res.json();
+      if (!res.ok || !data.guia) throw new Error(data.message || "No se pudo crear la Guía de Salida.");
 
-    // Actualizar localmente los warehouses que se agregaron
-    const updatedWarehouses = allWarehouses.map((w) => {
-      if (selectedWarehouseIds.includes(w.id) || selectedWarehouseIds.includes(w.warehouseCode)) {
-        return {
-          ...w,
-          status: "EN_GUIA_SALIDA" as const,
-          assignedGuiaCode: generatedCode,
-        };
-      }
-      return w;
-    });
-
-    setAllWarehouses(updatedWarehouses);
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem("beebox_warehouses", JSON.stringify(updatedWarehouses));
-      } catch {}
+      await fetchData();
+      setIsCreateModalOpen(false);
+      alert(
+        `Guía de Salida ${data.guia.guiaCode} creada exitosamente con ${data.guia.warehousesCount} Warehouse(s) asociados.`
+      );
+    } catch (err: any) {
+      alert(err.message || "No se pudo crear la Guía de Salida.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const updatedGuias = [newGuia, ...guias];
-    saveGuiasLocally(updatedGuias);
-
-    setIsSubmitting(false);
-    setIsCreateModalOpen(false);
-    alert(
-      `Guía de Salida ${newGuia.guiaCode} creada exitosamente con ${newGuia.warehousesCount} Warehouse(s) asociados.`
-    );
   };
 
   const handleUpdateStatus = async (
@@ -436,31 +341,21 @@ export default function GuiasSalidaAdminPage() {
       : { "Content-Type": "application/json" };
 
     try {
-      await fetch(`${API_URL}/guias-salida/${guiaId}`, {
+      const res = await fetch(`${API_URL}/guias-salida/${guiaId}`, {
         method: "PATCH",
         headers: authHeaders,
         body: JSON.stringify({ status: newStatus }),
       });
-    } catch {}
+      const data = await res.json();
+      if (!res.ok || !data.guia) throw new Error(data.message || "No se pudo actualizar la Guía de Salida.");
 
-    const updatedGuias = guias.map((g) => {
-      if (g.id === guiaId) {
-        return {
-          ...g,
-          status: newStatus,
-          updatedAt: new Date().toISOString(),
-        };
+      const updated: GuiaSalidaItem = data.guia;
+      setGuias((prev) => prev.map((g) => (g.id === updated.id ? updated : g)));
+      if (selectedGuiaModal && selectedGuiaModal.id === updated.id) {
+        setSelectedGuiaModal(updated);
       }
-      return g;
-    });
-
-    saveGuiasLocally(updatedGuias);
-
-    if (selectedGuiaModal && selectedGuiaModal.id === guiaId) {
-      setSelectedGuiaModal({
-        ...selectedGuiaModal,
-        status: newStatus,
-      });
+    } catch (err: any) {
+      alert(err.message || "No se pudo actualizar la Guía de Salida.");
     }
   };
 
@@ -472,34 +367,17 @@ export default function GuiasSalidaAdminPage() {
     const authHeaders: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
     try {
-      await fetch(`${API_URL}/guias-salida/${id}`, {
+      const res = await fetch(`${API_URL}/guias-salida/${id}`, {
         method: "DELETE",
         headers: authHeaders,
       });
-    } catch {}
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "No se pudo eliminar la Guía de Salida.");
 
-    const updated = guias.filter((g) => g.id !== id && g.guiaCode !== code);
-    saveGuiasLocally(updated);
-
-    // Liberar Warehouses
-    const targetGuia = guias.find((g) => g.id === id || g.guiaCode === code);
-    if (targetGuia) {
-      const freed = allWarehouses.map((w) => {
-        if (targetGuia.warehouses.some((tw) => tw.id === w.id || tw.warehouseCode === w.warehouseCode)) {
-          return {
-            ...w,
-            status: "DISPONIBLE" as const,
-            assignedGuiaCode: null,
-          };
-        }
-        return w;
-      });
-      setAllWarehouses(freed);
-      if (typeof window !== "undefined") {
-        try {
-          localStorage.setItem("beebox_warehouses", JSON.stringify(freed));
-        } catch {}
-      }
+      // Recargar: los warehouses de la guía eliminada vuelven a quedar disponibles
+      await fetchData();
+    } catch (err: any) {
+      alert(err.message || "No se pudo eliminar la Guía de Salida.");
     }
   };
 

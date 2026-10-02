@@ -108,6 +108,8 @@ const USER_SCOPED_STORAGE_KEYS = [
   "beebox_saved_addresses",
   "beebox_saved_recipients",
   "beebox_local_pickups",
+  "beebox_guias_salida",
+  "beebox_warehouses",
 ];
 
 const clearUserScopedStorage = () => {
