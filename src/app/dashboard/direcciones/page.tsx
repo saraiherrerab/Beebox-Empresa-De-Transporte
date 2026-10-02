@@ -18,9 +18,13 @@ import {
   User,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { SavedAddress } from "@/components/client/PickupWizardStep1";
-
-const STORAGE_KEY_ADDRESSES = "beebox_saved_addresses";
+import {
+  SavedAddress,
+  createSavedAddress,
+  deleteSavedAddress,
+  fetchSavedAddresses,
+  updateSavedAddress,
+} from "@/lib/addressBook";
 
 export default function DireccionesPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -38,17 +42,9 @@ export default function DireccionesPage() {
   const [notification, setNotification] = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const storedAddr = localStorage.getItem(STORAGE_KEY_ADDRESSES);
-        if (storedAddr) {
-          const parsed = JSON.parse(storedAddr);
-          if (Array.isArray(parsed)) setAddresses(parsed);
-        }
-      } catch (e) {
-        console.error("Error loading addresses:", e);
-      }
-    }
+    fetchSavedAddresses()
+      .then(setAddresses)
+      .catch((e) => console.error("Error loading addresses:", e));
   }, []);
 
   const showNotification = (msg: string) => {
@@ -76,15 +72,14 @@ export default function DireccionesPage() {
     setIsAddressModalOpen(true);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!addrAddress.trim() || !addrCity.trim()) {
       alert("Por favor ingresa la dirección exacta y la ciudad.");
       return;
     }
 
-    const item: SavedAddress = {
-      id: editingAddressId || `addr_${Date.now()}`,
+    const input = {
       label: addrLabel.trim() || "Dirección",
       address: addrAddress.trim(),
       city: addrCity.trim(),
@@ -92,31 +87,31 @@ export default function DireccionesPage() {
       contactPhone: addrContactPhone.trim(),
     };
 
-    let updated: SavedAddress[];
-    if (editingAddressId) {
-      updated = addresses.map((a) => (a.id === editingAddressId ? item : a));
-      showNotification("Dirección actualizada correctamente");
-    } else {
-      updated = [item, ...addresses];
-      showNotification("Nueva dirección de recolección guardada");
+    try {
+      if (editingAddressId) {
+        const saved = await updateSavedAddress(editingAddressId, input);
+        setAddresses((prev) => prev.map((a) => (a.id === saved.id ? saved : a)));
+        showNotification("Dirección actualizada correctamente");
+      } else {
+        const saved = await createSavedAddress(input);
+        setAddresses((prev) => [saved, ...prev]);
+        showNotification("Nueva dirección de recolección guardada");
+      }
+      setIsAddressModalOpen(false);
+    } catch (err: any) {
+      alert(err.message || "No se pudo guardar la dirección.");
     }
-
-    setAddresses(updated);
-    if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY_ADDRESSES, JSON.stringify(updated));
-    }
-
-    setIsAddressModalOpen(false);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm("¿Deseas eliminar esta dirección de recogida?")) return;
-    const updated = addresses.filter((a) => a.id !== id);
-    setAddresses(updated);
-    if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY_ADDRESSES, JSON.stringify(updated));
+    try {
+      await deleteSavedAddress(id);
+      setAddresses((prev) => prev.filter((a) => a.id !== id));
+      showNotification("Dirección eliminada de la libreta");
+    } catch (err: any) {
+      alert(err.message || "No se pudo eliminar la dirección.");
     }
-    showNotification("Dirección eliminada de la libreta");
   };
 
   const filtered = addresses.filter((a) => {

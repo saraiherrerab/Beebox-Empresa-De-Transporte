@@ -3,15 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Home, Building2, Plus, Info, MapPin, User, Phone, Bookmark, Check, Sparkles } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-
-export interface SavedAddress {
-  id: string;
-  label: string;
-  address: string;
-  city: string;
-  contactName?: string;
-  contactPhone?: string;
-}
+import { SavedAddress, createSavedAddress, fetchSavedAddresses } from "@/lib/addressBook";
 
 interface PickupWizardStep1Props {
   onNext: () => void;
@@ -26,8 +18,6 @@ interface PickupWizardStep1Props {
     senderCity: string;
   }) => void;
 }
-
-const STORAGE_KEY_ADDRESSES = "beebox_saved_addresses";
 
 export const PickupWizardStep1: React.FC<PickupWizardStep1Props> = ({
   onNext,
@@ -48,19 +38,11 @@ export const PickupWizardStep1: React.FC<PickupWizardStep1Props> = ({
 
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
 
-  // Cargar direcciones guardadas reales del usuario
+  // Cargar direcciones guardadas del usuario desde el backend
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem(STORAGE_KEY_ADDRESSES);
-        if (stored) {
-          const list: SavedAddress[] = JSON.parse(stored);
-          setSavedAddresses(Array.isArray(list) ? list : []);
-        }
-      } catch (err) {
-        console.error("Error al cargar direcciones guardadas:", err);
-      }
-    }
+    fetchSavedAddresses()
+      .then(setSavedAddresses)
+      .catch((err) => console.error("Error al cargar direcciones guardadas:", err));
   }, []);
 
   // Si cambia el usuario autenticado y los campos están vacíos, completarlos con su perfil real
@@ -107,24 +89,21 @@ export const PickupWizardStep1: React.FC<PickupWizardStep1Props> = ({
     );
   };
 
-  const handleSaveCurrentAddress = () => {
+  const handleSaveCurrentAddress = async () => {
     if (!senderAddress.trim() || !senderCity.trim()) return;
 
-    const newAddr: SavedAddress = {
-      id: `addr_${Date.now()}`,
-      label: addressLabel.trim() || "Dirección",
-      address: senderAddress.trim(),
-      city: senderCity.trim(),
-      contactName: senderName.trim(),
-      contactPhone: senderPhone.trim(),
-    };
-
-    const updated = [newAddr, ...savedAddresses];
-    setSavedAddresses(updated);
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem(STORAGE_KEY_ADDRESSES, JSON.stringify(updated));
-      } catch {}
+    try {
+      const saved = await createSavedAddress({
+        label: addressLabel.trim() || "Dirección",
+        address: senderAddress.trim(),
+        city: senderCity.trim(),
+        contactName: senderName.trim(),
+        contactPhone: senderPhone.trim(),
+      });
+      setSavedAddresses((prev) => [saved, ...prev]);
+    } catch (err: any) {
+      setSaveAddressForFuture(false);
+      alert(err.message || "No se pudo guardar la dirección.");
     }
   };
 
