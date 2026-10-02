@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { fetchSavedAddresses, fetchSavedRecipients } from "@/lib/addressBook";
 import { User, Mail, Phone, MapPin, ShieldCheck, Users, Home, ArrowRight, BookUser } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
@@ -12,14 +13,12 @@ export default function ProfilePage() {
   const [addressCount, setAddressCount] = useState(0);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const rec = JSON.parse(localStorage.getItem("beebox_saved_recipients") || "[]");
-        if (Array.isArray(rec)) setRecipientCount(rec.length);
-        const addr = JSON.parse(localStorage.getItem("beebox_saved_addresses") || "[]");
-        if (Array.isArray(addr)) setAddressCount(addr.length);
-      } catch {}
-    }
+    fetchSavedRecipients()
+      .then((list) => setRecipientCount(list.length))
+      .catch(() => {});
+    fetchSavedAddresses()
+      .then((list) => setAddressCount(list.length))
+      .catch(() => {});
   }, []);
 
   return (

@@ -2,16 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { User, Phone, MapPin, Globe, BookmarkCheck, Plus, Check, Sparkles, Info } from "lucide-react";
-import { API_URL } from "@/config/api";
-
-export interface SavedRecipient {
-  id: string;
-  name: string;
-  phone: string;
-  phone2?: string;
-  address: string;
-  city: string;
-}
+import { SavedRecipient, fetchSavedRecipients } from "@/lib/addressBook";
 
 interface PickupWizardStep3Props {
   onNext: () => void;
@@ -29,8 +20,6 @@ interface PickupWizardStep3Props {
     recipientCity: string;
   }) => void;
 }
-
-const STORAGE_KEY = "beebox_saved_recipients";
 
 export const PickupWizardStep3: React.FC<PickupWizardStep3Props> = ({
   onNext,
@@ -51,40 +40,11 @@ export const PickupWizardStep3: React.FC<PickupWizardStep3Props> = ({
   const [savedRecipients, setSavedRecipients] = useState<SavedRecipient[]>([]);
   const [selectedRecipientId, setSelectedRecipientId] = useState<string>("custom");
 
-  // Load saved recipients from local storage & API
+  // Cargar destinatarios guardados del usuario desde el backend
   useEffect(() => {
-    let localList: SavedRecipient[] = [];
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          localList = Array.isArray(parsed) ? parsed : [];
-        }
-      } catch (err) {
-        console.error("Error loading recipients from localStorage:", err);
-      }
-    }
-
-    setSavedRecipients(localList);
-
-    // Also attempt fetching from backend API
-    const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
-    if (token) {
-      fetch(`${API_URL}/recipients`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data && Array.isArray(data.recipients) && data.recipients.length > 0) {
-            setSavedRecipients(data.recipients);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data.recipients));
-          }
-        })
-        .catch(() => {
-          // Graceful fallback to local storage
-        });
-    }
+    fetchSavedRecipients()
+      .then(setSavedRecipients)
+      .catch((err) => console.error("Error al cargar destinatarios guardados:", err));
   }, []);
 
   const notifyChange = (
@@ -116,56 +76,6 @@ export const PickupWizardStep3: React.FC<PickupWizardStep3Props> = ({
       setAddress(target.address);
       setCity(target.city);
       notifyChange(target.name, target.phone, target.phone2 || "", target.address, target.city);
-    }
-  };
-
-  const saveRecipientToStorageAndApi = () => {
-    if (!recipientName.trim() || !primaryPhone.trim() || !address.trim()) {
-      return;
-    }
-
-    const newRecipient: SavedRecipient = {
-      id: selectedRecipientId !== "custom" ? selectedRecipientId : `rec_${Date.now()}`,
-      name: recipientName.trim(),
-      phone: primaryPhone.trim(),
-      phone2: secondaryPhone.trim(),
-      address: address.trim(),
-      city: city.trim() || "Caracas, Venezuela",
-    };
-
-    // Update in local state & localStorage
-    setSavedRecipients((prev) => {
-      const existsIndex = prev.findIndex(
-        (r) => r.id === newRecipient.id || (r.name.toLowerCase() === newRecipient.name.toLowerCase() && r.phone === newRecipient.phone)
-      );
-      let updated: SavedRecipient[];
-      if (existsIndex >= 0) {
-        updated = [...prev];
-        updated[existsIndex] = newRecipient;
-      } else {
-        updated = [newRecipient, ...prev];
-      }
-      if (typeof window !== "undefined") {
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-        } catch {}
-      }
-      return updated;
-    });
-
-    // Try posting to API in background (with offline protection)
-    const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
-    if (token) {
-      fetch(`${API_URL}/recipients`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(newRecipient),
-      }).catch(() => {
-        // Silently catch offline errors
-      });
     }
   };
 

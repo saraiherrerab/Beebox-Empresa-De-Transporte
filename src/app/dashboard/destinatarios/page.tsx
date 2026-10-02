@@ -18,10 +18,13 @@ import {
   Truck,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { API_URL } from "@/config/api";
-import { SavedRecipient } from "@/components/client/PickupWizardStep3";
-
-const STORAGE_KEY_RECIPIENTS = "beebox_saved_recipients";
+import {
+  SavedRecipient,
+  createSavedRecipient,
+  deleteSavedRecipient,
+  fetchSavedRecipients,
+  updateSavedRecipient,
+} from "@/lib/addressBook";
 
 export default function DestinatariosPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -39,32 +42,9 @@ export default function DestinatariosPage() {
   const [notification, setNotification] = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const storedRec = localStorage.getItem(STORAGE_KEY_RECIPIENTS);
-        if (storedRec) {
-          const parsed = JSON.parse(storedRec);
-          if (Array.isArray(parsed)) setRecipients(parsed);
-        }
-      } catch (e) {
-        console.error("Error loading recipients:", e);
-      }
-    }
-
-    const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
-    if (token) {
-      fetch(`${API_URL}/recipients`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data && Array.isArray(data.recipients) && data.recipients.length > 0) {
-            setRecipients(data.recipients);
-            localStorage.setItem(STORAGE_KEY_RECIPIENTS, JSON.stringify(data.recipients));
-          }
-        })
-        .catch(() => {});
-    }
+    fetchSavedRecipients()
+      .then(setRecipients)
+      .catch((e) => console.error("Error loading recipients:", e));
   }, []);
 
   const showNotification = (msg: string) => {
@@ -92,15 +72,14 @@ export default function DestinatariosPage() {
     setIsRecipientModalOpen(true);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!recName.trim() || !recPhone1.trim() || !recAddress.trim() || !recCity.trim()) {
       alert("Por favor completa los campos obligatorios (*).");
       return;
     }
 
-    const item: SavedRecipient = {
-      id: editingRecipientId || `rec_${Date.now()}`,
+    const input = {
       name: recName.trim(),
       phone: recPhone1.trim(),
       phone2: recPhone2.trim(),
@@ -108,49 +87,32 @@ export default function DestinatariosPage() {
       city: recCity.trim(),
     };
 
-    let updated: SavedRecipient[];
-    if (editingRecipientId) {
-      updated = recipients.map((r) => (r.id === editingRecipientId ? item : r));
-      showNotification("Destinatario actualizado correctamente");
-    } else {
-      updated = [item, ...recipients];
-      showNotification("Nuevo destinatario guardado con éxito");
+    try {
+      if (editingRecipientId) {
+        const saved = await updateSavedRecipient(editingRecipientId, input);
+        setRecipients((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+        showNotification("Destinatario actualizado correctamente");
+      } else {
+        const saved = await createSavedRecipient(input);
+        // El backend puede devolver un destinatario existente actualizado (mismo nombre y teléfono)
+        setRecipients((prev) => [saved, ...prev.filter((r) => r.id !== saved.id)]);
+        showNotification("Nuevo destinatario guardado con éxito");
+      }
+      setIsRecipientModalOpen(false);
+    } catch (err: any) {
+      alert(err.message || "No se pudo guardar el destinatario.");
     }
-
-    setRecipients(updated);
-    if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY_RECIPIENTS, JSON.stringify(updated));
-    }
-
-    const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
-    if (token) {
-      fetch(`${API_URL}/recipients`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(item),
-      }).catch(() => {});
-    }
-
-    setIsRecipientModalOpen(false);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm("¿Deseas eliminar este destinatario de tu libreta?")) return;
-    const updated = recipients.filter((r) => r.id !== id);
-    setRecipients(updated);
-    if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY_RECIPIENTS, JSON.stringify(updated));
+    try {
+      await deleteSavedRecipient(id);
+      setRecipients((prev) => prev.filter((r) => r.id !== id));
+      showNotification("Destinatario eliminado de la libreta");
+    } catch (err: any) {
+      alert(err.message || "No se pudo eliminar el destinatario.");
     }
-
-    const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
-    if (token) {
-      fetch(`${API_URL}/recipients/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      }).catch(() => {});
-    }
-
-    showNotification("Destinatario eliminado de la libreta");
   };
 
   const filtered = recipients.filter((r) => {
