@@ -311,6 +311,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const login = async (email: string, pass: string) => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("beebox_token");
+      clearUserScopedStorage();
+    }
     try {
       const res = await fetchWithTimeout(`${API_URL}/auth/login`, {
         method: "POST",
@@ -346,6 +350,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (name: string, email: string, password: string, phone?: string) => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("beebox_token");
+      clearUserScopedStorage();
+    }
     try {
       const res = await fetchWithTimeout(`${API_URL}/auth/register`, {
         method: "POST",

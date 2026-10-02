@@ -165,7 +165,7 @@ export const PickupWizardStep3: React.FC<PickupWizardStep3Props> = ({
           <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-center gap-2.5">
             <Info className="w-4 h-4 text-amber-600 shrink-0" />
             <span>
-              Ingresa los datos de tu destinatario a continuación. Al continuar se guardarán automáticamente en tu libreta para futuros envíos.
+              Ingresa los datos de tu destinatario a continuación. Al enviar la solicitud de recolección se guardarán automáticamente en tu libreta para futuros envíos.
             </span>
           </div>
         )}

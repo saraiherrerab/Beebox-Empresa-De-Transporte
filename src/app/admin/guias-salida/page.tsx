@@ -95,6 +95,7 @@ export default function GuiasSalidaAdminPage() {
   // Modal Crear Guía de Salida
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [guiasLoadError, setGuiasLoadError] = useState<string | null>(null);
 
   // Form Fields para la Guía de Salida
   const [formGuiaCode, setFormGuiaCode] = useState("");
@@ -125,9 +126,20 @@ export default function GuiasSalidaAdminPage() {
         fetch(`${API_URL}/pickups`, { headers: authHeaders }).then((r) => r.json()),
       ]);
 
-      const guiasList: GuiaSalidaItem[] =
-        resGuias.status === "fulfilled" && Array.isArray(resGuias.value?.guias) ? resGuias.value.guias : [];
+      const guiasOk = resGuias.status === "fulfilled" && Array.isArray(resGuias.value?.guias);
+      const guiasList: GuiaSalidaItem[] = guiasOk ? (resGuias as PromiseFulfilledResult<any>).value.guias : [];
       setGuias(guiasList);
+      if (guiasOk) {
+        setGuiasLoadError(null);
+      } else {
+        const backendMessage =
+          resGuias.status === "fulfilled" && typeof resGuias.value?.message === "string"
+            ? resGuias.value.message
+            : null;
+        setGuiasLoadError(
+          backendMessage || "No se pudieron cargar las Guías de Salida. Recarga la página para intentarlo de nuevo."
+        );
+      }
 
       let enviosList: WarehouseItem[] = [];
       if (resShipments.status === "fulfilled" && Array.isArray(resShipments.value)) {
@@ -198,6 +210,7 @@ export default function GuiasSalidaAdminPage() {
     } catch {
       setGuias([]);
       setAllWarehouses([]);
+      setGuiasLoadError("No se pudieron cargar las Guías de Salida. Recarga la página para intentarlo de nuevo.");
     } finally {
       setLoading(false);
     }
@@ -208,8 +221,8 @@ export default function GuiasSalidaAdminPage() {
   }, [fetchData]);
 
   const handleOpenCreateModal = () => {
-    const nextCode = `GS-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
-    setFormGuiaCode(nextCode);
+    if (guiasLoadError) return;
+    setFormGuiaCode("");
     setFormDescription("");
     setFormDestination(DESTINOS[0]);
     setFormDepartureDate(new Date().toISOString().split("T")[0]);
@@ -277,11 +290,11 @@ export default function GuiasSalidaAdminPage() {
 
     setIsSubmitting(true);
 
-    const generatedCode = formGuiaCode.trim() || `GS-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
+    const trimmedCode = formGuiaCode.trim();
 
     const newGuia: GuiaSalidaItem = {
       id: `gs_${Date.now()}`,
-      guiaCode: generatedCode,
+      guiaCode: trimmedCode,
       description: formDescription.trim(),
       destination: formDestination,
       departureDate: formDepartureDate,
@@ -292,7 +305,7 @@ export default function GuiasSalidaAdminPage() {
       warehouses: selectedWarehousesList.map((w) => ({
         ...w,
         status: "EN_GUIA_SALIDA",
-        assignedGuiaCode: generatedCode,
+        assignedGuiaCode: trimmedCode || null,
       })),
       totalPieces: modalTotalPieces,
       totalWeightKg: modalTotalWeight,
@@ -313,6 +326,7 @@ export default function GuiasSalidaAdminPage() {
         headers: authHeaders,
         body: JSON.stringify({
           ...newGuia,
+          guiaCode: trimmedCode || undefined,
           warehouseIds: selectedWarehouseIds,
         }),
       });
@@ -441,6 +455,7 @@ export default function GuiasSalidaAdminPage() {
 
           <Button
             onClick={handleOpenCreateModal}
+            disabled={Boolean(guiasLoadError)}
             className="rounded-2xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs flex items-center gap-2 shadow-sm cursor-pointer"
           >
             <Plus className="w-4 h-4" />
@@ -448,6 +463,15 @@ export default function GuiasSalidaAdminPage() {
           </Button>
         </div>
       </div>
+
+      {guiasLoadError && (
+        <div
+          role="alert"
+          className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold"
+        >
+          {guiasLoadError}
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -561,6 +585,7 @@ export default function GuiasSalidaAdminPage() {
             </p>
             <Button
               onClick={handleOpenCreateModal}
+              disabled={Boolean(guiasLoadError)}
               className="rounded-xl bg-amber-500 text-slate-950 font-bold text-xs"
             >
               Crear Guía de Salida
@@ -801,11 +826,11 @@ export default function GuiasSalidaAdminPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-wider text-slate-600 mb-1">
-                      Código de Salida *
+                      Código de Salida
                     </label>
                     <input
                       type="text"
-                      required
+                      placeholder="Se genera automáticamente si lo dejas vacío"
                       value={formGuiaCode}
                       onChange={(e) => setFormGuiaCode(e.target.value)}
                       className="w-full px-3 py-2 rounded-xl border border-slate-200 font-mono font-bold text-xs bg-white text-slate-900"
