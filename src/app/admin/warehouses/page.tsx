@@ -88,17 +88,17 @@ function AdminWarehousesContent() {
   const [createForm, setCreateForm] = useState({
     code: `WR-${Math.floor(10000 + Math.random() * 90000)}`,
     serviceType: "Aéreo Express",
-    senderName: "Almacén Central Oklahoma",
-    senderCity: "Broken Arrow, OK",
+    senderName: "",
+    senderCity: "",
     recipientName: "",
     recipientPhone: "",
-    recipientCity: DESTINOS[0],
+    recipientCity: "",
     recipientAddress: "",
     contentDescription: "",
-    weightKg: 2.0,
+    weightKg: "" as any,
     boxCount: 1,
-    declaredValue: 100,
-    dimensions: "30x20x15 cm",
+    declaredValue: "" as any,
+    dimensions: "",
     containElectronics: false,
     electronicsDetails: "",
     electronicsDeclaredValue: "",
@@ -325,17 +325,17 @@ function AdminWarehousesContent() {
     setCreateForm({
       code: `WR-${Math.floor(10000 + Math.random() * 90000)}`,
       serviceType: "Aéreo Express",
-      senderName: "Almacén Central Oklahoma",
-      senderCity: "Broken Arrow, OK",
+      senderName: "",
+      senderCity: "",
       recipientName: "",
       recipientPhone: "",
-      recipientCity: DESTINOS[0],
+      recipientCity: "",
       recipientAddress: "",
       contentDescription: "",
-      weightKg: 2.5,
+      weightKg: "" as any,
       boxCount: 1,
-      declaredValue: 120,
-      dimensions: "30x20x15 cm",
+      declaredValue: "" as any,
+      dimensions: "",
       containElectronics: false,
       electronicsDetails: "",
       electronicsDeclaredValue: "",
@@ -346,6 +346,14 @@ function AdminWarehousesContent() {
 
   const handleCreateWarehouse = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!createForm.senderCity.trim()) {
+      alert("Por favor ingresa la ciudad o almacén de origen.");
+      return;
+    }
+    if (!createForm.recipientCity.trim()) {
+      alert("Por favor selecciona la ciudad de destino.");
+      return;
+    }
     if (!createForm.recipientName.trim()) {
       alert("Por favor ingresa el nombre del destinatario.");
       return;
@@ -356,6 +364,10 @@ function AdminWarehousesContent() {
     }
     if (!createForm.contentDescription.trim()) {
       alert("Por favor describe el contenido de la caja/warehouse.");
+      return;
+    }
+    if (!createForm.weightKg || Number(createForm.weightKg) <= 0) {
+      alert("Por favor ingresa el peso en kg.");
       return;
     }
 
@@ -374,7 +386,7 @@ function AdminWarehousesContent() {
       recipientAddress: `${createForm.recipientAddress.trim()}${createForm.recipientPhone ? ` (Tlf: ${createForm.recipientPhone.trim()})` : ""}`,
       serviceType: createForm.serviceType,
       weightKg: Number(createForm.weightKg) || 1.0,
-      dimensions: createForm.dimensions.trim() || `${createForm.boxCount} caja(s) (30x20x15 cm)`,
+      dimensions: createForm.dimensions.trim() || `${createForm.boxCount} caja(s)`,
       contentDescription: createForm.contentDescription.trim(),
       declaredValue: Number(createForm.declaredValue) || 0,
       boxCount: Number(createForm.boxCount) || 1,
@@ -868,6 +880,7 @@ function AdminWarehousesContent() {
                     onChange={(e) => setCreateForm({ ...createForm, recipientCity: e.target.value })}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500"
                   >
+                    <option value="" disabled>-- Selecciona un destino * --</option>
                     {DESTINOS.map((d) => (
                       <option key={d} value={d}>
                         {d}
@@ -940,7 +953,8 @@ function AdminWarehousesContent() {
                       step="0.1"
                       required
                       value={createForm.weightKg}
-                      onChange={(e) => setCreateForm({ ...createForm, weightKg: Number(e.target.value) })}
+                      onChange={(e) => setCreateForm({ ...createForm, weightKg: e.target.value === "" ? "" : Number(e.target.value) })}
+                      placeholder="0.0"
                       className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500"
                     />
                   </div>
@@ -962,7 +976,8 @@ function AdminWarehousesContent() {
                     <input
                       type="number"
                       value={createForm.declaredValue}
-                      onChange={(e) => setCreateForm({ ...createForm, declaredValue: Number(e.target.value) })}
+                      onChange={(e) => setCreateForm({ ...createForm, declaredValue: e.target.value === "" ? "" : Number(e.target.value) })}
+                      placeholder="0.00"
                       className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500"
                     />
                   </div>

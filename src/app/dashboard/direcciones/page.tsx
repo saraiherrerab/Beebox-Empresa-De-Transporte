@@ -33,7 +33,7 @@ export default function DireccionesPage() {
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
 
   // Form fields
-  const [addrLabel, setAddrLabel] = useState("Casa / Domicilio");
+  const [addrLabel, setAddrLabel] = useState("");
   const [addrAddress, setAddrAddress] = useState("");
   const [addrCity, setAddrCity] = useState("");
   const [addrContactName, setAddrContactName] = useState("");
@@ -54,7 +54,7 @@ export default function DireccionesPage() {
 
   const handleOpenAdd = () => {
     setEditingAddressId(null);
-    setAddrLabel("Casa / Domicilio");
+    setAddrLabel("");
     setAddrAddress("");
     setAddrCity("");
     setAddrContactName("");

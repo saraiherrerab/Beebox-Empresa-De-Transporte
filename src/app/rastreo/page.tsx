@@ -6,8 +6,9 @@ import { MOCK_SHIPMENTS } from "@/constants";
 import { ParcelDetailsCard } from "@/components/tracking/ParcelDetailsCard";
 import { StatusTimeline } from "@/components/tracking/StatusTimeline";
 import { TrackingWidget } from "@/components/home/TrackingWidget";
-import { AlertCircle, ArrowLeft, Search } from "lucide-react";
+import { AlertCircle, ArrowLeft, Search, PackageSearch } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { API_URL } from "@/config/api";
 
 interface TrackingPageProps {
   searchParams: Promise<{ codigo?: string }>;
@@ -15,10 +16,70 @@ interface TrackingPageProps {
 
 export default async function TrackingPage({ searchParams }: TrackingPageProps) {
   const params = await searchParams;
-  const rawCode = params.codigo || "BEE-98234-CL";
-  const normalizedCode = rawCode.trim().toUpperCase();
+  const rawCode = params.codigo ? params.codigo.trim() : "";
+  const normalizedCode = rawCode.toUpperCase();
 
-  const shipment = MOCK_SHIPMENTS[normalizedCode];
+  let shipment: any = null;
+  if (normalizedCode) {
+    try {
+      const res = await fetch(`${API_URL}/shipments/${encodeURIComponent(normalizedCode)}`, {
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        shipment = {
+          code: data.trackingCode,
+          serviceType: data.serviceType || "Aéreo Express",
+          origin: {
+            country: "Estados Unidos",
+            city: data.senderCity || "Broken Arrow, OK",
+            date: data.createdAt ? data.createdAt.split("T")[0] : "",
+          },
+          destination: {
+            country: "Venezuela",
+            city: data.recipientCity || "Destino",
+            estimatedDate: data.estimatedDelivery || "3-5 días hábiles",
+          },
+          currentStatus: data.currentStatus || "En el origen",
+          weight: data.weightKg ? `${data.weightKg} kg` : "N/A",
+          dimensions: data.dimensions || "N/A",
+          sender: {
+            name: data.senderName || "Remitente",
+            city: data.senderCity || "Broken Arrow, OK",
+          },
+          recipient: {
+            name: data.recipientName || "Destinatario",
+            city: data.recipientCity || "Destino",
+          },
+          events: Array.isArray(data.trackingEvents) && data.trackingEvents.length > 0
+            ? data.trackingEvents.map((ev: any) => ({
+                id: ev.id,
+                status: ev.status,
+                location: ev.location,
+                timestamp: ev.timestamp ? new Date(ev.timestamp).toLocaleString("es-VE") : "",
+                description: ev.description,
+                completed: true,
+              }))
+            : [
+                {
+                  id: "ev_1",
+                  status: data.currentStatus || "En el origen",
+                  location: data.senderCity || "Broken Arrow, OK",
+                  timestamp: data.createdAt ? new Date(data.createdAt).toLocaleString("es-VE") : "",
+                  description: "Carga registrada en sistema y disponible en almacén.",
+                  completed: true,
+                },
+              ],
+        };
+      }
+    } catch {
+      // Fallback
+    }
+
+    if (!shipment && MOCK_SHIPMENTS[normalizedCode]) {
+      shipment = MOCK_SHIPMENTS[normalizedCode];
+    }
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-beebox-navy-950">
@@ -56,6 +117,16 @@ export default async function TrackingPage({ searchParams }: TrackingPageProps) 
                 <StatusTimeline events={shipment.events} currentStatus={shipment.currentStatus} />
               </div>
             </div>
+          ) : !normalizedCode ? (
+            <div className="text-center py-16 px-4 rounded-3xl bg-beebox-navy-900/60 border border-slate-800 space-y-4">
+              <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 mx-auto flex items-center justify-center">
+                <PackageSearch className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-bold text-white">Consulta el Estado de tu Envío</h3>
+              <p className="text-sm text-slate-400 max-w-md mx-auto">
+                Ingresa en el buscador tu número de Warehouse (WR-XXXXX) o Guía de Salida para conocer su ubicación y recorrido en tiempo real.
+              </p>
+            </div>
           ) : (
             <div className="text-center py-16 px-4 rounded-3xl bg-beebox-navy-900/60 border border-slate-800 space-y-4">
               <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 mx-auto flex items-center justify-center">
@@ -63,13 +134,8 @@ export default async function TrackingPage({ searchParams }: TrackingPageProps) 
               </div>
               <h3 className="text-xl font-bold text-white">No se encontró el código: {normalizedCode}</h3>
               <p className="text-sm text-slate-400 max-w-md mx-auto">
-                Verifica haber ingresado correctamente los caracteres o intenta con nuestro código de demostración.
+                Verifica haber ingresado correctamente los caracteres de tu Warehouse o Guía de Salida.
               </p>
-              <div className="pt-2">
-                <Link href="/rastreo?codigo=BEE-98234-CL">
-                  <Button variant="primary">Probar Código Demo (BEE-98234-CL)</Button>
-                </Link>
-              </div>
             </div>
           )}
         </div>

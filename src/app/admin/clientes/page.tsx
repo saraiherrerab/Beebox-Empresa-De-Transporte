@@ -22,49 +22,6 @@ interface ApiUser {
 
 import { API_URL } from "@/config/api";
 
-const FALLBACK_CLIENTS: ApiUser[] = [
-  {
-    id: "usr_mock_1",
-    name: "Sarai Herrera",
-    email: "sarai.herrera@beebox.com",
-    phone: "+52 55 9876 5432",
-    suiteCode: "CAS-77382-MIAMI",
-    role: "client",
-    active: true,
-    createdAt: "2026-08-20T01:00:00.000Z",
-  },
-  {
-    id: "usr_mock_2",
-    name: "Juan Pérez",
-    email: "juan.perez@beebox.com",
-    phone: "+52 55 9876 5432",
-    suiteCode: "CAS-88293-MIAMI",
-    role: "client",
-    active: true,
-    createdAt: "2026-08-20T01:02:44.011Z",
-  },
-  {
-    id: "usr_mock_3",
-    name: "Laura Gómez",
-    email: "laura.gomez@beebox.com",
-    phone: "+52 55 1234 5678",
-    suiteCode: "CAS-42346-MIAMI",
-    role: "client",
-    active: true,
-    createdAt: "2026-08-20T03:53:30.839Z",
-  },
-  {
-    id: "usr_mock_4",
-    name: "Maria Gonzalez",
-    email: "maria@gmail.com",
-    phone: "+58 412 134 5071",
-    suiteCode: "CAS-62607-MIAMI",
-    role: "client",
-    active: true,
-    createdAt: "2026-08-25T14:39:13.748Z",
-  },
-];
-
 export default function AdminClientesPage() {
   const { isAuthenticated, user, logout } = useAuth();
   const isSuperAdmin = user?.role === "super_admin" || user?.email?.includes("super");
@@ -102,7 +59,7 @@ export default function AdminClientesPage() {
       }
     }
 
-    setClients(FALLBACK_CLIENTS);
+    setClients([]);
   }, []);
 
   useEffect(() => {

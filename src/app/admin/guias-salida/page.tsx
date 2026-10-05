@@ -100,10 +100,10 @@ export default function GuiasSalidaAdminPage() {
   // Form Fields para la Guía de Salida
   const [formGuiaCode, setFormGuiaCode] = useState("");
   const [formDescription, setFormDescription] = useState("");
-  const [formDestination, setFormDestination] = useState(DESTINOS[0]);
+  const [formDestination, setFormDestination] = useState("");
   const [formDepartureDate, setFormDepartureDate] = useState(new Date().toISOString().split("T")[0]);
   const [formServiceType, setFormServiceType] = useState<"Aéreo" | "Marítimo" | "Terrestre">("Aéreo");
-  const [formCarrier, setFormCarrier] = useState("Laser Cargo / Vuelo Semanal");
+  const [formCarrier, setFormCarrier] = useState("");
   const [formNotes, setFormNotes] = useState("");
 
   // Warehouses seleccionados para esta nueva Guía de Salida
@@ -244,10 +244,10 @@ export default function GuiasSalidaAdminPage() {
     if (guiasLoadError) return;
     setFormGuiaCode("");
     setFormDescription("");
-    setFormDestination(DESTINOS[0]);
+    setFormDestination("");
     setFormDepartureDate(new Date().toISOString().split("T")[0]);
     setFormServiceType("Aéreo");
-    setFormCarrier("Laser Cargo / Vuelo Semanal");
+    setFormCarrier("");
     setFormNotes("");
     setSelectedWarehouseIds([]);
     setWarehouseSearchInModal("");
@@ -337,6 +337,10 @@ export default function GuiasSalidaAdminPage() {
     e.preventDefault();
     if (!formDescription.trim()) {
       alert("Por favor ingresa una descripción para la Guía de Salida (ej. Vuelo Aéreo Consolidado).");
+      return;
+    }
+    if (!formDestination.trim()) {
+      alert("Por favor selecciona el destino de la Guía de Salida.");
       return;
     }
 
@@ -945,10 +949,12 @@ export default function GuiasSalidaAdminPage() {
                   <div>
                     <label className="block text-[10px] font-bold text-slate-700 mb-1">Destino Principal *</label>
                     <select
+                      required
                       value={formDestination}
                       onChange={(e) => setFormDestination(e.target.value)}
                       className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900 bg-white"
                     >
+                      <option value="" disabled>-- Seleccionar Destino * --</option>
                       {DESTINOS.map((d) => (
                         <option key={d} value={d}>
                           {d}

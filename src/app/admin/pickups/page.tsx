@@ -82,99 +82,6 @@ const DEFAULT_FLEET: FleetVehicle[] = [
   { id: "v_3", name: "Furgón Mercedes Sprinter #04", category: "Carga Pesada" },
 ];
 
-const DEFAULT_MOCK_PICKUPS: ApiPickup[] = [
-  {
-    id: "pk_mock_1",
-    pickupCode: "WR-98210",
-    senderName: "Juan Pérez",
-    senderPhone: "+1 (918) 555-0199",
-    senderAddress: "Av. Insurgentes Sur 1234, Col. Del Valle",
-    senderCity: "Broken Arrow, OK",
-    boxCount: 2,
-    totalWeightKg: 3.5,
-    boxes: [
-      { id: "b1", size: "Mediano", contentDescription: "Ropa variada y calzado deportivo", declaredValue: 120 },
-      { id: "b2", size: "Pequeño", contentDescription: "Cosméticos y accesorios personales", declaredValue: 80 },
-    ],
-    containElectronics: false,
-    containLithium: false,
-    pickupDate: "2026-10-18",
-    timeSlot: "mañana",
-    status: "PENDIENTE",
-    user: {
-      name: "Juan Pérez",
-      suiteCode: "CAS-OK-HUB",
-    },
-    recipientName: "María López",
-    recipientPhone: "+58 412 555 1234",
-    recipientPhone2: "+58 414 777 8899",
-    recipientAddress: "Calle Reforma 456, Urb Las Mercedes",
-    recipientCity: "Caracas, Venezuela",
-  },
-  {
-    id: "pk_mock_2",
-    pickupCode: "WR-44120",
-    senderName: "Andrea Salazar",
-    senderPhone: "+1 (918) 555-9012",
-    senderAddress: "1405 Elm St, Suite 300",
-    senderCity: "Tulsa, OK",
-    boxCount: 1,
-    totalWeightKg: 1.8,
-    boxes: [
-      { id: "b1", size: "Mediano", contentDescription: "Artículos de papelería y oficina", declaredValue: 90 },
-    ],
-    containElectronics: true,
-    electronicsDetails: "1 Laptop Lenovo ThinkPad T14",
-    electronicsDeclaredValue: 750,
-    containLithium: true,
-    pickupDate: "2026-10-19",
-    timeSlot: "tarde",
-    status: "EN_PROCESO",
-    user: {
-      name: "Andrea Salazar",
-      suiteCode: "CAS-OK-3982",
-    },
-    recipientName: "Carlos Salazar",
-    recipientPhone: "+58 414 777 8899",
-    recipientPhone2: "+58 416 333 4455",
-    recipientAddress: "Av 4 Bella Vista con Calle 72",
-    recipientCity: "Maracaibo, Venezuela",
-    vehicle: {
-      id: "v_1",
-      name: "Van Express Ford Transit #02",
-      category: "Van Ligera",
-    },
-  },
-  {
-    id: "pk_mock_3",
-    pickupCode: "WR-77300",
-    senderName: "Roberto Gómez",
-    senderPhone: "+1 (918) 555-7832",
-    senderAddress: "8920 S Memorial Dr",
-    senderCity: "Broken Arrow, OK",
-    boxCount: 3,
-    totalWeightKg: 5.2,
-    containElectronics: false,
-    containLithium: false,
-    pickupDate: "2026-10-17",
-    timeSlot: "mañana",
-    status: "COMPLETADO",
-    user: {
-      name: "Roberto Gómez",
-      suiteCode: "CAS-OK-5512",
-    },
-    recipientName: "Elena Gómez",
-    recipientPhone: "+58 416 888 2345",
-    recipientAddress: "Av Francisco de Miranda, Chacao",
-    recipientCity: "Caracas, Venezuela",
-    vehicle: {
-      id: "v_2",
-      name: "Camioneta Nissan Reparto #01",
-      category: "Pickup Urbana",
-    },
-  },
-];
-
 const isPorConfirmar = (status: string) => {
   const s = (status || "").toUpperCase();
   return s === "PENDIENTE" || s === "POR_CONFIRMAR" || s === "POR CONFIRMAR";
@@ -203,14 +110,14 @@ export default function AdminPickupsPage() {
   const [submitting, setSubmitting] = useState(false);
 
   // Campos de auditoría técnica por parte del personal operativo
-  const [verifiedWeight, setVerifiedWeight] = useState<number>(1.0);
+  const [verifiedWeight, setVerifiedWeight] = useState<number | "">("");
   const [verifiedBoxes, setVerifiedBoxes] = useState<number>(1);
-  const [verifiedLength, setVerifiedLength] = useState<string>("30");
-  const [verifiedWidth, setVerifiedWidth] = useState<string>("20");
-  const [verifiedHeight, setVerifiedHeight] = useState<string>("15");
+  const [verifiedLength, setVerifiedLength] = useState<string>("");
+  const [verifiedWidth, setVerifiedWidth] = useState<string>("");
+  const [verifiedHeight, setVerifiedHeight] = useState<string>("");
   const [verifiedElectronics, setVerifiedElectronics] = useState<boolean>(false);
   const [verifiedLithium, setVerifiedLithium] = useState<boolean>(false);
-  const [inspectionNotes, setInspectionNotes] = useState<string>("Empaque original en buen estado, verificado en almacén");
+  const [inspectionNotes, setInspectionNotes] = useState<string>("");
 
   const fetchPickups = () => {
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
@@ -231,14 +138,11 @@ export default function AdminPickupsPage() {
             : [];
         }
 
-        // Si la lista está vacía, usar mocks para demostración operativa
-        if (list.length === 0) {
-          list = DEFAULT_MOCK_PICKUPS;
-        }
-
         setPickups(list);
         if (list.length > 0) {
-          setSelectedPickup(list[0]);
+          setSelectedPickup((prev) => (prev ? list.find((p) => p.id === prev.id) || list[0] : list[0]));
+        } else {
+          setSelectedPickup(null);
         }
 
         if (fleetResult.status === "fulfilled" && Array.isArray(fleetResult.value) && fleetResult.value.length > 0) {
@@ -248,8 +152,8 @@ export default function AdminPickupsPage() {
         }
       })
       .catch(() => {
-        setPickups(DEFAULT_MOCK_PICKUPS);
-        if (DEFAULT_MOCK_PICKUPS.length > 0) setSelectedPickup(DEFAULT_MOCK_PICKUPS[0]);
+        setPickups([]);
+        setSelectedPickup(null);
       })
       .finally(() => setLoading(false));
   };
@@ -297,7 +201,7 @@ export default function AdminPickupsPage() {
 
     const updatedPickup: ApiPickup = {
       ...selectedPickup,
-      totalWeightKg: verifiedWeight,
+      totalWeightKg: Number(verifiedWeight) || 0,
       boxCount: verifiedBoxes,
       dimensions: finalDimensions,
       verifiedDimensions: finalDimensions,
@@ -350,7 +254,7 @@ export default function AdminPickupsPage() {
       ...selectedPickup,
       status: "EN_PROCESO",
       pickupCode: customGuide || selectedPickup.pickupCode,
-      totalWeightKg: verifiedWeight,
+      totalWeightKg: Number(verifiedWeight) || 0,
       boxCount: verifiedBoxes,
       dimensions: finalDimensions,
       verifiedDimensions: finalDimensions,
@@ -406,7 +310,7 @@ export default function AdminPickupsPage() {
     const updatedPickup: ApiPickup = {
       ...selectedPickup,
       status: "COMPLETADO",
-      totalWeightKg: verifiedWeight,
+      totalWeightKg: Number(verifiedWeight) || 0,
       boxCount: verifiedBoxes,
       dimensions: finalDimensions,
       verifiedDimensions: finalDimensions,
@@ -1021,7 +925,7 @@ export default function AdminPickupsPage() {
                     <span className="text-[10px] text-slate-400 font-bold block">PESO FACTURABLE (OFICIAL)</span>
                     <span className="font-mono font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md">
                       {Math.max(
-                        verifiedWeight,
+                        Number(verifiedWeight) || 0,
                         Number(((Number(verifiedLength || 0) * Number(verifiedWidth || 0) * Number(verifiedHeight || 0)) / 5000).toFixed(2))
                       )}{" "}
                       kg

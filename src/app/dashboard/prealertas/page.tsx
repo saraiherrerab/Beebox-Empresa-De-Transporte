@@ -12,13 +12,13 @@ function PrealertasContent() {
   const searchParams = useSearchParams();
   const isNuevaParam = searchParams.get("nueva") === "true";
 
-  const [store, setStore] = useState("Amazon US");
+  const [store, setStore] = useState("");
   const [customStore, setCustomStore] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
   const [providerWarehouseReceipt, setProviderWarehouseReceipt] = useState("");
   const [description, setDescription] = useState("");
   const [amountPaid, setAmountPaid] = useState("");
-  const [destination, setDestination] = useState("Caracas, Venezuela");
+  const [destination, setDestination] = useState("");
   const [customDestination, setCustomDestination] = useState("");
   const [availableDestinations, setAvailableDestinations] = useState<string[]>([
     "Caracas, Venezuela",
@@ -28,13 +28,13 @@ function PrealertasContent() {
 
   // Edit Modal State
   const [editingPrealerta, setEditingPrealerta] = useState<any | null>(null);
-  const [editStore, setEditStore] = useState("Amazon US");
+  const [editStore, setEditStore] = useState("");
   const [editCustomStore, setEditCustomStore] = useState("");
   const [editTrackingNumber, setEditTrackingNumber] = useState("");
   const [editProviderWR, setEditProviderWR] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editAmountPaid, setEditAmountPaid] = useState("");
-  const [editDestination, setEditDestination] = useState("Caracas, Venezuela");
+  const [editDestination, setEditDestination] = useState("");
   const [editCustomDestination, setEditCustomDestination] = useState("");
   const [editErrorMsg, setEditErrorMsg] = useState("");
 
@@ -70,7 +70,6 @@ function PrealertasContent() {
           ) as string[];
           if (dests.length > 0) {
             setAvailableDestinations(dests);
-            setDestination(dests[0]);
           }
         }
       })
@@ -88,19 +87,36 @@ function PrealertasContent() {
     const storeName = store === "Otra" ? customStore : store;
     const finalDestination = destination === "Otra" ? customDestination : destination;
 
+    if (!storeName.trim()) {
+      alert("Por favor selecciona o ingresa la tienda de origen.");
+      return;
+    }
+    if (!finalDestination.trim()) {
+      alert("Por favor selecciona o ingresa el destino.");
+      return;
+    }
+    if (!trackingNumber.trim()) {
+      alert("Por favor ingresa el número de tracking.");
+      return;
+    }
+
     addPrealerta({
-      store: storeName || "Tienda Online",
-      trackingNumber,
-      providerWarehouseReceipt: providerWarehouseReceipt || undefined,
-      description,
-      amountPaid: amountPaid || "0.00",
-      destination: finalDestination || "Caracas, Venezuela",
+      store: storeName.trim(),
+      trackingNumber: trackingNumber.trim(),
+      providerWarehouseReceipt: providerWarehouseReceipt.trim() || undefined,
+      description: description.trim(),
+      amountPaid: amountPaid.trim() || "0.00",
+      destination: finalDestination.trim(),
       receiptFileName: receiptFileName || undefined,
     });
 
     setSuccessMsg(true);
     setTimeout(() => setSuccessMsg(false), 4000);
     setShowForm(false);
+    setStore("");
+    setCustomStore("");
+    setDestination("");
+    setCustomDestination("");
     setTrackingNumber("");
     setProviderWarehouseReceipt("");
     setDescription("");
@@ -232,10 +248,12 @@ function PrealertasContent() {
                   Tienda / Plataforma de Origen
                 </label>
                 <select
+                  required
                   value={store}
                   onChange={(e) => setStore(e.target.value)}
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-medium text-slate-900 focus:border-amber-500 focus:outline-none"
                 >
+                  <option value="" disabled>-- Selecciona una tienda o plataforma * --</option>
                   <option value="Amazon US">Amazon US</option>
                   <option value="eBay US">eBay US</option>
                   <option value="Walmart US">Walmart US</option>
@@ -258,13 +276,15 @@ function PrealertasContent() {
               {/* Destino de Envío Dinámico desde Backend */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5 text-amber-500" /> Destino Final del Envío (Configurado en Sistema)
+                  <MapPin className="w-3.5 h-3.5 text-amber-500" /> Destino Final del Envío (Configurado en Sistema) *
                 </label>
                 <select
+                  required
                   value={destination}
                   onChange={(e) => setDestination(e.target.value)}
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-bold text-slate-900 focus:border-amber-500 focus:outline-none"
                 >
+                  <option value="" disabled>-- Selecciona el destino final * --</option>
                   {availableDestinations.map((d) => (
                     <option key={d} value={d}>
                       {d}
@@ -403,10 +423,12 @@ function PrealertasContent() {
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Tienda</label>
                   <select
+                    required
                     value={editStore}
                     onChange={(e) => setEditStore(e.target.value)}
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-medium text-slate-900 focus:border-amber-500 focus:outline-none"
                   >
+                    <option value="" disabled>-- Selecciona una tienda * --</option>
                     <option value="Amazon US">Amazon US</option>
                     <option value="eBay US">eBay US</option>
                     <option value="Walmart US">Walmart US</option>
@@ -427,12 +449,14 @@ function PrealertasContent() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Destino Solicitado</label>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Destino Solicitado *</label>
                   <select
+                    required
                     value={editDestination}
                     onChange={(e) => setEditDestination(e.target.value)}
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-bold text-slate-900 focus:border-amber-500 focus:outline-none"
                   >
+                    <option value="" disabled>-- Selecciona el destino * --</option>
                     {availableDestinations.map((d) => (
                       <option key={d} value={d}>{d}</option>
                     ))}

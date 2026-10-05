@@ -19,29 +19,6 @@ interface AdminUser {
 
 import { API_URL } from "@/config/api";
 
-const FALLBACK_ADMINS: AdminUser[] = [
-  {
-    id: "adm_mock_1",
-    name: "Super Admin Principal",
-    email: "superadmin@beebox.com",
-    phone: "+56 9 8765 4321",
-    suiteCode: "CAS-SUPER-HQ",
-    role: "super_admin",
-    active: true,
-    createdAt: "2026-08-29T20:01:59.623Z",
-  },
-  {
-    id: "adm_mock_2",
-    name: "Admin Principal",
-    email: "admin@beebox.com",
-    phone: "+56 9 1234 5678",
-    suiteCode: "CAS-ADMIN-HUB",
-    role: "admin",
-    active: true,
-    createdAt: "2026-08-20T01:02:43.931Z",
-  },
-];
-
 export default function AdminAdministradoresPage() {
   const { user, logout } = useAuth();
   const [admins, setAdmins] = useState<AdminUser[]>([]);
@@ -82,7 +59,7 @@ export default function AdminAdministradoresPage() {
       }
     }
 
-    setAdmins(FALLBACK_ADMINS);
+    setAdmins([]);
     setLoading(false);
   };
 

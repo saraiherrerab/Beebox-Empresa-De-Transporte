@@ -34,7 +34,7 @@ export const PickupWizardStep1: React.FC<PickupWizardStep1Props> = ({
   const [senderAddress, setSenderAddress] = useState(initialSenderAddress || "");
   const [senderCity, setSenderCity] = useState(initialSenderCity || "");
   const [saveAddressForFuture, setSaveAddressForFuture] = useState(false);
-  const [addressLabel, setAddressLabel] = useState("Casa / Domicilio");
+  const [addressLabel, setAddressLabel] = useState("");
 
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
 

@@ -64,7 +64,7 @@ export default function SolicitarPickupPage() {
   const [activeMainTab, setActiveMainTab] = useState<"solicitar" | "historial">("solicitar");
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [generatedCode, setGeneratedCode] = useState("WR-98210");
+  const [generatedCode, setGeneratedCode] = useState("");
   const [loading, setLoading] = useState(false);
 
   // Client pickup history
@@ -91,7 +91,7 @@ export default function SolicitarPickupPage() {
       electronicsDeclaredValue: "",
     },
   ]);
-  const [totalWeightKg, setTotalWeightKg] = useState(1.5);
+  const [totalWeightKg, setTotalWeightKg] = useState<number | "">("");
   const [containElectronics, setContainElectronics] = useState(false);
   const [electronicsDetails, setElectronicsDetails] = useState("");
   const [electronicsDeclaredValue, setElectronicsDeclaredValue] = useState<number | "">("");
@@ -140,7 +140,14 @@ export default function SolicitarPickupPage() {
   ];
 
   const handleFinalSubmit = async () => {
-    // Validaciones de cajas individuales
+    // Validaciones del remitente (Paso 1)
+    if (!senderName.trim() || !senderPhone.trim() || !senderAddress.trim() || !senderCity.trim()) {
+      alert("Por favor completa todos los campos del remitente y dirección de recolección (Paso 1).");
+      setCurrentStep(1);
+      return;
+    }
+
+    // Validaciones de cajas individuales (Paso 2)
     for (let i = 0; i < boxes.length; i++) {
       const b = boxes[i];
       if (!b.contentDescription.trim()) {
@@ -167,14 +174,15 @@ export default function SolicitarPickupPage() {
       }
     }
 
-    // Validaciones de destinatario
+    // Validaciones de destinatario (Paso 3)
     if (
       !recipientName.trim() ||
       !recipientAddress.trim() ||
+      !recipientCity.trim() ||
       !recipientPhone.trim() ||
       !recipientPhone2.trim()
     ) {
-      alert("Por favor completa los 2 teléfonos, nombre y dirección del destinatario (Paso 3).");
+      alert("Por favor completa los 2 teléfonos, nombre, dirección y ciudad del destinatario (Paso 3).");
       setCurrentStep(3);
       return;
     }
@@ -190,10 +198,10 @@ export default function SolicitarPickupPage() {
       senderName: senderName.trim(),
       senderPhone: senderPhone.trim(),
       senderAddress: senderAddress.trim(),
-      senderCity: senderCity.trim() || "Broken Arrow, OK",
+      senderCity: senderCity.trim(),
       boxCount: Number(boxCount) || boxes.length || 1,
       boxes: boxes,
-      totalWeightKg: Number(totalWeightKg) || 1.5,
+      totalWeightKg: totalWeightKg ? Number(totalWeightKg) : 0,
       containElectronics: Boolean(containElectronics),
       electronicsDetails: containElectronics ? electronicsDetails.trim() : "",
       electronicsDeclaredValue: containElectronics ? electronicsDeclaredValue : "",
@@ -203,7 +211,7 @@ export default function SolicitarPickupPage() {
       recipientPhone: combinedRecipientPhone,
       recipientPhone2: recipientPhone2.trim(),
       recipientAddress: recipientAddress.trim(),
-      recipientCity: recipientCity.trim() || "Caracas, Venezuela",
+      recipientCity: recipientCity.trim(),
       pickupDate: pickupDate || new Date().toISOString().split("T")[0],
       timeSlot: timeSlot || "mañana",
     };
@@ -247,6 +255,31 @@ export default function SolicitarPickupPage() {
     setIsSubmitted(false);
     setCurrentStep(1);
     setActiveMainTab("solicitar");
+    setSenderAddress("");
+    setSenderCity("");
+    setBoxCount(1);
+    setBoxes([
+      {
+        id: "box_1",
+        size: "Mediano",
+        contentDescription: "",
+        declaredValue: "",
+        containElectronics: false,
+        electronicsDetails: "",
+        electronicsDeclaredValue: "",
+      },
+    ]);
+    setTotalWeightKg("");
+    setContainElectronics(false);
+    setElectronicsDetails("");
+    setElectronicsDeclaredValue("");
+    setContainLithium(false);
+    setNotes("");
+    setRecipientName("");
+    setRecipientPhone("");
+    setRecipientPhone2("");
+    setRecipientAddress("");
+    setRecipientCity("");
   };
 
   // Filtrado de solicitudes en historial

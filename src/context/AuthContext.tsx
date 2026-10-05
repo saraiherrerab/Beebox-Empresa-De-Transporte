@@ -63,46 +63,6 @@ const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutM
   }
 };
 
-const MOCK_PREALERTAS: PrealertaItem[] = [
-  {
-    id: "pre_mock_1",
-    store: "Amazon US",
-    trackingNumber: "1Z9999999999999991",
-    description: "Auriculares Inalámbricos Sony WH-1000XM5",
-    amountPaid: "348",
-    createdAt: "2026-08-29",
-    destination: "Caracas, Venezuela",
-    status: "Prealertado",
-    userName: "Sarai Herrera",
-    userSuite: "CAS-77382-MIAMI",
-  },
-  {
-    id: "pre_mock_2",
-    store: "eBay Store",
-    trackingNumber: "1Z9999999999999992",
-    description: "Colección de Calcomanías Retro y Llaveros",
-    amountPaid: "45",
-    createdAt: "2026-08-29",
-    destination: "Maracaibo, Venezuela",
-    status: "Recibido en Almacén",
-    userName: "Juan Pérez",
-    userSuite: "CAS-88293-MIAMI",
-  },
-  {
-    id: "pre_mock_3",
-    store: "Shein Official",
-    trackingNumber: "1Z9999999999999993",
-    description: "Lote de Ropa Deportiva y Accesorios",
-    amountPaid: "89.9",
-    createdAt: "2026-08-29",
-    destination: "Caracas, Venezuela",
-    status: "Confirmado",
-    warehouseGuide: "BBX-89421",
-    userName: "Sarai Herrera",
-    userSuite: "CAS-77382-MIAMI",
-  },
-];
-
 // Datos de usuario cacheados en el navegador; no deben sobrevivir a un cambio de sesión
 const USER_SCOPED_STORAGE_KEYS = [
   "beebox_saved_addresses",
@@ -120,13 +80,13 @@ const clearUserScopedStorage = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [role, setRole] = useState<"client" | "admin" | "super_admin">("client");
-  const [prealertas, setPrealertas] = useState<PrealertaItem[]>(MOCK_PREALERTAS);
+  const [prealertas, setPrealertas] = useState<PrealertaItem[]>([]);
   const [socket, setSocket] = useState<Socket | null>(null);
 
   const refreshPrealertas = useCallback(async () => {
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
     if (!token) {
-      setPrealertas((prev) => (prev.length === 0 ? MOCK_PREALERTAS : prev));
+      setPrealertas([]);
       return;
     }
 
@@ -147,20 +107,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           amountPaid: String(p.amountPaid),
           receiptFileName: p.receiptFileName || undefined,
           createdAt: p.createdAt ? p.createdAt.split("T")[0] : new Date().toISOString().split("T")[0],
-          destination: p.destination || "Caracas, Venezuela",
+          destination: p.destination || "",
           status: p.status as any,
           warehouseGuide: p.warehouseGuide || undefined,
-          userName: p.user?.name || "Cliente BeeBox",
-          userSuite: p.user?.suiteCode || "CAS-OK-HUB",
+          userName: p.user?.name || "",
+          userSuite: p.user?.suiteCode || "",
         }));
         setPrealertas(formatted);
         return;
       }
     } catch {
-      // Retener estado actual o usar fallback
+      // Retener estado actual
     }
-
-    setPrealertas((prev) => (prev.length === 0 ? MOCK_PREALERTAS : prev));
   }, []);
 
   // Inicializar conexion WebSocket
@@ -331,21 +289,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         throw new Error(data.message || "Error al iniciar sesión");
       }
-    } catch {
-      const userRole: "client" | "admin" | "super_admin" = email.includes("super")
-        ? "super_admin"
-        : email.includes("admin")
-        ? "admin"
-        : "client";
-      setUser({
-        id: "usr_123",
-        name: userRole === "super_admin" ? "Super Admin Principal" : userRole === "admin" ? "Admin Principal" : email.split("@")[0],
-        email,
-        phone: "",
-        suiteCode: "CAS-88293-TULSA",
-        role: userRole,
-      });
-      setRole(userRole);
+    } catch (err: any) {
+      throw err;
     }
   };
 
@@ -371,11 +316,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error(data.message || "Error al registrar usuario.");
       }
     } catch (error: any) {
-      if (error?.message && error.message !== "Failed to fetch") {
-        throw error;
-      }
-      const suiteCode = `CAS-${Math.floor(10000 + Math.random() * 90000)}-TULSA`;
-      setUser({ id: `usr_${Date.now()}`, name, email, phone: phone || "", suiteCode });
+      throw error;
     }
   };
 
@@ -385,6 +326,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       clearUserScopedStorage();
     }
     setUser(null);
+    setPrealertas([]);
     setRole("client");
   };
 
