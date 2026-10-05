@@ -85,7 +85,7 @@ const DEFAULT_FLEET: FleetVehicle[] = [
 const DEFAULT_MOCK_PICKUPS: ApiPickup[] = [
   {
     id: "pk_mock_1",
-    pickupCode: "PK-9821-DOM",
+    pickupCode: "WR-98210",
     senderName: "Juan Pérez",
     senderPhone: "+1 (918) 555-0199",
     senderAddress: "Av. Insurgentes Sur 1234, Col. Del Valle",
@@ -113,7 +113,7 @@ const DEFAULT_MOCK_PICKUPS: ApiPickup[] = [
   },
   {
     id: "pk_mock_2",
-    pickupCode: "PK-4412-DOM",
+    pickupCode: "WR-44120",
     senderName: "Andrea Salazar",
     senderPhone: "+1 (918) 555-9012",
     senderAddress: "1405 Elm St, Suite 300",
@@ -147,7 +147,7 @@ const DEFAULT_MOCK_PICKUPS: ApiPickup[] = [
   },
   {
     id: "pk_mock_3",
-    pickupCode: "PK-7730-DOM",
+    pickupCode: "WR-77300",
     senderName: "Roberto Gómez",
     senderPhone: "+1 (918) 555-7832",
     senderAddress: "8920 S Memorial Dr",
@@ -438,7 +438,7 @@ export default function AdminPickupsPage() {
     setStatusFilter("EN_ORIGEN");
 
     setValidatedNotice(
-      `¡Paquete ${selectedPickup.pickupCode} recibido en el almacén de origen! El pickup ha sido completado y ahora es un envío oficial.`
+      `¡Warehouse ${selectedPickup.pickupCode} recibido en el almacén de origen! Ahora está disponible en Warehouse para asignar a Guías de Salida.`
     );
     setTimeout(() => setValidatedNotice(null), 8000);
     setSubmitting(false);
@@ -564,10 +564,10 @@ export default function AdminPickupsPage() {
           </div>
           {selectedPickup && isEnOrigen(selectedPickup.status) && (
             <Link
-              href={`/admin/envios?search=${selectedPickup.pickupCode}`}
+              href={`/admin/warehouses?search=${selectedPickup.pickupCode}`}
               className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-1.5 transition-colors shrink-0 shadow-sm"
             >
-              <ArrowRight className="w-3.5 h-3.5" /> Ir a Control de Envíos
+              <ArrowRight className="w-3.5 h-3.5" /> Ir a Warehouse
             </Link>
           )}
         </div>
@@ -741,10 +741,10 @@ export default function AdminPickupsPage() {
 
                 {isEnOrigen(selectedPickup.status) && (
                   <Link
-                    href={`/admin/envios?search=${selectedPickup.pickupCode}`}
+                    href={`/admin/warehouses?search=${selectedPickup.pickupCode}`}
                     className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-1.5 transition-colors shrink-0 shadow-sm"
                   >
-                    <ArrowRight className="w-3.5 h-3.5" /> Ir a Control de Envíos
+                    <ArrowRight className="w-3.5 h-3.5" /> Ir a Warehouse
                   </Link>
                 )}
               </div>
@@ -1146,7 +1146,7 @@ export default function AdminPickupsPage() {
                       value={customGuide}
                       onChange={(e) => setCustomGuide(e.target.value)}
                       disabled={!isPorConfirmar(selectedPickup.status)}
-                      placeholder="PK-XXXXX-DOM"
+                      placeholder="WR-XXXXX"
                       className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-amber-500 shadow-sm uppercase disabled:bg-slate-100 disabled:text-slate-500"
                     />
                   </div>
@@ -1212,10 +1212,10 @@ export default function AdminPickupsPage() {
                       <CheckCircle2 className="w-4 h-4" /> Recolección completada en bodega.
                     </div>
                     <Link
-                      href={`/admin/envios?search=${selectedPickup.pickupCode}`}
+                      href={`/admin/warehouses?search=${selectedPickup.pickupCode}`}
                       className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all"
                     >
-                      <ArrowRight className="w-4 h-4 stroke-[2.5]" /> Ver en Control de Envíos
+                      <ArrowRight className="w-4 h-4 stroke-[2.5]" /> Ver en Warehouse
                     </Link>
                   </div>
                 )}

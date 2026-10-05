@@ -64,7 +64,7 @@ export default function SolicitarPickupPage() {
   const [activeMainTab, setActiveMainTab] = useState<"solicitar" | "historial">("solicitar");
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [generatedCode, setGeneratedCode] = useState("PK-9821-DOM");
+  const [generatedCode, setGeneratedCode] = useState("WR-98210");
   const [loading, setLoading] = useState(false);
 
   // Client pickup history

@@ -99,7 +99,7 @@ export default function AdminPrealertasPage() {
 
   const handleConfirmPrealerta = async (id: string, trackingNumber: string, defaultDest?: string) => {
     setLoading(true);
-    const guide = warehouseGuideInput[id] || `OK-${Math.floor(100000 + Math.random() * 900000)}`;
+    const guide = warehouseGuideInput[id] || `WR-${Math.floor(10000 + Math.random() * 90000)}`;
     const finalDest = destinationInput[id] || defaultDest || availableDestinations[0] || "Caracas, Venezuela";
     const currentItem = prealertas.find((p) => p.id === id);
     const finalProviderWR = providerWRInput[id] !== undefined ? providerWRInput[id] : (currentItem?.providerWarehouseReceipt || "");
@@ -324,7 +324,7 @@ export default function AdminPrealertasPage() {
                       ) : (
                         <input
                           type="text"
-                          placeholder="Ej. OK-440192"
+                          placeholder="Ej. WR-89421"
                           value={warehouseGuideInput[item.id] || ""}
                           onChange={(e) =>
                             setWarehouseGuideInput({ ...warehouseGuideInput, [item.id]: e.target.value })

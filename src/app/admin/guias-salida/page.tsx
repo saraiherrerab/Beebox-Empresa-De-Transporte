@@ -143,28 +143,41 @@ export default function GuiasSalidaAdminPage() {
 
       let enviosList: WarehouseItem[] = [];
       if (resShipments.status === "fulfilled" && Array.isArray(resShipments.value)) {
-        enviosList = resShipments.value.map((s: any) => ({
-          id: s.trackingCode || s.id,
-          warehouseCode: s.trackingCode || s.id,
-          clientName: s.senderName || s.user?.name || "Cliente BeeBox",
-          clientSuite: s.user?.suiteCode || "CAS-OK",
-          recipientName: s.recipientName || "Destinatario",
-          recipientPhone: s.recipientPhone || "",
-          recipientAddress: s.recipientAddress || "",
-          destination: s.recipientCity || "Caracas, Venezuela",
-          serviceType: (s.serviceType as any) || "Aéreo Express",
-          pieces: s.boxCount || 1,
-          weightKg: s.weightKg || 2.0,
-          declaredValue: s.declaredValue || 150,
-          contentDescription: s.description || "Mercancía general",
-          containElectronics: Boolean(s.containElectronics),
-          status: "DISPONIBLE" as const,
-          assignedGuiaCode: null,
-          createdAt: s.createdAt || new Date().toISOString(),
-        }));
+        enviosList = resShipments.value.map((s: any) => {
+          const rawStatus = (s.currentStatus || "En el origen").toLowerCase();
+          const isEnCamino = rawStatus.includes("camino") || rawStatus.includes("tránsito") || rawStatus.includes("transito");
+          const isDestino = rawStatus.includes("destino") || rawStatus.includes("entregado");
+          const isEnOrigen = rawStatus.includes("origen") || rawStatus.includes("recibido");
+
+          let statusValue: WarehouseItem["status"] = "DISPONIBLE";
+          if (isEnCamino) statusValue = "DESPACHADO";
+          else if (isDestino) statusValue = "ENTREGADO";
+          else if (isEnOrigen) statusValue = "DISPONIBLE";
+          else statusValue = "DISPONIBLE";
+
+          return {
+            id: s.trackingCode || s.id,
+            warehouseCode: s.trackingCode || s.id,
+            clientName: s.senderName || s.user?.name || "Cliente BeeBox",
+            clientSuite: s.user?.suiteCode || "CAS-OK",
+            recipientName: s.recipientName || "Destinatario",
+            recipientPhone: s.recipientPhone || "",
+            recipientAddress: s.recipientAddress || "",
+            destination: s.recipientCity || "Caracas, Venezuela",
+            serviceType: (s.serviceType as any) || "Aéreo Express",
+            pieces: s.boxCount || 1,
+            weightKg: s.weightKg || 2.0,
+            declaredValue: s.declaredValue || 150,
+            contentDescription: s.description || "Mercancía general",
+            containElectronics: Boolean(s.containElectronics),
+            status: statusValue,
+            assignedGuiaCode: null,
+            createdAt: s.createdAt || new Date().toISOString(),
+          };
+        });
       }
 
-      // Combinar con pickups en origen si existen
+      // Combinar con pickups que hayan sido recibidos en oficina
       if (resPickups.status === "fulfilled") {
         const pList = Array.isArray(resPickups.value?.pickups)
           ? resPickups.value.pickups
@@ -173,11 +186,18 @@ export default function GuiasSalidaAdminPage() {
           : [];
         for (const pk of pList) {
           const code = pk.pickupCode || pk.id;
+          const pkStatus = (pk.status || "").toUpperCase();
+          const isReceivedInOffice =
+            pkStatus === "COMPLETADO" ||
+            pkStatus === "EN_ORIGEN" ||
+            pkStatus === "RECIBIDO_ALMACEN" ||
+            pkStatus === "RECOLECTADO";
+
           if (!enviosList.some((e) => e.warehouseCode === code)) {
             enviosList.push({
               id: code,
               warehouseCode: code,
-              clientName: pk.senderName || "Cliente Pickup",
+              clientName: pk.senderName || pk.user?.name || "Cliente Pickup",
               recipientName: pk.recipientName || "Destinatario",
               recipientPhone: pk.recipientPhone || "",
               recipientAddress: pk.recipientAddress || "",
@@ -186,9 +206,9 @@ export default function GuiasSalidaAdminPage() {
               pieces: pk.boxCount || 1,
               weightKg: pk.totalWeightKg || 2.5,
               declaredValue: pk.declaredValue || 180,
-              contentDescription: pk.notes || "Carga de recolección en origen",
+              contentDescription: pk.notes || "Carga de recolección recibida en origen",
               containElectronics: Boolean(pk.containElectronics),
-              status: "DISPONIBLE",
+              status: isReceivedInOffice ? "DISPONIBLE" : ("EN_GUIA_SALIDA" as const),
               assignedGuiaCode: null,
               createdAt: pk.createdAt || new Date().toISOString(),
             });
@@ -234,12 +254,54 @@ export default function GuiasSalidaAdminPage() {
     setIsCreateModalOpen(true);
   };
 
-  const toggleSelectWarehouse = (whId: string) => {
-    if (selectedWarehouseIds.includes(whId)) {
-      setSelectedWarehouseIds(selectedWarehouseIds.filter((id) => id !== whId));
-    } else {
-      setSelectedWarehouseIds([...selectedWarehouseIds, whId]);
+  const isAereoModal = formServiceType.toLowerCase().includes("aér") || formServiceType.toLowerCase().includes("aer");
+
+  const isWarehouseCompatible = useCallback(
+    (serviceType: string = "") => {
+      const s = serviceType.toLowerCase();
+      const isWhAereo = s.includes("aér") || s.includes("aer") || s.includes("air") || s.includes("express") || s.includes("exprés");
+      return isAereoModal ? isWhAereo : !isWhAereo;
+    },
+    [isAereoModal]
+  );
+
+  const handleServiceTypeChange = (newType: "Aéreo" | "Marítimo" | "Terrestre") => {
+    setFormServiceType(newType);
+    const newIsAereo = newType.toLowerCase().includes("aér") || newType.toLowerCase().includes("aer");
+    // Deseleccionar automáticamente warehouses incompatibles con la nueva modalidad
+    setSelectedWarehouseIds((prevIds) =>
+      prevIds.filter((id) => {
+        const wh = allWarehouses.find((w) => w.id === id || w.warehouseCode === id);
+        if (!wh) return false;
+        const s = (wh.serviceType || "").toLowerCase();
+        const whIsAereo = s.includes("aér") || s.includes("aer") || s.includes("air") || s.includes("express") || s.includes("exprés");
+        return newIsAereo ? whIsAereo : !whIsAereo;
+      })
+    );
+  };
+
+  const toggleSelectWarehouse = (whOrId: WarehouseItem | string) => {
+    const id = typeof whOrId === "string" ? whOrId : whOrId.id;
+    const isCurrentlySelected =
+      selectedWarehouseIds.includes(id) ||
+      (typeof whOrId !== "string" && selectedWarehouseIds.includes(whOrId.warehouseCode));
+
+    if (isCurrentlySelected) {
+      setSelectedWarehouseIds(
+        selectedWarehouseIds.filter((item) => item !== id && (typeof whOrId === "string" || item !== whOrId.warehouseCode))
+      );
+      return;
     }
+
+    const wh = typeof whOrId === "string" ? allWarehouses.find((w) => w.id === id || w.warehouseCode === id) : whOrId;
+    if (wh && !isWarehouseCompatible(wh.serviceType)) {
+      alert(
+        `No se puede agregar el Warehouse ${wh.warehouseCode}: su modalidad es "${wh.serviceType}" y la Guía de Salida es "${formServiceType}". Solo pueden agregarse Warehouses que coincidan con la modalidad de envío de la Guía.`
+      );
+      return;
+    }
+
+    setSelectedWarehouseIds([...selectedWarehouseIds, id]);
   };
 
   // Warehouses seleccionados actualmente en el modal
@@ -247,7 +309,7 @@ export default function GuiasSalidaAdminPage() {
     return allWarehouses.filter((w) => selectedWarehouseIds.includes(w.id) || selectedWarehouseIds.includes(w.warehouseCode));
   }, [allWarehouses, selectedWarehouseIds]);
 
-  // Warehouses disponibles para agregar (los que no tienen guía o están disponibles)
+  // Warehouses disponibles en oficina para agregar (los que están en origen y coinciden con la búsqueda)
   const availableWarehousesForModal = useMemo(() => {
     return allWarehouses.filter((w) => {
       const matchSearch =
@@ -443,13 +505,13 @@ export default function GuiasSalidaAdminPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Link href="/admin/envios">
+          <Link href="/admin/warehouses">
             <Button
               variant="outline"
               className="rounded-2xl border-slate-200 text-xs font-extrabold flex items-center gap-2 text-slate-700 hover:bg-slate-50 cursor-pointer"
             >
               <Package className="w-4 h-4 text-amber-600" />
-              Ver Control de Envíos
+              Ver Warehouses
             </Button>
           </Link>
 
@@ -843,12 +905,11 @@ export default function GuiasSalidaAdminPage() {
                     </label>
                     <select
                       value={formServiceType}
-                      onChange={(e) => setFormServiceType(e.target.value as any)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900 bg-white"
+                      onChange={(e) => handleServiceTypeChange(e.target.value as any)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 bg-white"
                     >
-                      <option value="Aéreo">Aéreo</option>
-                      <option value="Marítimo">Marítimo</option>
-                      <option value="Terrestre">Terrestre</option>
+                      <option value="Aéreo">Aéreo (Envíos Express)</option>
+                      <option value="Marítimo">Marítimo (Carga Estándar)</option>
                     </select>
                   </div>
 
@@ -918,8 +979,8 @@ export default function GuiasSalidaAdminPage() {
                     <span className="text-[10px] font-black uppercase tracking-wider text-amber-950 block">
                       2. Selección de Warehouses a Añadir a esta Salida
                     </span>
-                    <span className="text-[11px] text-amber-900/80">
-                      Marca las casillas de los Warehouses en almacén que deseas incluir en este envío.
+                    <span className="text-[11px] text-amber-900/80 font-medium">
+                      Solo Warehouses de modalidad <strong>{formServiceType}</strong> disponibles en oficina pueden agregarse.
                     </span>
                   </div>
 
@@ -949,19 +1010,24 @@ export default function GuiasSalidaAdminPage() {
                 <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
                   {availableWarehousesForModal.length === 0 ? (
                     <div className="p-4 rounded-xl bg-white text-center text-xs text-slate-400 font-medium">
-                      No hay Warehouses disponibles en almacén o no coinciden con la búsqueda. Puedes crear nuevos
-                      Warehouses en la sección de Recepción.
+                      No hay Warehouses disponibles en oficina o no coinciden con la búsqueda. Puedes registrar nuevos
+                      Warehouses en el módulo Warehouse.
                     </div>
                   ) : (
                     availableWarehousesForModal.map((w) => {
                       const isSelected = selectedWarehouseIds.includes(w.id) || selectedWarehouseIds.includes(w.warehouseCode);
+                      const isCompatible = isWarehouseCompatible(w.serviceType);
+                      const isWhAereo = (w.serviceType || "").toLowerCase().includes("aér") || (w.serviceType || "").toLowerCase().includes("aer") || (w.serviceType || "").toLowerCase().includes("air");
+
                       return (
                         <div
                           key={w.id}
-                          onClick={() => toggleSelectWarehouse(w.id)}
+                          onClick={() => toggleSelectWarehouse(w)}
                           className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
                             isSelected
                               ? "bg-amber-100/70 border-amber-400 shadow-xs"
+                              : !isCompatible
+                              ? "bg-slate-50 border-slate-200 opacity-60 hover:border-slate-300"
                               : "bg-white border-slate-200 hover:border-amber-300"
                           }`}
                         >
@@ -977,8 +1043,22 @@ export default function GuiasSalidaAdminPage() {
                             </div>
 
                             <div className="space-y-0.5">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-mono font-black text-xs text-slate-900">{w.warehouseCode}</span>
+                                {isWhAereo ? (
+                                  <span className="text-[9px] font-extrabold text-sky-800 bg-sky-100 px-1.5 py-0.5 rounded border border-sky-200">
+                                    ✈️ Aéreo
+                                  </span>
+                                ) : (
+                                  <span className="text-[9px] font-extrabold text-teal-800 bg-teal-100 px-1.5 py-0.5 rounded border border-teal-200">
+                                    🚢 Marítimo
+                                  </span>
+                                )}
+                                {!isCompatible && (
+                                  <span className="text-[9px] font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
+                                    Incompatible ({isWhAereo ? "Aéreo" : "Marítimo"})
+                                  </span>
+                                )}
                                 <span className="text-[10px] text-slate-500">· {w.destination}</span>
                                 {w.containElectronics && (
                                   <span className="text-[9px] font-bold text-blue-700 bg-blue-50 px-1 rounded border border-blue-200">
