@@ -82,11 +82,16 @@ function AdminWarehousesContent() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const pageSize = 15;
 
-  // Modal para crear Warehouse directamente ("pueden nacer siéndolos")
+  // Modal para crear Warehouse ("pueden nacer siéndolos" o crear desde Pick up en oficina)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [availableOfficePickups, setAvailableOfficePickups] = useState<any[]>([]);
+  const [creationMode, setCreationMode] = useState<"manual" | "pickup">("manual");
+  const [selectedPickupToConvert, setSelectedPickupToConvert] = useState<any | null>(null);
   const [createForm, setCreateForm] = useState({
     code: `WR-${Math.floor(10000 + Math.random() * 90000)}`,
+    pickupId: null as string | null,
+    userId: null as string | null,
     serviceType: "Aéreo Express",
     senderName: "",
     senderCity: "",
@@ -204,57 +209,27 @@ function AdminWarehousesContent() {
           };
         });
 
-        // Asegurar que los pickups completados o en origen también se muestren como Warehouses si aún no están sincronizados
-        for (const pk of pickupsData) {
-          const code = pk.pickupCode || pk.id;
-          const alreadyExists = mapped.some((sh) => sh.tracking === code || sh.id === code);
-          if (!alreadyExists) {
-            const dims = pk.dimensions || pk.verifiedDimensions || (pk.boxCount ? `${pk.boxCount} caja(s) (30x20x15 cm)` : "30x20x15 cm");
-            const notes = pk.inspectionNotes || "Empaque original verificado conforme";
-            const isComp = pk.status === "COMPLETADO" || pk.status === "EN_ORIGEN" || pk.status === "RECOLECTADO";
-            const resolvedStatus = normalizeStatus(pk.status || "Pick up en proceso");
+        // Filtrar pickups que están en oficina y no tienen Warehouse creado aún
+        const officePickups = pickupsData.filter((pk: any) => {
+          const st = (pk.status || "").toUpperCase();
+          const isInOffice =
+            st === "COMPLETADO" ||
+            st === "EN_ORIGEN" ||
+            st === "RECOLECTADO" ||
+            st === "RECIBIDO_ALMACEN" ||
+            st.includes("ORIGEN") ||
+            st.includes("ALMACEN") ||
+            st.includes("COMPLETADO");
+          const hasLinkedShipment = Boolean(
+            pk.shipment ||
+            shipmentsData.some(
+              (s: any) => s.pickupId === pk.id || s.trackingCode === pk.pickupCode
+            )
+          );
+          return isInOffice && !hasLinkedShipment;
+        });
 
-            mapped.unshift({
-              id: code,
-              tracking: code,
-              type: "Aéreo Express",
-              weight: `${pk.totalWeightKg || 1.5} kg`,
-              dimensions: dims,
-              inspectionNotes: notes,
-              clientName: pk.user?.name || pk.senderName || "Cliente BeeBox",
-              suiteCode: pk.user?.suiteCode || "CAS-OK-HUB",
-              route: `${pk.senderCity || "Broken Arrow, OK"} → ${pk.recipientCity || "Caracas, Venezuela"}`,
-              currentStatus: resolvedStatus,
-              lastActivity: pk.pickupDate || "Reciente",
-              activityDesc: `Estado actual: ${resolvedStatus}`,
-              hasPickup: true,
-              senderName: pk.senderName,
-              senderAddress: pk.senderAddress,
-              senderCity: pk.senderCity,
-              recipientName: pk.recipientName,
-              recipientAddress: pk.recipientAddress,
-              recipientCity: pk.recipientCity,
-              pickupDate: pk.pickupDate,
-              timeSlot: pk.timeSlot,
-              events: [
-                {
-                  status: resolvedStatus,
-                  title: isComp ? "Warehouse Recolectado e Ingresado en Almacén" : "Solicitud de Pickup Registrada",
-                  description: isComp
-                    ? `El Warehouse fue recibido en almacén central de origen para posterior salida. Peso: ${pk.totalWeightKg || 1.5} kg. Medidas: ${dims}.`
-                    : `Recolección en domicilio solicitada para el día ${pk.pickupDate} (${pk.timeSlot}).`,
-                  location: isComp ? "Almacén Central (Broken Arrow, OK)" : `${pk.senderAddress}, ${pk.senderCity}`,
-                  timestamp: pk.createdAt,
-                },
-              ],
-              sourceType: "pickup",
-              boxCount: pk.boxCount || 1,
-              containElectronics: Boolean(pk.containElectronics),
-              electronicsDetails: pk.electronicsDetails || "",
-            });
-          }
-        }
-
+        setAvailableOfficePickups(officePickups);
         setDbShipments(mapped);
       })
       .catch(() => {})
@@ -321,9 +296,13 @@ function AdminWarehousesContent() {
     }
   };
 
-  const handleOpenCreateModal = () => {
+  const handleOpenCreateModal = (mode: "manual" | "pickup" = "manual") => {
+    setCreationMode(mode);
+    setSelectedPickupToConvert(null);
     setCreateForm({
       code: `WR-${Math.floor(10000 + Math.random() * 90000)}`,
+      pickupId: null,
+      userId: null,
       serviceType: "Aéreo Express",
       senderName: "",
       senderCity: "",
@@ -342,6 +321,39 @@ function AdminWarehousesContent() {
       notes: "",
     });
     setIsCreateModalOpen(true);
+  };
+
+  const handleSelectPickup = (pk: any) => {
+    setSelectedPickupToConvert(pk);
+    const code = pk.pickupCode?.startsWith("WR-")
+      ? pk.pickupCode
+      : `WR-${Math.floor(10000 + Math.random() * 90000)}`;
+    const boxes = pk.boxCount ? Number(pk.boxCount) : 1;
+    const weight = pk.totalWeightKg ? Number(pk.totalWeightKg) : 1.0;
+    const dims = pk.verifiedDimensions || pk.dimensions || `${boxes} caja(s) (30x20x15 cm)`;
+    const notes = pk.inspectionNotes || `Recolección Pick up recibida en oficina (${boxes} caja/s)`;
+
+    setCreateForm({
+      code,
+      pickupId: pk.id,
+      userId: pk.userId || pk.user?.id || null,
+      serviceType: "Aéreo Express",
+      senderName: pk.senderName || "",
+      senderCity: pk.senderCity || "Broken Arrow, OK",
+      recipientName: pk.recipientName || "",
+      recipientPhone: pk.recipientPhone || "",
+      recipientCity: pk.recipientCity || "Caracas, Venezuela",
+      recipientAddress: pk.recipientAddress || "",
+      contentDescription: notes,
+      weightKg: weight,
+      boxCount: boxes,
+      declaredValue: "" as any,
+      dimensions: dims,
+      containElectronics: Boolean(pk.containElectronics),
+      electronicsDetails: pk.electronicsDetails || (pk.containElectronics ? "Equipos declarados en Pickup" : ""),
+      electronicsDeclaredValue: "",
+      notes: notes,
+    });
   };
 
   const handleCreateWarehouse = async (e: React.FormEvent) => {
@@ -379,7 +391,7 @@ function AdminWarehousesContent() {
 
     const payload = {
       trackingCode: createForm.code.trim().toUpperCase(),
-      senderName: createForm.senderName.trim(),
+      senderName: createForm.senderName.trim() || "Cliente BeeBox",
       senderCity: createForm.senderCity.trim(),
       recipientName: createForm.recipientName.trim(),
       recipientCity: createForm.recipientCity.trim(),
@@ -392,6 +404,9 @@ function AdminWarehousesContent() {
       boxCount: Number(createForm.boxCount) || 1,
       currentStatus: "En el origen", // Directamente disponible en oficina
       estimatedDelivery: isServiceAereo(createForm.serviceType) ? "3-5 días hábiles" : "15-20 días hábiles",
+      hasPickup: Boolean(createForm.pickupId),
+      pickupId: createForm.pickupId || undefined,
+      userId: createForm.userId || undefined,
     };
 
     try {
@@ -406,9 +421,14 @@ function AdminWarehousesContent() {
         throw new Error(data.message || "Error al crear el Warehouse en el sistema.");
       }
 
-      setNoticeMsg(`¡Warehouse ${data.trackingCode || payload.trackingCode} creado exitosamente! Queda disponible en oficina para asignar a Guías de Salida.`);
+      setNoticeMsg(
+        createForm.pickupId
+          ? `¡Warehouse ${data.trackingCode || payload.trackingCode} creado exitosamente desde el Pick up! Queda disponible en oficina para asignar a Guías de Salida.`
+          : `¡Warehouse ${data.trackingCode || payload.trackingCode} creado exitosamente! Queda disponible en oficina para asignar a Guías de Salida.`
+      );
       setTimeout(() => setNoticeMsg(null), 6000);
       setIsCreateModalOpen(false);
+      setSelectedPickupToConvert(null);
       fetchWarehouses();
     } catch (err: any) {
       alert(err.message || "No se pudo registrar el Warehouse. Intenta de nuevo.");
@@ -492,7 +512,7 @@ function AdminWarehousesContent() {
           </button>
 
           <button
-            onClick={handleOpenCreateModal}
+            onClick={() => handleOpenCreateModal("manual")}
             className="px-5 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-md shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
@@ -805,261 +825,472 @@ function AdminWarehousesContent() {
               </button>
             </div>
 
-            <form onSubmit={handleCreateWarehouse} className="p-6 space-y-5">
-              {/* Código WR y Modalidad */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 block mb-1.5">
-                    Código de Warehouse (WR) *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={createForm.code}
-                    onChange={(e) => setCreateForm({ ...createForm, code: e.target.value })}
-                    placeholder="WR-XXXXX"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-mono font-black text-slate-900 text-sm focus:outline-none focus:border-amber-500"
-                  />
-                  <span className="text-[10px] text-slate-400 font-medium mt-1 block">
-                    Generado automáticamente con el prefijo obligatorio WR
+            {/* Pestañas: Crear Manualmente vs Crear desde Pick up */}
+            <div className="px-6 pt-3 bg-slate-50/70 border-b border-slate-200/80 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setCreationMode("manual");
+                  if (selectedPickupToConvert) {
+                    setSelectedPickupToConvert(null);
+                    setCreateForm({
+                      code: `WR-${Math.floor(10000 + Math.random() * 90000)}`,
+                      pickupId: null,
+                      userId: null,
+                      serviceType: "Aéreo Express",
+                      senderName: "",
+                      senderCity: "",
+                      recipientName: "",
+                      recipientPhone: "",
+                      recipientCity: "",
+                      recipientAddress: "",
+                      contentDescription: "",
+                      weightKg: "" as any,
+                      boxCount: 1,
+                      declaredValue: "" as any,
+                      dimensions: "",
+                      containElectronics: false,
+                      electronicsDetails: "",
+                      electronicsDeclaredValue: "",
+                      notes: "",
+                    });
+                  }
+                }}
+                className={`pb-3 px-3 text-xs font-black border-b-2 transition-all flex items-center gap-2 ${
+                  creationMode === "manual"
+                    ? "border-amber-500 text-slate-950"
+                    : "border-transparent text-slate-400 hover:text-slate-600"
+                }`}
+              >
+                <Box className="w-4 h-4" />
+                <span>Crear Manualmente</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCreationMode("pickup")}
+                className={`pb-3 px-3 text-xs font-black border-b-2 transition-all flex items-center gap-2 ${
+                  creationMode === "pickup"
+                    ? "border-amber-500 text-slate-950"
+                    : "border-transparent text-slate-400 hover:text-slate-600"
+                }`}
+              >
+                <Truck className="w-4 h-4" />
+                <span>Crear desde Pick up</span>
+                {availableOfficePickups.length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-slate-950">
+                    {availableOfficePickups.length}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* VISTA 1: Lista de Pick ups en oficina disponibles para crear WR */}
+            {creationMode === "pickup" && !selectedPickupToConvert ? (
+              <div className="p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-black text-slate-900">
+                      Pick ups en Oficina pendientes por procesar
+                    </h4>
+                    <p className="text-xs text-slate-500">
+                      Selecciona una recolección recibida en oficina para transferir sus datos automáticamente a un Warehouse (WR).
+                    </p>
+                  </div>
+                  <span className="text-xs font-bold text-slate-400">
+                    {availableOfficePickups.length} disponible(s)
                   </span>
                 </div>
 
-                <div>
-                  <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 block mb-1.5">
-                    Modalidad de Envío *
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
+                {availableOfficePickups.length === 0 ? (
+                  <div className="text-center py-12 px-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                    <Package className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                    <p className="text-xs font-bold text-slate-600">
+                      No hay pick ups recibidos en oficina pendientes por convertir.
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-1 max-w-sm mx-auto">
+                      Los pick ups deben ser marcados como completados o recibidos en el almacén de origen para aparecer en esta lista.
+                    </p>
                     <button
                       type="button"
-                      onClick={() => setCreateForm({ ...createForm, serviceType: "Aéreo Express" })}
-                      className={`p-2.5 rounded-xl border flex items-center justify-center gap-1.5 text-xs font-black transition-all ${
-                        createForm.serviceType === "Aéreo Express"
-                          ? "bg-sky-500 text-white border-sky-600 shadow-sm"
-                          : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                      }`}
+                      onClick={() => setCreationMode("manual")}
+                      className="mt-4 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-colors"
                     >
-                      <Plane className="w-4 h-4" /> Aéreo Express
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCreateForm({ ...createForm, serviceType: "Marítimo Estándar" })}
-                      className={`p-2.5 rounded-xl border flex items-center justify-center gap-1.5 text-xs font-black transition-all ${
-                        createForm.serviceType === "Marítimo Estándar"
-                          ? "bg-teal-600 text-white border-teal-700 shadow-sm"
-                          : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                      }`}
-                    >
-                      <Ship className="w-4 h-4" /> Marítimo
+                      Crear Warehouse Manualmente
                     </button>
                   </div>
-                </div>
-              </div>
+                ) : (
+                  <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
+                    {availableOfficePickups.map((pk: any) => (
+                      <div
+                        key={pk.id}
+                        onClick={() => handleSelectPickup(pk)}
+                        className="p-4 rounded-2xl border border-slate-200 bg-white hover:border-amber-400 hover:bg-amber-50/20 transition-all cursor-pointer group shadow-sm"
+                      >
+                        <div className="flex items-center justify-between gap-3 mb-2.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-black text-xs text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg group-hover:bg-amber-100 group-hover:text-amber-900 transition-colors">
+                              {pk.pickupCode}
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              En Oficina
+                            </span>
+                            {pk.containElectronics && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900">
+                                Electrónicos
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSelectPickup(pk);
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-amber-500 group-hover:bg-amber-400 text-slate-950 text-xs font-black flex items-center gap-1 shadow-sm transition-all"
+                          >
+                            <span>Usar datos</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
 
-              {/* Origen y Destino */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 block mb-1.5">
-                    Origen (Almacén de Recepción)
-                  </label>
-                  <input
-                    type="text"
-                    value={createForm.senderCity}
-                    onChange={(e) => setCreateForm({ ...createForm, senderCity: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-amber-500"
-                    placeholder="Broken Arrow, OK (Almacén Central)"
-                  />
-                </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-slate-50/80 p-3 rounded-xl border border-slate-100">
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                              Remitente
+                            </span>
+                            <p className="font-bold text-slate-800 mt-0.5">{pk.senderName}</p>
+                            <p className="text-[11px] text-slate-500 truncate">{pk.senderAddress}, {pk.senderCity || "Broken Arrow, OK"}</p>
+                          </div>
 
-                <div>
-                  <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 block mb-1.5">
-                    Destino Final *
-                  </label>
-                  <select
-                    value={createForm.recipientCity}
-                    onChange={(e) => setCreateForm({ ...createForm, recipientCity: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500"
-                  >
-                    <option value="" disabled>-- Selecciona un destino * --</option>
-                    {DESTINOS.map((d) => (
-                      <option key={d} value={d}>
-                        {d}
-                      </option>
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                              Destinatario
+                            </span>
+                            <p className="font-bold text-slate-800 mt-0.5">{pk.recipientName}</p>
+                            <p className="text-[11px] text-slate-500 truncate">{pk.recipientCity || "Caracas, Venezuela"}</p>
+                          </div>
+                        </div>
+
+                        <div className="mt-2.5 flex items-center justify-between text-[11px] text-slate-500 font-medium px-1">
+                          <span>
+                            📦 <strong>{pk.boxCount || 1}</strong> caja(s) • ⚖️ <strong>{pk.totalWeightKg || 1} kg</strong>
+                          </span>
+                          <span>
+                            Fecha recolección: <strong>{pk.pickupDate || "Reciente"}</strong>
+                          </span>
+                        </div>
+                      </div>
                     ))}
-                  </select>
-                </div>
+                  </div>
+                )}
               </div>
+            ) : (
+              <form onSubmit={handleCreateWarehouse} className="p-6 space-y-5">
+                {/* Banner de transferencia si viene desde Pick up */}
+                {selectedPickupToConvert && (
+                  <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-amber-500 flex items-center justify-center text-slate-950 font-black shrink-0">
+                        <Truck className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black text-amber-950">
+                            Creando desde Pick up: {selectedPickupToConvert.pickupCode}
+                          </span>
+                          <span className="text-[10px] font-bold text-amber-800 bg-amber-200/70 px-2 py-0.5 rounded-full">
+                            {selectedPickupToConvert.senderName}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-amber-800 font-medium">
+                          Datos cargados automáticamente. Revisa la modalidad de envío y los campos antes de confirmar.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPickupToConvert(null)}
+                      className="px-3 py-1.5 rounded-xl bg-white border border-amber-300 text-amber-900 text-xs font-bold hover:bg-amber-100 transition-colors shrink-0"
+                    >
+                      Cambiar Pick up
+                    </button>
+                  </div>
+                )}
 
-              {/* Remitente y Destinatario */}
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
-                  Información del Destinatario
-                </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Código WR y Modalidad */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
+                    <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 block mb-1.5">
+                      Código de Warehouse (WR) *
+                    </label>
                     <input
                       type="text"
                       required
-                      value={createForm.recipientName}
-                      onChange={(e) => setCreateForm({ ...createForm, recipientName: e.target.value })}
-                      placeholder="Nombre y Apellido del Destinatario *"
-                      className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-amber-500"
+                      value={createForm.code}
+                      onChange={(e) => setCreateForm({ ...createForm, code: e.target.value })}
+                      placeholder="WR-XXXXX"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-mono font-black text-slate-900 text-sm focus:outline-none focus:border-amber-500"
                     />
-                  </div>
-                  <div>
-                    <input
-                      type="text"
-                      value={createForm.recipientPhone}
-                      onChange={(e) => setCreateForm({ ...createForm, recipientPhone: e.target.value })}
-                      placeholder="Teléfono de contacto (+58 412...)"
-                      className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <input
-                    type="text"
-                    required
-                    value={createForm.recipientAddress}
-                    onChange={(e) => setCreateForm({ ...createForm, recipientAddress: e.target.value })}
-                    placeholder="Dirección exacta de entrega o punto de retiro *"
-                    className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-              </div>
-
-              {/* Características de la Carga (Caja con cosas) */}
-              <div className="space-y-3">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 block">
-                  Detalles de la Carga / Bulto (Caja con cosas)
-                </span>
-
-                <div>
-                  <textarea
-                    required
-                    rows={2}
-                    value={createForm.contentDescription}
-                    onChange={(e) => setCreateForm({ ...createForm, contentDescription: e.target.value })}
-                    placeholder="Descripción detallada del contenido: ej. Ropa, calzado deportivo, repuestos automotrices, etc."
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-amber-500 resize-none"
-                  />
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-500 block mb-1">Peso (kg) *</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      required
-                      value={createForm.weightKg}
-                      onChange={(e) => setCreateForm({ ...createForm, weightKg: e.target.value === "" ? "" : Number(e.target.value) })}
-                      placeholder="0.0"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500"
-                    />
+                    <span className="text-[10px] text-slate-400 font-medium mt-1 block">
+                      Generado automáticamente con el prefijo obligatorio WR
+                    </span>
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-slate-500 block mb-1">Cant. Cajas *</label>
-                    <input
-                      type="number"
-                      min={1}
-                      required
-                      value={createForm.boxCount}
-                      onChange={(e) => setCreateForm({ ...createForm, boxCount: Number(e.target.value) })}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-500 block mb-1">Valor Decl. ($)</label>
-                    <input
-                      type="number"
-                      value={createForm.declaredValue}
-                      onChange={(e) => setCreateForm({ ...createForm, declaredValue: e.target.value === "" ? "" : Number(e.target.value) })}
-                      placeholder="0.00"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Electrónicos */}
-                <div className="p-3 bg-amber-50/60 rounded-xl border border-amber-200/80">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-extrabold text-amber-950">¿Contiene equipos electrónicos?</span>
-                    <div className="flex items-center gap-2">
+                    <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 block mb-1.5">
+                      Modalidad de Envío *
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
-                        onClick={() => setCreateForm({ ...createForm, containElectronics: false })}
-                        className={`px-3 py-1 rounded-lg text-xs font-bold ${
-                          !createForm.containElectronics
-                            ? "bg-slate-900 text-white"
-                            : "bg-white border text-slate-700"
+                        onClick={() => setCreateForm({ ...createForm, serviceType: "Aéreo Express" })}
+                        className={`p-2.5 rounded-xl border flex items-center justify-center gap-1.5 text-xs font-black transition-all ${
+                          createForm.serviceType === "Aéreo Express"
+                            ? "bg-sky-500 text-white border-sky-600 shadow-sm"
+                            : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
                         }`}
                       >
-                        No
+                        <Plane className="w-4 h-4" /> Aéreo Express
                       </button>
                       <button
                         type="button"
-                        onClick={() => setCreateForm({ ...createForm, containElectronics: true })}
-                        className={`px-3 py-1 rounded-lg text-xs font-bold ${
-                          createForm.containElectronics
-                            ? "bg-amber-500 text-slate-950"
-                            : "bg-white border text-slate-700"
+                        onClick={() => setCreateForm({ ...createForm, serviceType: "Marítimo Estándar" })}
+                        className={`p-2.5 rounded-xl border flex items-center justify-center gap-1.5 text-xs font-black transition-all ${
+                          createForm.serviceType === "Marítimo Estándar"
+                            ? "bg-teal-600 text-white border-teal-700 shadow-sm"
+                            : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
                         }`}
                       >
-                        Sí
+                        <Ship className="w-4 h-4" /> Marítimo
                       </button>
                     </div>
                   </div>
+                </div>
 
-                  {createForm.containElectronics && (
-                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 animate-in fade-in">
+                {/* Remitente, Origen y Destino */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 block mb-1.5">
+                      Remitente / Cliente
+                    </label>
+                    <input
+                      type="text"
+                      value={createForm.senderName}
+                      onChange={(e) => setCreateForm({ ...createForm, senderName: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-amber-500"
+                      placeholder="Nombre del remitente"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 block mb-1.5">
+                      Origen (Almacén) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={createForm.senderCity}
+                      onChange={(e) => setCreateForm({ ...createForm, senderCity: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-amber-500"
+                      placeholder="Broken Arrow, OK"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 block mb-1.5">
+                      Destino Final *
+                    </label>
+                    <select
+                      value={createForm.recipientCity}
+                      onChange={(e) => setCreateForm({ ...createForm, recipientCity: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                    >
+                      <option value="" disabled>-- Selecciona un destino * --</option>
+                      {DESTINOS.map((d) => (
+                        <option key={d} value={d}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Información del Destinatario */}
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+                    Información del Destinatario
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
                       <input
                         type="text"
-                        value={createForm.electronicsDetails}
-                        onChange={(e) => setCreateForm({ ...createForm, electronicsDetails: e.target.value })}
-                        placeholder="Marca, modelo y serie (ej. Laptop HP 15)"
-                        className="px-3 py-2 rounded-lg bg-white border border-amber-300 text-xs font-medium text-slate-900 focus:outline-none"
-                      />
-                      <input
-                        type="number"
-                        value={createForm.electronicsDeclaredValue}
-                        onChange={(e) => setCreateForm({ ...createForm, electronicsDeclaredValue: e.target.value })}
-                        placeholder="Valor del equipo ($)"
-                        className="px-3 py-2 rounded-lg bg-white border border-amber-300 text-xs font-medium text-slate-900 focus:outline-none"
+                        required
+                        value={createForm.recipientName}
+                        onChange={(e) => setCreateForm({ ...createForm, recipientName: e.target.value })}
+                        placeholder="Nombre y Apellido del Destinatario *"
+                        className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-amber-500"
                       />
                     </div>
-                  )}
+                    <div>
+                      <input
+                        type="text"
+                        value={createForm.recipientPhone}
+                        onChange={(e) => setCreateForm({ ...createForm, recipientPhone: e.target.value })}
+                        placeholder="Teléfono de contacto (+58 412...)"
+                        className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <input
+                      type="text"
+                      required
+                      value={createForm.recipientAddress}
+                      onChange={(e) => setCreateForm({ ...createForm, recipientAddress: e.target.value })}
+                      placeholder="Dirección exacta de entrega o punto de retiro *"
+                      className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              {/* Botones de acción */}
-              <div className="pt-2 flex items-center justify-end gap-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateModalOpen(false)}
-                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-100 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isCreating}
-                  className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-md transition-all disabled:opacity-50"
-                >
-                  {isCreating ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" /> Guardando en BD...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-4 h-4" /> Guardar Warehouse en Oficina
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+                {/* Características de la Carga (Caja con cosas) */}
+                <div className="space-y-3">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 block">
+                    Detalles de la Carga / Bulto (Caja con cosas)
+                  </span>
+
+                  <div>
+                    <textarea
+                      required
+                      rows={2}
+                      value={createForm.contentDescription}
+                      onChange={(e) => setCreateForm({ ...createForm, contentDescription: e.target.value })}
+                      placeholder="Descripción detallada del contenido: ej. Ropa, calzado deportivo, repuestos automotrices, etc."
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-amber-500 resize-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 block mb-1">Peso (kg) *</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        required
+                        value={createForm.weightKg}
+                        onChange={(e) => setCreateForm({ ...createForm, weightKg: e.target.value === "" ? "" : Number(e.target.value) })}
+                        placeholder="0.0"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 block mb-1">Cant. Cajas *</label>
+                      <input
+                        type="number"
+                        min={1}
+                        required
+                        value={createForm.boxCount}
+                        onChange={(e) => setCreateForm({ ...createForm, boxCount: Number(e.target.value) })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 block mb-1">Valor Decl. ($)</label>
+                      <input
+                        type="number"
+                        value={createForm.declaredValue}
+                        onChange={(e) => setCreateForm({ ...createForm, declaredValue: e.target.value === "" ? "" : Number(e.target.value) })}
+                        placeholder="0.00"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Electrónicos */}
+                  <div className="p-3 bg-amber-50/60 rounded-xl border border-amber-200/80">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-amber-950">¿Contiene equipos electrónicos?</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setCreateForm({ ...createForm, containElectronics: false })}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold ${
+                            !createForm.containElectronics
+                              ? "bg-slate-900 text-white"
+                              : "bg-white border text-slate-700"
+                          }`}
+                        >
+                          No
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCreateForm({ ...createForm, containElectronics: true })}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold ${
+                            createForm.containElectronics
+                              ? "bg-amber-500 text-slate-950"
+                              : "bg-white border text-slate-700"
+                          }`}
+                        >
+                          Sí
+                        </button>
+                      </div>
+                    </div>
+
+                    {createForm.containElectronics && (
+                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 animate-in fade-in">
+                        <input
+                          type="text"
+                          value={createForm.electronicsDetails}
+                          onChange={(e) => setCreateForm({ ...createForm, electronicsDetails: e.target.value })}
+                          placeholder="Marca, modelo y serie (ej. Laptop HP 15)"
+                          className="px-3 py-2 rounded-lg bg-white border border-amber-300 text-xs font-medium text-slate-900 focus:outline-none"
+                        />
+                        <input
+                          type="number"
+                          value={createForm.electronicsDeclaredValue}
+                          onChange={(e) => setCreateForm({ ...createForm, electronicsDeclaredValue: e.target.value })}
+                          placeholder="Valor del equipo ($)"
+                          className="px-3 py-2 rounded-lg bg-white border border-amber-300 text-xs font-medium text-slate-900 focus:outline-none"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Botones de acción */}
+                <div className="pt-2 flex items-center justify-end gap-3 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCreateModalOpen(false);
+                      setSelectedPickupToConvert(null);
+                    }}
+                    className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-100 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isCreating}
+                    className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-md transition-all disabled:opacity-50"
+                  >
+                    {isCreating ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> Guardando en BD...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-4 h-4" /> Guardar Warehouse en Oficina
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

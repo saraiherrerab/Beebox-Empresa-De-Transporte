@@ -342,7 +342,7 @@ export default function AdminPickupsPage() {
     setStatusFilter("EN_ORIGEN");
 
     setValidatedNotice(
-      `¡Warehouse ${selectedPickup.pickupCode} recibido en el almacén de origen! Ahora está disponible en Warehouse para asignar a Guías de Salida.`
+      `¡Pick up ${selectedPickup.pickupCode} recibido en la oficina! Ahora puedes convertirlo en Warehouse desde la opción "Crear desde Pick up" en Warehouses.`
     );
     setTimeout(() => setValidatedNotice(null), 8000);
     setSubmitting(false);
