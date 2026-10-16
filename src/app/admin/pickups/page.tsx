@@ -58,6 +58,11 @@ interface ApiPickup {
   pickupDate: string;
   timeSlot: string;
   status: string;
+  shipment?: {
+    trackingCode: string;
+    currentStatus: string;
+    serviceType?: string;
+  } | null;
   user?: {
     id?: string;
     name: string;
@@ -527,9 +532,19 @@ export default function AdminPickupsPage() {
                       <Truck className="w-3.5 h-3.5 text-amber-600" /> PICKUP A DOMICILIO
                     </span>
 
-                    <span className="text-xs font-black text-slate-900 font-mono">
-                      {p.pickupCode}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {p.shipment?.trackingCode && (
+                        <span
+                          className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 font-mono text-[10px] font-black border border-emerald-300"
+                          title={`Transformado en Warehouse ${p.shipment.trackingCode}`}
+                        >
+                          WR: {p.shipment.trackingCode}
+                        </span>
+                      )}
+                      <span className="text-xs font-black text-slate-900 font-mono">
+                        {p.pickupCode}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between pt-1">
@@ -639,18 +654,27 @@ export default function AdminPickupsPage() {
                       ? "Solicitud generada por el cliente. Asigna un vehículo de la flota e inicia la recolección."
                       : isEnProceso(selectedPickup.status)
                       ? `Pickup en proceso. ${selectedPickup.vehicle?.name ? `Unidad asignada: ${selectedPickup.vehicle.name}.` : "Vehículo asignado en ruta."} Cuando la unidad entregue el paquete en almacén, marca 'Recibido en Origen'.`
-                      : "¡Paquete recibido en almacén de origen! El pickup finalizó exitosamente y ahora es un envío oficial."}
+                      : selectedPickup.shipment?.trackingCode
+                      ? `¡Paquete recibido en almacén y transformado en Warehouse ${selectedPickup.shipment.trackingCode}! Ya cuenta con código oficial de almacén.`
+                      : "¡Paquete recibido en la oficina! Listo para ser formalizado como Warehouse (WR) desde la opción 'Crear desde Pick up'."}
                   </span>
                 </div>
 
-                {isEnOrigen(selectedPickup.status) && (
+                {selectedPickup.shipment?.trackingCode ? (
                   <Link
-                    href={`/admin/warehouses?search=${selectedPickup.pickupCode}`}
+                    href={`/admin/warehouses?search=${selectedPickup.shipment.trackingCode}`}
                     className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-1.5 transition-colors shrink-0 shadow-sm"
                   >
-                    <ArrowRight className="w-3.5 h-3.5" /> Ir a Warehouse
+                    <ArrowRight className="w-3.5 h-3.5" /> Ver Warehouse {selectedPickup.shipment.trackingCode}
                   </Link>
-                )}
+                ) : isEnOrigen(selectedPickup.status) ? (
+                  <Link
+                    href={`/admin/warehouses`}
+                    className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 transition-colors shrink-0 shadow-sm"
+                  >
+                    <ArrowRight className="w-3.5 h-3.5" /> Crear Warehouse WR
+                  </Link>
+                ) : null}
               </div>
 
               {/* Two Column Details Grid */}

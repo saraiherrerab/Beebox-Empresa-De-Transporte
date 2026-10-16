@@ -193,6 +193,7 @@ function AdminWarehousesContent() {
             lastActivity: sortedEvents[0]?.timestamp || item.updatedAt || item.createdAt || "Reciente",
             activityDesc: sortedEvents[0]?.title || `Estado actual: ${normalizedStatus}`,
             hasPickup,
+            originPickupCode: item.pickup?.pickupCode || matchedPickup?.pickupCode || (item.pickupId ? (pickupsData.find((p: any) => p.id === item.pickupId)?.pickupCode) : undefined),
             senderName: item.senderName || matchedPickup?.senderName || "Remitente Almacén",
             senderAddress: item.senderAddress || matchedPickup?.senderAddress,
             senderCity: item.senderCity || matchedPickup?.senderCity,
@@ -325,13 +326,15 @@ function AdminWarehousesContent() {
 
   const handleSelectPickup = (pk: any) => {
     setSelectedPickupToConvert(pk);
-    const code = pk.pickupCode?.startsWith("WR-")
-      ? pk.pickupCode
-      : `WR-${Math.floor(10000 + Math.random() * 90000)}`;
+    // Extraer sufijo o número del pickup (ej: PK-48291 -> 48291) para transformar en WR-48291 y conservar trazabilidad directa
+    const rawNum = pk.pickupCode
+      ? pk.pickupCode.replace(/^[A-Za-z]+-/, "")
+      : `${Math.floor(10000 + Math.random() * 90000)}`;
+    const code = `WR-${rawNum}`;
     const boxes = pk.boxCount ? Number(pk.boxCount) : 1;
     const weight = pk.totalWeightKg ? Number(pk.totalWeightKg) : 1.0;
     const dims = pk.verifiedDimensions || pk.dimensions || `${boxes} caja(s) (30x20x15 cm)`;
-    const notes = pk.inspectionNotes || `Recolección Pick up recibida en oficina (${boxes} caja/s)`;
+    const notes = pk.inspectionNotes || `Carga formalizada a partir del Pick up ${pk.pickupCode} (${boxes} caja/s)`;
 
     setCreateForm({
       code,
@@ -664,8 +667,16 @@ function AdminWarehousesContent() {
                             <Eye className="w-3.5 h-3.5 text-slate-400 hover:text-amber-500" />
                           </button>
                         </div>
-                        <div className="flex items-center gap-1.5 mt-1">
-                          {sh.hasPickup ? (
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                          {sh.originPickupCode ? (
+                            <span
+                              className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 text-[9px] font-black inline-flex items-center gap-1"
+                              title={`Transformado desde Pick up ${sh.originPickupCode}`}
+                            >
+                              <Truck className="w-2.5 h-2.5 text-amber-700" />
+                              <span>{sh.originPickupCode}</span>
+                            </span>
+                          ) : sh.hasPickup ? (
                             <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[9px] font-extrabold inline-flex items-center gap-0.5">
                               <Truck className="w-2.5 h-2.5" /> Pickup
                             </span>
@@ -998,14 +1009,14 @@ function AdminWarehousesContent() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-black text-amber-950">
-                            Creando desde Pick up: {selectedPickupToConvert.pickupCode}
+                            Transformando Pick up: {selectedPickupToConvert.pickupCode} ➔ Warehouse {createForm.code}
                           </span>
                           <span className="text-[10px] font-bold text-amber-800 bg-amber-200/70 px-2 py-0.5 rounded-full">
                             {selectedPickupToConvert.senderName}
                           </span>
                         </div>
                         <p className="text-[11px] text-amber-800 font-medium">
-                          Datos cargados automáticamente. Revisa la modalidad de envío y los campos antes de confirmar.
+                          Trazabilidad garantizada: el código original {selectedPickupToConvert.pickupCode} quedará registrado en el historial del nuevo Warehouse {createForm.code}.
                         </p>
                       </div>
                     </div>

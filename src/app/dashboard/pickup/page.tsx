@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import {
   Check,
   ArrowRight,
@@ -54,6 +55,10 @@ interface ClientPickup {
   timeSlot: string;
   status: string;
   createdAt?: string;
+  shipment?: {
+    trackingCode: string;
+    currentStatus: string;
+  } | null;
   vehicle?: {
     name: string;
   };
@@ -494,7 +499,7 @@ export default function SolicitarPickupPage() {
                     </div>
 
                     {/* Card Actions */}
-                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                       <button
                         onClick={() => setSelectedPickupModal(p)}
                         className="text-xs font-bold text-amber-600 hover:text-amber-700 inline-flex items-center gap-1"
@@ -502,11 +507,19 @@ export default function SolicitarPickupPage() {
                         <Eye className="w-3.5 h-3.5" /> Ver Detalle
                       </button>
 
-                      {isConfirmed && (
+                      {p.shipment?.trackingCode ? (
+                        <Link
+                          href={`/rastreo?guia=${p.shipment.trackingCode}`}
+                          className="text-[10px] font-black text-emerald-800 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 px-2.5 py-1 rounded-lg inline-flex items-center gap-1 transition-colors"
+                        >
+                          <span>WR: {p.shipment.trackingCode}</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </Link>
+                      ) : isConfirmed ? (
                         <span className="text-[10px] font-extrabold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg">
-                          Envío Generado
+                          En Ruta
                         </span>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 );
@@ -831,9 +844,37 @@ export default function SolicitarPickupPage() {
                     ? "En espera de confirmación por el personal operativo para asignar chofer y ruta."
                     : selectedPickupModal.status === "CONFIRMADO"
                     ? "Pickup confirmado. Unidad de flota en proceso de recolección hacia tu domicilio."
+                    : selectedPickupModal.shipment?.trackingCode
+                    ? `Paquete recibido en almacén y transformado en Warehouse ${selectedPickupModal.shipment.trackingCode}.`
                     : "Paquete recolectado con éxito e ingresado en el almacén de despacho."}
                 </span>
               </div>
+
+              {/* Trazabilidad con Warehouse si ya fue transformado */}
+              {selectedPickupModal.shipment?.trackingCode && (
+                <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white font-black flex items-center justify-center shrink-0">
+                      <Package className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black uppercase text-emerald-700 block tracking-wider">
+                        Trazabilidad a Warehouse
+                      </span>
+                      <p className="font-bold text-xs mt-0.5">
+                        Formalizado como: <strong className="font-mono text-emerald-950">{selectedPickupModal.shipment.trackingCode}</strong>
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href={`/rastreo?guia=${selectedPickupModal.shipment.trackingCode}`}
+                    className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs inline-flex items-center gap-1 shadow-sm transition-colors shrink-0"
+                  >
+                    <span>Rastrear WR</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              )}
 
               {/* Data Grid */}
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
