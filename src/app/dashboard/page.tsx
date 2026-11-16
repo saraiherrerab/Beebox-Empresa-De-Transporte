@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Check, FileUp, Package, Plus, Loader2 } from "lucide-react";
+import { Check, FileUp, Package, Plus, Loader2, Megaphone, Sparkles } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { WarehouseCard } from "@/components/client/WarehouseCard";
 import { Button } from "@/components/ui/Button";
@@ -29,11 +29,24 @@ interface ApiShipment {
 import { API_URL } from "@/config/api";
 
 export default function DashboardOverviewPage() {
-  const { user, prealertas } = useAuth();
+  const { user, prealertas, socket } = useAuth();
   const [shipments, setShipments] = useState<ApiShipment[]>([]);
+  const [cmsItems, setCmsItems] = useState<Array<{ id: string; type: string; title: string; description: string }>>([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchCMSAnnouncements = () => {
+    fetch(`${API_URL}/cms`, { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && Array.isArray(data.items)) {
+          setCmsItems(data.items.filter((i: any) => i.active !== false));
+        }
+      })
+      .catch(() => {});
+  };
+
   useEffect(() => {
+    fetchCMSAnnouncements();
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
     if (token) {
       fetch(`${API_URL}/shipments`, {
@@ -58,6 +71,14 @@ export default function DashboardOverviewPage() {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+    socket.on("cms:updated", fetchCMSAnnouncements);
+    return () => {
+      socket.off("cms:updated", fetchCMSAnnouncements);
+    };
+  }, [socket]);
 
   const totalActivePackages = shipments.length + prealertas.length;
   const activeShipment = shipments[0] || null;
@@ -100,6 +121,46 @@ export default function DashboardOverviewPage() {
           </span>
         )}
       </div>
+
+      {/* Anuncios y Avisos publicados desde el CMS (OBS-10) */}
+      {cmsItems.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {cmsItems.slice(0, 4).map((item) => {
+            const isNotice = (item.type || "").toLowerCase() === "notice";
+            return (
+              <div
+                key={item.id}
+                className={`p-4 rounded-2xl border flex items-start gap-3 shadow-sm ${
+                  isNotice
+                    ? "bg-amber-50 border-amber-200 text-amber-950"
+                    : "bg-slate-900 border-slate-800 text-white"
+                }`}
+              >
+                <div
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                    isNotice ? "bg-amber-500 text-slate-950" : "bg-amber-500/20 text-amber-400"
+                  }`}
+                >
+                  {isNotice ? <Megaphone className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+                </div>
+                <div className="space-y-0.5">
+                  <span
+                    className={`text-[9px] font-black uppercase tracking-wider block ${
+                      isNotice ? "text-amber-700" : "text-amber-400"
+                    }`}
+                  >
+                    {isNotice ? "Aviso Operativo" : "Promoción / Banner"}
+                  </span>
+                  <h4 className="text-xs font-black">{item.title}</h4>
+                  <p className={`text-[11px] font-medium ${isNotice ? "text-slate-700" : "text-slate-300"}`}>
+                    {item.description}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">

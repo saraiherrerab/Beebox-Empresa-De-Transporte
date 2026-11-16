@@ -131,8 +131,9 @@ export default function AdminPickupsPage() {
     Promise.allSettled([
       fetch(`${API_URL}/pickups`, { headers: authHeaders }).then((res) => res.json()),
       fetch(`${API_URL}/fleet`, { headers: authHeaders }).then((res) => res.json()),
+      fetch(`${API_URL}/shipments`, { headers: authHeaders }).then((res) => res.json()),
     ])
-      .then(([pickupsResult, fleetResult]) => {
+      .then(([pickupsResult, fleetResult, shipmentsResult]) => {
         let list: ApiPickup[] = [];
         if (pickupsResult.status === "fulfilled") {
           const data = pickupsResult.value;
@@ -142,6 +143,34 @@ export default function AdminPickupsPage() {
             ? data.pickups
             : [];
         }
+
+        const shipmentsList: any[] =
+          shipmentsResult.status === "fulfilled" && Array.isArray(shipmentsResult.value)
+            ? shipmentsResult.value
+            : [];
+
+        // Enriquecer cada pickup con su shipment si existe relación por pickupId o código WR equivalente (OBS-11)
+        list = list.map((p) => {
+          if (p.shipment?.trackingCode) return p;
+          const expectedWr = p.pickupCode ? `WR-${p.pickupCode.replace(/^[A-Za-z]+-/, "")}` : "";
+          const matchedShipment = shipmentsList.find(
+            (s) =>
+              s.pickupId === p.id ||
+              s.trackingCode === p.pickupCode ||
+              (expectedWr && s.trackingCode === expectedWr)
+          );
+          if (matchedShipment) {
+            return {
+              ...p,
+              shipment: {
+                trackingCode: matchedShipment.trackingCode,
+                currentStatus: matchedShipment.currentStatus,
+                serviceType: matchedShipment.serviceType,
+              },
+            };
+          }
+          return p;
+        });
 
         setPickups(list);
         if (list.length > 0) {
@@ -669,7 +698,7 @@ export default function AdminPickupsPage() {
                   </Link>
                 ) : isEnOrigen(selectedPickup.status) ? (
                   <Link
-                    href={`/admin/warehouses`}
+                    href={`/admin/warehouses?fromPickup=${selectedPickup.id}`}
                     className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 transition-colors shrink-0 shadow-sm"
                   >
                     <ArrowRight className="w-3.5 h-3.5" /> Crear Warehouse WR
@@ -1140,10 +1169,17 @@ export default function AdminPickupsPage() {
                       <CheckCircle2 className="w-4 h-4" /> Recolección completada en bodega.
                     </div>
                     <Link
-                      href={`/admin/warehouses?search=${selectedPickup.pickupCode}`}
+                      href={
+                        selectedPickup.shipment?.trackingCode
+                          ? `/admin/warehouses?search=${selectedPickup.shipment.trackingCode}`
+                          : `/admin/warehouses?fromPickup=${selectedPickup.id}`
+                      }
                       className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all"
                     >
-                      <ArrowRight className="w-4 h-4 stroke-[2.5]" /> Ver en Warehouse
+                      <ArrowRight className="w-4 h-4 stroke-[2.5]" />{" "}
+                      {selectedPickup.shipment?.trackingCode
+                        ? `Ver Warehouse ${selectedPickup.shipment.trackingCode}`
+                        : "Formalizar en Warehouse"}
                     </Link>
                   </div>
                 )}

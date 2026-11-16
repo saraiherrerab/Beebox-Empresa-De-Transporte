@@ -1,19 +1,21 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, ArrowRight, Sparkles, Package, Mail, Lock, User, Phone, AlertCircle, Loader2, Check, X } from "lucide-react";
+import { CheckCircle2, ArrowRight, Sparkles, Package, Mail, Lock, User, Phone, AlertCircle, Loader2, Check, X, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 export default function RegistroPage() {
   const router = useRouter();
   const { register } = useAuth();
+  const passwordInputRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [createdSuite, setCreatedSuite] = useState<string | null>(null);
@@ -155,15 +157,29 @@ export default function RegistroPage() {
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1 uppercase">Contraseña Segura</label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5 pointer-events-none" />
                   <input
-                    type="password"
+                    ref={passwordInputRef}
+                    type={showPassword ? "text" : "password"}
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-300 text-slate-900 text-xs font-bold focus:outline-none focus:border-amber-500"
+                    autoComplete="new-password"
+                    className="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-300 text-slate-900 text-xs font-bold focus:outline-none focus:border-amber-500"
                   />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPassword((prev) => !prev);
+                      passwordInputRef.current?.focus();
+                    }}
+                    aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                    aria-pressed={showPassword}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
 
                 {/* Requisitos de Contraseña en tiempo real */}

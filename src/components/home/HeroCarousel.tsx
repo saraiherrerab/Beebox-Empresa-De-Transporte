@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, ArrowRight, ShieldCheck, Sparkles, Package } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { API_URL } from "@/config/api";
 
 interface SlideData {
-  id: number;
+  id: string;
   badge: string;
   titleLine1: string;
   titleLine2: string;
@@ -18,37 +19,69 @@ interface SlideData {
   bgGradient: string;
 }
 
+const DEFAULT_SLIDES: SlideData[] = [
+  {
+    id: "default-1",
+    badge: "⚡ CASILLERO VIRTUAL EN OKLAHOMA & MIAMI",
+    titleLine1: "RASTREA TUS SUEÑOS,",
+    titleLine2: "NOSOTROS LOS LLEVAMOS.",
+    description:
+      "Tu casillero internacional con entregas rápidas, tarifas transparentes y soporte personalizado en cada envío.",
+    primaryBtnText: "ABRIR CASILLERO GRATIS",
+    primaryBtnHref: "/registro",
+    secondaryBtnText: "CALCULAR TARIFA",
+    secondaryBtnHref: "#calculadora",
+    bgGradient: "from-slate-950 via-slate-900 to-slate-950",
+  },
+  {
+    id: "default-2",
+    badge: "🚢 LOGÍSTICA MARÍTIMA Y AÉREA INTEGRAL",
+    titleLine1: "IMPORTACIONES DIRECTAS",
+    titleLine2: "CON TARIFAS PREFERENCIALES.",
+    description:
+      "Consolida tus compras de Amazon, eBay y Walmart. Nosotros nos encargamos de todo el despacho aduanero.",
+    primaryBtnText: "ABRIR CASILLERO GRATIS",
+    primaryBtnHref: "/registro",
+    secondaryBtnText: "VER COBERTURA",
+    secondaryBtnHref: "#cobertura",
+    bgGradient: "from-slate-950 via-slate-900 to-slate-950",
+  },
+];
+
 export const HeroCarousel: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [slides, setSlides] = useState<SlideData[]>(DEFAULT_SLIDES);
 
-  const slides: SlideData[] = [
-    {
-      id: 1,
-      badge: "⚡ CASILLERO VIRTUAL EN MIAMI & MADRID",
-      titleLine1: "RASTREA TUS SUEÑOS,",
-      titleLine2: "NOSOTROS LOS LLEVAMOS.",
-      description:
-        "Tu casillero virtual en Miami, Madrid y Shenzhen con entregas rápidas, tarifas transparentes y soporte personalizado.",
-      primaryBtnText: "ABRIR CASILLERO GRATIS",
-      primaryBtnHref: "/registro",
-      secondaryBtnText: "CALCULAR TARIFA",
-      secondaryBtnHref: "#calculadora",
-      bgGradient: "from-slate-950 via-slate-900 to-slate-950",
-    },
-    {
-      id: 2,
-      badge: "🚢 LOGÍSTICA MARÍTIMA Y AÉREA INTEGRAL",
-      titleLine1: "IMPORTACIONES DIRECTAS",
-      titleLine2: "CON TARIFAS DESDE $6/KG.",
-      description:
-        "Consolida tus compras de Amazon, eBay y proveedores de China. Nosotros nos encargamos de todo el despacho aduanero.",
-      primaryBtnText: "ABRIR CASILLERO GRATIS",
-      primaryBtnHref: "/registro",
-      secondaryBtnText: "VER COBERTURA",
-      secondaryBtnHref: "#cobertura",
-      bgGradient: "from-slate-950 via-slate-900 to-slate-950",
-    },
-  ];
+  useEffect(() => {
+    fetch(`${API_URL}/cms`, { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && Array.isArray(data.items)) {
+          const heroItems = data.items.filter(
+            (item: any) =>
+              item.active !== false &&
+              (item.type?.toLowerCase() === "hero_banner" || item.type?.toLowerCase() === "hero")
+          );
+          if (heroItems.length > 0) {
+            const dynamicSlides: SlideData[] = heroItems.map((item: any) => ({
+              id: item.id,
+              badge: "✨ DESTACADO BEEBOX",
+              titleLine1: item.title.toUpperCase(),
+              titleLine2: "LOGÍSTICA INTERNACIONAL 24/7",
+              description: item.description,
+              primaryBtnText: "ABRIR CASILLERO GRATIS",
+              primaryBtnHref: item.linkUrl || "/registro",
+              secondaryBtnText: "CALCULAR TARIFA",
+              secondaryBtnHref: "#calculadora",
+              bgGradient: "from-slate-950 via-slate-900 to-slate-950",
+            }));
+            setSlides([...dynamicSlides, ...DEFAULT_SLIDES]);
+            setCurrentSlide(0);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -65,7 +98,7 @@ export const HeroCarousel: React.FC = () => {
     setCurrentSlide((prev) => (prev + 1) % slides.length);
   };
 
-  const slide = slides[currentSlide];
+  const slide = slides[currentSlide] || slides[0];
 
   return (
     <section className="relative bg-slate-950 text-white overflow-hidden border-b border-slate-800">
@@ -85,9 +118,9 @@ export const HeroCarousel: React.FC = () => {
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-none text-white">
               {slide.titleLine1}
             </h1>
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-none text-amber-400">
+            <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-none text-amber-400">
               {slide.titleLine2}
-            </h1>
+            </h2>
           </div>
 
           {/* Description */}
@@ -120,12 +153,14 @@ export const HeroCarousel: React.FC = () => {
       <div className="absolute bottom-6 right-6 z-20 flex items-center gap-2">
         <button
           onClick={prevSlide}
+          aria-label="Diapositiva anterior"
           className="p-3 rounded-full bg-slate-900/80 hover:bg-slate-800 text-white border border-slate-800 shadow-md backdrop-blur-sm transition-all"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
         <button
           onClick={nextSlide}
+          aria-label="Siguiente diapositiva"
           className="p-3 rounded-full bg-slate-900/80 hover:bg-slate-800 text-white border border-slate-800 shadow-md backdrop-blur-sm transition-all"
         >
           <ChevronRight className="w-5 h-5" />
@@ -138,6 +173,7 @@ export const HeroCarousel: React.FC = () => {
           <button
             key={s.id}
             onClick={() => setCurrentSlide(idx)}
+            aria-label={`Ir a diapositiva ${idx + 1}`}
             className={`h-2 rounded-full transition-all ${
               currentSlide === idx ? "w-8 bg-amber-400" : "w-2 bg-slate-700"
             }`}

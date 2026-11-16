@@ -71,6 +71,7 @@ const isServiceAereo = (type: string = "") => {
 function AdminWarehousesContent() {
   const searchParams = useSearchParams();
   const urlSearch = searchParams.get("search") || "";
+  const fromPickupParam = searchParams.get("fromPickup") || "";
   const { socket, refreshPrealertas } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("todos");
   const [search, setSearch] = useState(urlSearch);
@@ -221,10 +222,14 @@ function AdminWarehousesContent() {
             st.includes("ORIGEN") ||
             st.includes("ALMACEN") ||
             st.includes("COMPLETADO");
+          const expectedWr = pk.pickupCode ? `WR-${pk.pickupCode.replace(/^[A-Za-z]+-/, "")}` : "";
           const hasLinkedShipment = Boolean(
             pk.shipment ||
             shipmentsData.some(
-              (s: any) => s.pickupId === pk.id || s.trackingCode === pk.pickupCode
+              (s: any) =>
+                s.pickupId === pk.id ||
+                s.trackingCode === pk.pickupCode ||
+                (expectedWr && s.trackingCode === expectedWr)
             )
           );
           return isInOffice && !hasLinkedShipment;
@@ -232,6 +237,37 @@ function AdminWarehousesContent() {
 
         setAvailableOfficePickups(officePickups);
         setDbShipments(mapped);
+
+        if (fromPickupParam) {
+          const targetPk = officePickups.find(
+            (pk: any) => pk.id === fromPickupParam || pk.pickupCode === fromPickupParam
+          );
+          if (targetPk) {
+            setCreationMode("pickup");
+            handleSelectPickup(targetPk);
+            setIsCreateModalOpen(true);
+          } else {
+            const alreadyConverted = pickupsData.find(
+              (pk: any) => pk.id === fromPickupParam || pk.pickupCode === fromPickupParam
+            );
+            if (alreadyConverted) {
+              const expectedWr = alreadyConverted.pickupCode
+                ? `WR-${alreadyConverted.pickupCode.replace(/^[A-Za-z]+-/, "")}`
+                : "";
+              const existingWr =
+                alreadyConverted.shipment?.trackingCode ||
+                shipmentsData.find(
+                  (s: any) => s.pickupId === alreadyConverted.id || s.trackingCode === expectedWr
+                )?.trackingCode;
+              if (existingWr) {
+                setSearch(existingWr);
+                setNoticeMsg(
+                  `El pickup ${alreadyConverted.pickupCode} ya cuenta con el Warehouse ${existingWr} asignado.`
+                );
+              }
+            }
+          }
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false));

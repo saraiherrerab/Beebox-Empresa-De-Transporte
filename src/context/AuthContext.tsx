@@ -40,6 +40,7 @@ interface AuthContextType {
   addPrealerta: (item: Omit<PrealertaItem, "id" | "createdAt" | "status">) => Promise<void>;
   updatePrealerta: (id: string, data: Partial<PrealertaItem>) => Promise<void>;
   linkPrealerta: (id: string, warehouseGuide: string, destination?: string, providerWarehouseReceipt?: string) => Promise<void>;
+  updateUserProfile: (data: { name?: string; phone?: string }) => Promise<void>;
   login: (email: string, pass: string) => Promise<void>;
   register: (name: string, email: string, password: string, phone?: string) => Promise<void>;
   logout: () => void;
@@ -106,7 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: p.description,
           amountPaid: String(p.amountPaid),
           receiptFileName: p.receiptFileName || undefined,
-          createdAt: p.createdAt ? p.createdAt.split("T")[0] : new Date().toISOString().split("T")[0],
+          createdAt: p.createdAt || new Date().toISOString(),
           destination: p.destination || "",
           status: p.status as any,
           warehouseGuide: p.warehouseGuide || undefined,
@@ -174,8 +175,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addPrealerta = async (item: Omit<PrealertaItem, "id" | "createdAt" | "status">) => {
     const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
     if (token) {
+      let res: Response;
       try {
-        const res = await fetchWithTimeout(`${API_URL}/prealertas`, {
+        res = await fetchWithTimeout(`${API_URL}/prealertas`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -191,19 +193,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             destination: item.destination,
           }),
         });
-        if (res.ok) {
-          await refreshPrealertas();
-          return;
-        }
       } catch {
-        // Fallback local
+        const newItem: PrealertaItem = {
+          ...item,
+          id: `pre_${Date.now()}`,
+          createdAt: new Date().toISOString(),
+          status: "Prealertado",
+        };
+        setPrealertas((prev) => [newItem, ...prev]);
+        return;
       }
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json.message || "Error al registrar la prealerta.");
+      }
+      await refreshPrealertas();
+      return;
     }
 
     const newItem: PrealertaItem = {
       ...item,
       id: `pre_${Date.now()}`,
-      createdAt: new Date().toISOString().split("T")[0],
+      createdAt: new Date().toISOString(),
       status: "Prealertado",
     };
     setPrealertas((prev) => [newItem, ...prev]);
@@ -320,6 +332,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateUserProfile = async (data: { name?: string; phone?: string }) => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("beebox_token") : null;
+    if (!token) {
+      throw new Error("Sesión no válida.");
+    }
+    const res = await fetchWithTimeout(`${API_URL}/auth/profile`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(json.message || "Error al actualizar los datos del perfil.");
+    }
+    if (json.user) {
+      setUser(json.user);
+    } else if (user) {
+      setUser({
+        ...user,
+        ...(data.name !== undefined ? { name: data.name } : {}),
+        ...(data.phone !== undefined ? { phone: data.phone } : {}),
+      });
+    }
+  };
+
   const logout = () => {
     if (typeof window !== "undefined") {
       localStorage.removeItem("beebox_token");
@@ -342,6 +382,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addPrealerta,
         updatePrealerta,
         linkPrealerta,
+        updateUserProfile,
         login,
         register,
         logout,
