@@ -69,7 +69,7 @@ export default function RecuperarContrasenaPage() {
               <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
                 <span>
-                  {successMsg} Revisa también la carpeta de spam. El enlace vence en 1 hora.
+                  {successMsg} Revisa también la carpeta de spam. El enlace vence en 30 minutos.
                 </span>
               </div>
               <Link
